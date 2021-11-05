@@ -1,1 +1,4 @@
-*.gprj.user
+*/tangnano/*.gprj.user
+*/tangnano/impl/gwsynthesis
+*/tangnano/impl/pnr
+*/tangnano/impl/temp
