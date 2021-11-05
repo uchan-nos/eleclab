@@ -1,0 +1,16 @@
+IO_LOC "sys_clk" 35
+IO_LOC "rst_n_raw" 15;
+
+IO_LOC "data[0]" 27;
+IO_LOC "data[1]" 28;
+IO_LOC "data[2]" 29;
+IO_LOC "data[3]" 30;
+IO_LOC "data[4]" 31;
+IO_LOC "data[5]" 32;
+IO_LOC "data[6]" 33;
+IO_LOC "data[7]" 34;
+IO_LOC "data[8]" 38;
+
+IO_LOC "led[0]" 16;
+IO_LOC "led[1]" 17;
+IO_LOC "led[2]" 18;

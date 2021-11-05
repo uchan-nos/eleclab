@@ -1,0 +1,3944 @@
+//Copyright (C)2014-2021 Gowin Semiconductor Corporation.
+//All rights reserved.
+//File Title: Post-PnR Simulation Model file
+//GOWIN Version: V1.9.8Beta
+//Created Time: Sat Aug 21 10:33:00 2021
+
+module CORDIC_Top(
+	clk,
+	rst,
+	init,
+	x_i,
+	y_i,
+	theta_i,
+	x_o,
+	y_o,
+	theta_o
+);
+input clk;
+input rst;
+input init;
+input [16:0] x_i;
+input [16:0] y_i;
+input [16:0] theta_i;
+output [16:0] x_o;
+output [16:0] y_o;
+output [16:0] theta_o;
+wire GND;
+wire VCC;
+wire clk;
+wire init;
+wire rst;
+wire [16:0] theta_i;
+wire [16:0] theta_o;
+wire [16:0] x_i;
+wire [16:0] x_o;
+wire [16:0] y_i;
+wire [16:0] y_o;
+wire \u_cordic/n74_31 ;
+wire \u_cordic/n76_33 ;
+wire \u_cordic/z[16]_1_4 ;
+wire \u_cordic/n78_44 ;
+wire \u_cordic/n77_29 ;
+wire \u_cordic/n75_30 ;
+wire \u_cordic/n73_29 ;
+wire \u_cordic/n71_29 ;
+wire \u_cordic/n59_4 ;
+wire \u_cordic/n69_30 ;
+wire \u_cordic/n67_28 ;
+wire \u_cordic/n70_27 ;
+wire \u_cordic/n72_30 ;
+wire \u_cordic/n57_6 ;
+wire \u_cordic/n58_6 ;
+wire \u_cordic/n69_32 ;
+wire \u_cordic/n67_32 ;
+wire \u_cordic/n65_31 ;
+wire \u_cordic/n66_29 ;
+wire \u_cordic/n68_29 ;
+wire \u_cordic/n60_6 ;
+wire \u_cordic/x_i_shifted_14_4 ;
+wire \u_cordic/x_i_shifted_11_4 ;
+wire \u_cordic/x_i_shifted_7_6 ;
+wire [16:0] \u_cordic/x ;
+wire [16:0] \u_cordic/y ;
+wire [16:0] \u_cordic/z ;
+wire [3:0] \u_cordic/iteration ;
+wire \u_cordic/U/n250_3 ;
+wire \u_cordic/U/n251_3 ;
+wire \u_cordic/U/n252_3 ;
+wire \u_cordic/U/n253_3 ;
+wire \u_cordic/U/n254_3 ;
+wire \u_cordic/U/n255_3 ;
+wire \u_cordic/U/n256_3 ;
+wire \u_cordic/U/n257_3 ;
+wire \u_cordic/U/n258_3 ;
+wire \u_cordic/U/n259_3 ;
+wire \u_cordic/U/n260_3 ;
+wire \u_cordic/U/n261_3 ;
+wire \u_cordic/U/n262_3 ;
+wire \u_cordic/U/n263_3 ;
+wire \u_cordic/U/n264_3 ;
+wire \u_cordic/U/n265_3 ;
+wire \u_cordic/U/n266_3 ;
+wire \u_cordic/U/n267_3 ;
+wire \u_cordic/U/n268_3 ;
+wire \u_cordic/U/n269_3 ;
+wire \u_cordic/U/n270_3 ;
+wire \u_cordic/U/n271_3 ;
+wire \u_cordic/U/n272_3 ;
+wire \u_cordic/U/n273_3 ;
+wire \u_cordic/U/n274_3 ;
+wire \u_cordic/U/n275_3 ;
+wire \u_cordic/U/n276_3 ;
+wire \u_cordic/U/n277_3 ;
+wire \u_cordic/U/n278_3 ;
+wire \u_cordic/U/n279_3 ;
+wire \u_cordic/U/n280_3 ;
+wire \u_cordic/U/n281_3 ;
+wire \u_cordic/U/n282_3 ;
+wire \u_cordic/U/n283_3 ;
+wire \u_cordic/U/n285_3 ;
+wire \u_cordic/U/n286_3 ;
+wire \u_cordic/U/n287_3 ;
+wire \u_cordic/U/n288_3 ;
+wire \u_cordic/U/n289_3 ;
+wire \u_cordic/U/n290_3 ;
+wire \u_cordic/U/n291_3 ;
+wire \u_cordic/U/n292_3 ;
+wire \u_cordic/U/n293_3 ;
+wire \u_cordic/U/n294_3 ;
+wire \u_cordic/U/n295_3 ;
+wire \u_cordic/U/n296_3 ;
+wire \u_cordic/U/n297_3 ;
+wire \u_cordic/U/n298_3 ;
+wire \u_cordic/U/n299_3 ;
+wire \u_cordic/U/n300_3 ;
+wire \u_cordic/U/n284_6 ;
+wire \u_cordic/U/n215_2 ;
+wire \u_cordic/U/n215_1_1 ;
+wire \u_cordic/U/n214_2 ;
+wire \u_cordic/U/n214_1_1 ;
+wire \u_cordic/U/n213_2 ;
+wire \u_cordic/U/n213_1_1 ;
+wire \u_cordic/U/n212_2 ;
+wire \u_cordic/U/n212_1_1 ;
+wire \u_cordic/U/n211_2 ;
+wire \u_cordic/U/n211_1_1 ;
+wire \u_cordic/U/n210_2 ;
+wire \u_cordic/U/n210_1_1 ;
+wire \u_cordic/U/n209_2 ;
+wire \u_cordic/U/n209_1_1 ;
+wire \u_cordic/U/n208_2 ;
+wire \u_cordic/U/n208_1_1 ;
+wire \u_cordic/U/n207_2 ;
+wire \u_cordic/U/n207_1_1 ;
+wire \u_cordic/U/n206_2 ;
+wire \u_cordic/U/n206_1_1 ;
+wire \u_cordic/U/n205_2 ;
+wire \u_cordic/U/n205_1_1 ;
+wire \u_cordic/U/n204_2 ;
+wire \u_cordic/U/n204_1_1 ;
+wire \u_cordic/U/n203_2 ;
+wire \u_cordic/U/n203_1_1 ;
+wire \u_cordic/U/n202_2 ;
+wire \u_cordic/U/n202_1_1 ;
+wire \u_cordic/U/n201_2 ;
+wire \u_cordic/U/n201_1_1 ;
+wire \u_cordic/U/n200_2 ;
+wire \u_cordic/U/n200_1_1 ;
+wire \u_cordic/U/n199_2 ;
+wire \u_cordic/U/n199_1_0_COUT ;
+wire \u_cordic/U/n249_2 ;
+wire \u_cordic/U/n249_1_1 ;
+wire \u_cordic/U/n248_2 ;
+wire \u_cordic/U/n248_1_1 ;
+wire \u_cordic/U/n247_2 ;
+wire \u_cordic/U/n247_1_1 ;
+wire \u_cordic/U/n246_2 ;
+wire \u_cordic/U/n246_1_1 ;
+wire \u_cordic/U/n245_2 ;
+wire \u_cordic/U/n245_1_1 ;
+wire \u_cordic/U/n244_2 ;
+wire \u_cordic/U/n244_1_1 ;
+wire \u_cordic/U/n243_2 ;
+wire \u_cordic/U/n243_1_1 ;
+wire \u_cordic/U/n242_2 ;
+wire \u_cordic/U/n242_1_1 ;
+wire \u_cordic/U/n241_2 ;
+wire \u_cordic/U/n241_1_1 ;
+wire \u_cordic/U/n240_2 ;
+wire \u_cordic/U/n240_1_1 ;
+wire \u_cordic/U/n239_2 ;
+wire \u_cordic/U/n239_1_1 ;
+wire \u_cordic/U/n238_2 ;
+wire \u_cordic/U/n238_1_1 ;
+wire \u_cordic/U/n237_2 ;
+wire \u_cordic/U/n237_1_1 ;
+wire \u_cordic/U/n236_2 ;
+wire \u_cordic/U/n236_1_1 ;
+wire \u_cordic/U/n235_2 ;
+wire \u_cordic/U/n235_1_1 ;
+wire \u_cordic/U/n234_2 ;
+wire \u_cordic/U/n234_1_1 ;
+wire \u_cordic/U/n232_2 ;
+wire \u_cordic/U/n232_1_1 ;
+wire \u_cordic/U/n231_2 ;
+wire \u_cordic/U/n231_1_1 ;
+wire \u_cordic/U/n230_2 ;
+wire \u_cordic/U/n230_1_1 ;
+wire \u_cordic/U/n229_2 ;
+wire \u_cordic/U/n229_1_1 ;
+wire \u_cordic/U/n228_2 ;
+wire \u_cordic/U/n228_1_1 ;
+wire \u_cordic/U/n227_2 ;
+wire \u_cordic/U/n227_1_1 ;
+wire \u_cordic/U/n226_2 ;
+wire \u_cordic/U/n226_1_1 ;
+wire \u_cordic/U/n225_2 ;
+wire \u_cordic/U/n225_1_1 ;
+wire \u_cordic/U/n224_2 ;
+wire \u_cordic/U/n224_1_1 ;
+wire \u_cordic/U/n223_2 ;
+wire \u_cordic/U/n223_1_1 ;
+wire \u_cordic/U/n222_2 ;
+wire \u_cordic/U/n222_1_1 ;
+wire \u_cordic/U/n221_2 ;
+wire \u_cordic/U/n221_1_1 ;
+wire \u_cordic/U/n220_2 ;
+wire \u_cordic/U/n220_1_1 ;
+wire \u_cordic/U/n219_2 ;
+wire \u_cordic/U/n219_1_1 ;
+wire \u_cordic/U/n218_2 ;
+wire \u_cordic/U/n218_1_1 ;
+wire \u_cordic/U/n217_2 ;
+wire \u_cordic/U/n217_1_1 ;
+wire \u_cordic/U/n216_2 ;
+wire \u_cordic/U/n216_1_0_COUT ;
+wire \u_cordic/U/x_i_shifted_9_6 ;
+wire \u_cordic/U/x_i_shifted_6_8 ;
+wire \u_cordic/U/x_i_shifted_4_7 ;
+wire \u_cordic/U/x_i_shifted_3_6 ;
+wire \u_cordic/U/x_i_shifted_4_14 ;
+wire \u_cordic/U/x_i_shifted_6_11 ;
+wire \u_cordic/U/y_i_shifted_10_5 ;
+wire \u_cordic/U/y_i_shifted_7_11 ;
+wire [15:0] \u_cordic/U/x_i_shifted ;
+wire [15:0] \u_cordic/U/y_i_shifted ;
+wire \u_cordic/U/x_shifter/x_i_shifted_14_3 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_13_3 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_13_4 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_12_3 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_10_3 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_9_3 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_9_4 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_9_5 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_8_3 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_8_4 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_7_3 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_7_4 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_7_5 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_6_3 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_6_4 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_5_3 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_5_4 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_5_5 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_4_5 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_4_6 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_3_3 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_3_4 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_3_5 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_2_4 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_2_5 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_1_3 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_1_4 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_0_3 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_0_4 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_0_5 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_0_6 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_12_5 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_10_5 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_9_7 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_8_5 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_8_6 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_7_7 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_7_8 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_7_9 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_7_10 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_6_6 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_6_7 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_5_6 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_4_8 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_4_9 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_4_11 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_3_7 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_3_8 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_3_10 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_3_11 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_2_6 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_2_7 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_2_8 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_2_9 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_2_10 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_1_5 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_1_6 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_1_7 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_1_8 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_0_7 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_0_8 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_0_9 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_0_11 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_7_11 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_6_9 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_5_8 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_4_12 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_3_12 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_3_13 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_2_11 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_2_12 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_2_13 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_1_10 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_1_13 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_0_12 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_0_13 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_3_15 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_2_14 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_0_14 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_3_17 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_0_16 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_1_15 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_1_17 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_1_19 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_5_10 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_3_19 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_4_16 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_4_18 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_2_16 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_10_7 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_11_6 ;
+wire \u_cordic/U/x_shifter/x_i_shifted_12_7 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_14_3 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_13_3 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_13_4 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_12_3 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_10_3 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_10_4 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_9_3 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_9_5 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_8_3 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_8_4 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_8_5 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_7_3 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_7_4 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_6_3 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_6_4 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_5_4 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_5_5 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_4_3 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_4_4 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_4_5 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_3_3 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_3_4 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_3_5 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_3_6 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_2_3 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_2_4 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_2_5 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_1_3 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_1_4 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_1_5 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_1_6 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_0_3 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_0_4 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_0_5 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_14_4 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_12_5 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_11_4 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_10_6 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_10_7 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_9_6 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_8_6 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_8_7 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_7_6 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_7_8 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_6_5 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_6_6 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_6_7 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_6_8 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_5_6 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_5_7 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_5_8 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_4_6 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_4_7 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_4_8 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_3_7 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_3_8 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_3_9 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_3_10 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_2_6 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_2_8 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_2_9 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_1_7 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_1_8 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_1_10 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_1_11 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_1_12 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_1_13 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_0_6 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_0_7 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_0_8 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_0_9 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_0_10 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_11_5 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_10_8 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_7_9 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_6_9 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_5_9 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_4_9 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_4_10 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_3_11 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_3_12 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_2_10 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_2_11 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_1_14 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_1_15 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_1_16 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_0_11 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_1_17 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_1_18 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_1_20 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_9_8 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_0_14 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_2_13 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_7_13 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_4_13 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_5_11 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_11_7 ;
+wire \u_cordic/U/y_shifter/y_i_shifted_12_7 ;
+VCC VCC_cZ (
+  .V(VCC)
+);
+GND GND_cZ (
+  .G(GND)
+);
+GSR GSR (
+	.GSRI(VCC)
+);
+LUT3 \u_cordic/x_16_s0  (
+	.I0(x_i[16]),
+	.I1(x_o[16]),
+	.I2(init),
+	.F(\u_cordic/x [16])
+);
+defparam \u_cordic/x_16_s0 .INIT=8'hAC;
+LUT3 \u_cordic/x_15_s0  (
+	.I0(x_o[15]),
+	.I1(x_i[15]),
+	.I2(init),
+	.F(\u_cordic/x [15])
+);
+defparam \u_cordic/x_15_s0 .INIT=8'hCA;
+LUT3 \u_cordic/x_14_s0  (
+	.I0(x_o[14]),
+	.I1(x_i[14]),
+	.I2(init),
+	.F(\u_cordic/x [14])
+);
+defparam \u_cordic/x_14_s0 .INIT=8'hCA;
+LUT3 \u_cordic/x_13_s0  (
+	.I0(x_o[13]),
+	.I1(x_i[13]),
+	.I2(init),
+	.F(\u_cordic/x [13])
+);
+defparam \u_cordic/x_13_s0 .INIT=8'hCA;
+LUT3 \u_cordic/x_12_s0  (
+	.I0(x_o[12]),
+	.I1(x_i[12]),
+	.I2(init),
+	.F(\u_cordic/x [12])
+);
+defparam \u_cordic/x_12_s0 .INIT=8'hCA;
+LUT3 \u_cordic/x_11_s0  (
+	.I0(x_o[11]),
+	.I1(x_i[11]),
+	.I2(init),
+	.F(\u_cordic/x [11])
+);
+defparam \u_cordic/x_11_s0 .INIT=8'hCA;
+LUT3 \u_cordic/x_10_s0  (
+	.I0(x_o[10]),
+	.I1(x_i[10]),
+	.I2(init),
+	.F(\u_cordic/x [10])
+);
+defparam \u_cordic/x_10_s0 .INIT=8'hCA;
+LUT3 \u_cordic/x_9_s0  (
+	.I0(x_o[9]),
+	.I1(x_i[9]),
+	.I2(init),
+	.F(\u_cordic/x [9])
+);
+defparam \u_cordic/x_9_s0 .INIT=8'hCA;
+LUT3 \u_cordic/x_8_s0  (
+	.I0(x_o[8]),
+	.I1(x_i[8]),
+	.I2(init),
+	.F(\u_cordic/x [8])
+);
+defparam \u_cordic/x_8_s0 .INIT=8'hCA;
+LUT3 \u_cordic/x_7_s0  (
+	.I0(x_o[7]),
+	.I1(x_i[7]),
+	.I2(init),
+	.F(\u_cordic/x [7])
+);
+defparam \u_cordic/x_7_s0 .INIT=8'hCA;
+LUT3 \u_cordic/x_6_s0  (
+	.I0(x_o[6]),
+	.I1(x_i[6]),
+	.I2(init),
+	.F(\u_cordic/x [6])
+);
+defparam \u_cordic/x_6_s0 .INIT=8'hCA;
+LUT3 \u_cordic/x_5_s0  (
+	.I0(x_o[5]),
+	.I1(x_i[5]),
+	.I2(init),
+	.F(\u_cordic/x [5])
+);
+defparam \u_cordic/x_5_s0 .INIT=8'hCA;
+LUT3 \u_cordic/x_4_s0  (
+	.I0(x_o[4]),
+	.I1(x_i[4]),
+	.I2(init),
+	.F(\u_cordic/x [4])
+);
+defparam \u_cordic/x_4_s0 .INIT=8'hCA;
+LUT3 \u_cordic/x_3_s0  (
+	.I0(x_o[3]),
+	.I1(x_i[3]),
+	.I2(init),
+	.F(\u_cordic/x [3])
+);
+defparam \u_cordic/x_3_s0 .INIT=8'hCA;
+LUT3 \u_cordic/x_2_s0  (
+	.I0(x_o[2]),
+	.I1(x_i[2]),
+	.I2(init),
+	.F(\u_cordic/x [2])
+);
+defparam \u_cordic/x_2_s0 .INIT=8'hCA;
+LUT3 \u_cordic/x_1_s0  (
+	.I0(x_o[1]),
+	.I1(x_i[1]),
+	.I2(init),
+	.F(\u_cordic/x [1])
+);
+defparam \u_cordic/x_1_s0 .INIT=8'hCA;
+LUT3 \u_cordic/x_0_s0  (
+	.I0(x_o[0]),
+	.I1(x_i[0]),
+	.I2(init),
+	.F(\u_cordic/x [0])
+);
+defparam \u_cordic/x_0_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_16_s0  (
+	.I0(y_o[16]),
+	.I1(y_i[16]),
+	.I2(init),
+	.F(\u_cordic/y [16])
+);
+defparam \u_cordic/y_16_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_15_s0  (
+	.I0(y_o[15]),
+	.I1(y_i[15]),
+	.I2(init),
+	.F(\u_cordic/y [15])
+);
+defparam \u_cordic/y_15_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_14_s0  (
+	.I0(y_o[14]),
+	.I1(y_i[14]),
+	.I2(init),
+	.F(\u_cordic/y [14])
+);
+defparam \u_cordic/y_14_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_13_s0  (
+	.I0(y_o[13]),
+	.I1(y_i[13]),
+	.I2(init),
+	.F(\u_cordic/y [13])
+);
+defparam \u_cordic/y_13_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_12_s0  (
+	.I0(y_o[12]),
+	.I1(y_i[12]),
+	.I2(init),
+	.F(\u_cordic/y [12])
+);
+defparam \u_cordic/y_12_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_11_s0  (
+	.I0(y_o[11]),
+	.I1(y_i[11]),
+	.I2(init),
+	.F(\u_cordic/y [11])
+);
+defparam \u_cordic/y_11_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_10_s0  (
+	.I0(y_o[10]),
+	.I1(y_i[10]),
+	.I2(init),
+	.F(\u_cordic/y [10])
+);
+defparam \u_cordic/y_10_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_9_s0  (
+	.I0(y_o[9]),
+	.I1(y_i[9]),
+	.I2(init),
+	.F(\u_cordic/y [9])
+);
+defparam \u_cordic/y_9_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_8_s0  (
+	.I0(y_o[8]),
+	.I1(y_i[8]),
+	.I2(init),
+	.F(\u_cordic/y [8])
+);
+defparam \u_cordic/y_8_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_7_s0  (
+	.I0(y_o[7]),
+	.I1(y_i[7]),
+	.I2(init),
+	.F(\u_cordic/y [7])
+);
+defparam \u_cordic/y_7_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_6_s0  (
+	.I0(y_o[6]),
+	.I1(y_i[6]),
+	.I2(init),
+	.F(\u_cordic/y [6])
+);
+defparam \u_cordic/y_6_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_5_s0  (
+	.I0(y_o[5]),
+	.I1(y_i[5]),
+	.I2(init),
+	.F(\u_cordic/y [5])
+);
+defparam \u_cordic/y_5_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_4_s0  (
+	.I0(y_o[4]),
+	.I1(y_i[4]),
+	.I2(init),
+	.F(\u_cordic/y [4])
+);
+defparam \u_cordic/y_4_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_3_s0  (
+	.I0(y_o[3]),
+	.I1(y_i[3]),
+	.I2(init),
+	.F(\u_cordic/y [3])
+);
+defparam \u_cordic/y_3_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_2_s0  (
+	.I0(y_o[2]),
+	.I1(y_i[2]),
+	.I2(init),
+	.F(\u_cordic/y [2])
+);
+defparam \u_cordic/y_2_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_1_s0  (
+	.I0(y_o[1]),
+	.I1(y_i[1]),
+	.I2(init),
+	.F(\u_cordic/y [1])
+);
+defparam \u_cordic/y_1_s0 .INIT=8'hCA;
+LUT3 \u_cordic/y_0_s0  (
+	.I0(y_o[0]),
+	.I1(y_i[0]),
+	.I2(init),
+	.F(\u_cordic/y [0])
+);
+defparam \u_cordic/y_0_s0 .INIT=8'hCA;
+LUT3 \u_cordic/z_15_s0  (
+	.I0(theta_o[15]),
+	.I1(theta_i[15]),
+	.I2(init),
+	.F(\u_cordic/z [15])
+);
+defparam \u_cordic/z_15_s0 .INIT=8'hCA;
+LUT3 \u_cordic/z_14_s0  (
+	.I0(theta_o[14]),
+	.I1(theta_i[14]),
+	.I2(init),
+	.F(\u_cordic/z [14])
+);
+defparam \u_cordic/z_14_s0 .INIT=8'hCA;
+LUT3 \u_cordic/z_13_s0  (
+	.I0(theta_o[13]),
+	.I1(theta_i[13]),
+	.I2(init),
+	.F(\u_cordic/z [13])
+);
+defparam \u_cordic/z_13_s0 .INIT=8'hCA;
+LUT3 \u_cordic/z_12_s0  (
+	.I0(theta_o[12]),
+	.I1(theta_i[12]),
+	.I2(init),
+	.F(\u_cordic/z [12])
+);
+defparam \u_cordic/z_12_s0 .INIT=8'hCA;
+LUT3 \u_cordic/z_11_s0  (
+	.I0(theta_o[11]),
+	.I1(theta_i[11]),
+	.I2(init),
+	.F(\u_cordic/z [11])
+);
+defparam \u_cordic/z_11_s0 .INIT=8'hCA;
+LUT3 \u_cordic/z_10_s0  (
+	.I0(theta_o[10]),
+	.I1(theta_i[10]),
+	.I2(init),
+	.F(\u_cordic/z [10])
+);
+defparam \u_cordic/z_10_s0 .INIT=8'hCA;
+LUT3 \u_cordic/z_9_s0  (
+	.I0(theta_o[9]),
+	.I1(theta_i[9]),
+	.I2(init),
+	.F(\u_cordic/z [9])
+);
+defparam \u_cordic/z_9_s0 .INIT=8'hCA;
+LUT3 \u_cordic/z_8_s0  (
+	.I0(theta_o[8]),
+	.I1(theta_i[8]),
+	.I2(init),
+	.F(\u_cordic/z [8])
+);
+defparam \u_cordic/z_8_s0 .INIT=8'hCA;
+LUT3 \u_cordic/z_7_s0  (
+	.I0(theta_o[7]),
+	.I1(theta_i[7]),
+	.I2(init),
+	.F(\u_cordic/z [7])
+);
+defparam \u_cordic/z_7_s0 .INIT=8'hCA;
+LUT3 \u_cordic/z_6_s0  (
+	.I0(theta_o[6]),
+	.I1(theta_i[6]),
+	.I2(init),
+	.F(\u_cordic/z [6])
+);
+defparam \u_cordic/z_6_s0 .INIT=8'hCA;
+LUT3 \u_cordic/z_5_s0  (
+	.I0(theta_o[5]),
+	.I1(theta_i[5]),
+	.I2(init),
+	.F(\u_cordic/z [5])
+);
+defparam \u_cordic/z_5_s0 .INIT=8'hCA;
+LUT3 \u_cordic/z_4_s0  (
+	.I0(theta_o[4]),
+	.I1(theta_i[4]),
+	.I2(init),
+	.F(\u_cordic/z [4])
+);
+defparam \u_cordic/z_4_s0 .INIT=8'hCA;
+LUT3 \u_cordic/z_3_s0  (
+	.I0(theta_o[3]),
+	.I1(theta_i[3]),
+	.I2(init),
+	.F(\u_cordic/z [3])
+);
+defparam \u_cordic/z_3_s0 .INIT=8'hCA;
+LUT3 \u_cordic/z_2_s0  (
+	.I0(theta_o[2]),
+	.I1(theta_i[2]),
+	.I2(init),
+	.F(\u_cordic/z [2])
+);
+defparam \u_cordic/z_2_s0 .INIT=8'hCA;
+LUT3 \u_cordic/z_1_s0  (
+	.I0(theta_o[1]),
+	.I1(theta_i[1]),
+	.I2(init),
+	.F(\u_cordic/z [1])
+);
+defparam \u_cordic/z_1_s0 .INIT=8'hCA;
+LUT3 \u_cordic/z_0_s0  (
+	.I0(theta_o[0]),
+	.I1(theta_i[0]),
+	.I2(init),
+	.F(\u_cordic/z [0])
+);
+defparam \u_cordic/z_0_s0 .INIT=8'hCA;
+LUT4 \u_cordic/n74_s21  (
+	.I0(\u_cordic/iteration [3]),
+	.I1(\u_cordic/iteration [0]),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/n74_31 )
+);
+defparam \u_cordic/n74_s21 .INIT=16'h410E;
+LUT4 \u_cordic/n76_s22  (
+	.I0(\u_cordic/iteration [1]),
+	.I1(\u_cordic/iteration [3]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/n76_33 )
+);
+defparam \u_cordic/n76_s22 .INIT=16'h07C8;
+LUT3 \u_cordic/z[16]_1_s2  (
+	.I0(theta_o[16]),
+	.I1(theta_i[16]),
+	.I2(init),
+	.F(\u_cordic/z[16]_1_4 )
+);
+defparam \u_cordic/z[16]_1_s2 .INIT=8'h35;
+LUT4 \u_cordic/n78_s31  (
+	.I0(\u_cordic/iteration [2]),
+	.I1(\u_cordic/iteration [3]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/n78_44 )
+);
+defparam \u_cordic/n78_s31 .INIT=16'h6B54;
+LUT4 \u_cordic/n77_s20  (
+	.I0(\u_cordic/iteration [3]),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/n77_29 )
+);
+defparam \u_cordic/n77_s20 .INIT=16'h7088;
+LUT4 \u_cordic/n75_s21  (
+	.I0(\u_cordic/iteration [3]),
+	.I1(\u_cordic/iteration [0]),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/n75_30 )
+);
+defparam \u_cordic/n75_s21 .INIT=16'h043A;
+LUT4 \u_cordic/n73_s20  (
+	.I0(\u_cordic/iteration [2]),
+	.I1(\u_cordic/iteration [0]),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/n73_29 )
+);
+defparam \u_cordic/n73_s20 .INIT=16'h01E0;
+LUT4 \u_cordic/n71_s20  (
+	.I0(\u_cordic/iteration [1]),
+	.I1(\u_cordic/iteration [2]),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [0]),
+	.F(\u_cordic/n71_29 )
+);
+defparam \u_cordic/n71_s20 .INIT=16'h050C;
+LUT2 \u_cordic/n59_s0  (
+	.I0(\u_cordic/iteration [0]),
+	.I1(\u_cordic/iteration [1]),
+	.F(\u_cordic/n59_4 )
+);
+defparam \u_cordic/n59_s0 .INIT=4'h6;
+LUT2 \u_cordic/n69_s21  (
+	.I0(\u_cordic/iteration [2]),
+	.I1(\u_cordic/iteration [1]),
+	.F(\u_cordic/n69_30 )
+);
+defparam \u_cordic/n69_s21 .INIT=4'h1;
+LUT2 \u_cordic/n67_s20  (
+	.I0(\u_cordic/iteration [0]),
+	.I1(\u_cordic/iteration [1]),
+	.F(\u_cordic/n67_28 )
+);
+defparam \u_cordic/n67_s20 .INIT=4'h8;
+LUT4 \u_cordic/n70_s19  (
+	.I0(\u_cordic/iteration [0]),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/x_i_shifted_14_4 ),
+	.I3(\u_cordic/x_i_shifted_7_6 ),
+	.F(\u_cordic/n70_27 )
+);
+defparam \u_cordic/n70_s19 .INIT=16'hFF90;
+LUT4 \u_cordic/n72_s21  (
+	.I0(\u_cordic/iteration [3]),
+	.I1(\u_cordic/iteration [0]),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/n72_30 )
+);
+defparam \u_cordic/n72_s21 .INIT=16'h5400;
+LUT4 \u_cordic/n57_s1  (
+	.I0(\u_cordic/iteration [2]),
+	.I1(\u_cordic/iteration [0]),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/n57_6 )
+);
+defparam \u_cordic/n57_s1 .INIT=16'h7F80;
+LUT3 \u_cordic/n58_s1  (
+	.I0(\u_cordic/iteration [2]),
+	.I1(\u_cordic/iteration [0]),
+	.I2(\u_cordic/iteration [1]),
+	.F(\u_cordic/n58_6 )
+);
+defparam \u_cordic/n58_s1 .INIT=8'h6A;
+LUT4 \u_cordic/n69_s22  (
+	.I0(\u_cordic/iteration [2]),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/x_i_shifted_11_4 ),
+	.F(\u_cordic/n69_32 )
+);
+defparam \u_cordic/n69_s22 .INIT=16'hFE00;
+LUT3 \u_cordic/z_16_s1  (
+	.I0(theta_o[16]),
+	.I1(theta_i[16]),
+	.I2(init),
+	.F(\u_cordic/z [16])
+);
+defparam \u_cordic/z_16_s1 .INIT=8'hCA;
+LUT4 \u_cordic/n67_s22  (
+	.I0(\u_cordic/iteration [0]),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/n67_32 )
+);
+defparam \u_cordic/n67_s22 .INIT=16'h0007;
+LUT4 \u_cordic/n65_s21  (
+	.I0(\u_cordic/iteration [3]),
+	.I1(\u_cordic/iteration [2]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/n65_31 )
+);
+defparam \u_cordic/n65_s21 .INIT=16'h0001;
+LUT4 \u_cordic/n66_s20  (
+	.I0(\u_cordic/iteration [1]),
+	.I1(\u_cordic/iteration [0]),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/n66_29 )
+);
+defparam \u_cordic/n66_s20 .INIT=16'h0004;
+LUT4 \u_cordic/n68_s20  (
+	.I0(\u_cordic/iteration [1]),
+	.I1(\u_cordic/iteration [0]),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/n68_29 )
+);
+defparam \u_cordic/n68_s20 .INIT=16'h000B;
+DFFC \u_cordic/iteration_2_s0  (
+	.D(\u_cordic/n58_6 ),
+	.CLK(clk),
+	.CLEAR(init),
+	.Q(\u_cordic/iteration [2])
+);
+defparam \u_cordic/iteration_2_s0 .INIT=1'b0;
+DFFC \u_cordic/iteration_1_s0  (
+	.D(\u_cordic/n59_4 ),
+	.CLK(clk),
+	.CLEAR(init),
+	.Q(\u_cordic/iteration [1])
+);
+defparam \u_cordic/iteration_1_s0 .INIT=1'b0;
+DFFC \u_cordic/iteration_0_s0  (
+	.D(\u_cordic/n60_6 ),
+	.CLK(clk),
+	.CLEAR(init),
+	.Q(\u_cordic/iteration [0])
+);
+defparam \u_cordic/iteration_0_s0 .INIT=1'b0;
+DFFC \u_cordic/iteration_3_s0  (
+	.D(\u_cordic/n57_6 ),
+	.CLK(clk),
+	.CLEAR(init),
+	.Q(\u_cordic/iteration [3])
+);
+defparam \u_cordic/iteration_3_s0 .INIT=1'b0;
+INV \u_cordic/n60_s2  (
+	.I(\u_cordic/iteration [0]),
+	.O(\u_cordic/n60_6 )
+);
+LUT3 \u_cordic/U/n250_s0  (
+	.I0(\u_cordic/U/n199_2 ),
+	.I1(x_i[16]),
+	.I2(init),
+	.F(\u_cordic/U/n250_3 )
+);
+defparam \u_cordic/U/n250_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n251_s0  (
+	.I0(\u_cordic/U/n200_2 ),
+	.I1(x_i[15]),
+	.I2(init),
+	.F(\u_cordic/U/n251_3 )
+);
+defparam \u_cordic/U/n251_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n252_s0  (
+	.I0(\u_cordic/U/n201_2 ),
+	.I1(x_i[14]),
+	.I2(init),
+	.F(\u_cordic/U/n252_3 )
+);
+defparam \u_cordic/U/n252_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n253_s0  (
+	.I0(\u_cordic/U/n202_2 ),
+	.I1(x_i[13]),
+	.I2(init),
+	.F(\u_cordic/U/n253_3 )
+);
+defparam \u_cordic/U/n253_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n254_s0  (
+	.I0(\u_cordic/U/n203_2 ),
+	.I1(x_i[12]),
+	.I2(init),
+	.F(\u_cordic/U/n254_3 )
+);
+defparam \u_cordic/U/n254_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n255_s0  (
+	.I0(\u_cordic/U/n204_2 ),
+	.I1(x_i[11]),
+	.I2(init),
+	.F(\u_cordic/U/n255_3 )
+);
+defparam \u_cordic/U/n255_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n256_s0  (
+	.I0(\u_cordic/U/n205_2 ),
+	.I1(x_i[10]),
+	.I2(init),
+	.F(\u_cordic/U/n256_3 )
+);
+defparam \u_cordic/U/n256_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n257_s0  (
+	.I0(\u_cordic/U/n206_2 ),
+	.I1(x_i[9]),
+	.I2(init),
+	.F(\u_cordic/U/n257_3 )
+);
+defparam \u_cordic/U/n257_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n258_s0  (
+	.I0(\u_cordic/U/n207_2 ),
+	.I1(x_i[8]),
+	.I2(init),
+	.F(\u_cordic/U/n258_3 )
+);
+defparam \u_cordic/U/n258_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n259_s0  (
+	.I0(\u_cordic/U/n208_2 ),
+	.I1(x_i[7]),
+	.I2(init),
+	.F(\u_cordic/U/n259_3 )
+);
+defparam \u_cordic/U/n259_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n260_s0  (
+	.I0(\u_cordic/U/n209_2 ),
+	.I1(x_i[6]),
+	.I2(init),
+	.F(\u_cordic/U/n260_3 )
+);
+defparam \u_cordic/U/n260_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n261_s0  (
+	.I0(\u_cordic/U/n210_2 ),
+	.I1(x_i[5]),
+	.I2(init),
+	.F(\u_cordic/U/n261_3 )
+);
+defparam \u_cordic/U/n261_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n262_s0  (
+	.I0(\u_cordic/U/n211_2 ),
+	.I1(x_i[4]),
+	.I2(init),
+	.F(\u_cordic/U/n262_3 )
+);
+defparam \u_cordic/U/n262_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n263_s0  (
+	.I0(\u_cordic/U/n212_2 ),
+	.I1(x_i[3]),
+	.I2(init),
+	.F(\u_cordic/U/n263_3 )
+);
+defparam \u_cordic/U/n263_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n264_s0  (
+	.I0(\u_cordic/U/n213_2 ),
+	.I1(x_i[2]),
+	.I2(init),
+	.F(\u_cordic/U/n264_3 )
+);
+defparam \u_cordic/U/n264_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n265_s0  (
+	.I0(\u_cordic/U/n214_2 ),
+	.I1(x_i[1]),
+	.I2(init),
+	.F(\u_cordic/U/n265_3 )
+);
+defparam \u_cordic/U/n265_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n266_s0  (
+	.I0(\u_cordic/U/n215_2 ),
+	.I1(x_i[0]),
+	.I2(init),
+	.F(\u_cordic/U/n266_3 )
+);
+defparam \u_cordic/U/n266_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n267_s0  (
+	.I0(\u_cordic/U/n216_2 ),
+	.I1(y_i[16]),
+	.I2(init),
+	.F(\u_cordic/U/n267_3 )
+);
+defparam \u_cordic/U/n267_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n268_s0  (
+	.I0(\u_cordic/U/n217_2 ),
+	.I1(y_i[15]),
+	.I2(init),
+	.F(\u_cordic/U/n268_3 )
+);
+defparam \u_cordic/U/n268_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n269_s0  (
+	.I0(\u_cordic/U/n218_2 ),
+	.I1(y_i[14]),
+	.I2(init),
+	.F(\u_cordic/U/n269_3 )
+);
+defparam \u_cordic/U/n269_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n270_s0  (
+	.I0(\u_cordic/U/n219_2 ),
+	.I1(y_i[13]),
+	.I2(init),
+	.F(\u_cordic/U/n270_3 )
+);
+defparam \u_cordic/U/n270_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n271_s0  (
+	.I0(\u_cordic/U/n220_2 ),
+	.I1(y_i[12]),
+	.I2(init),
+	.F(\u_cordic/U/n271_3 )
+);
+defparam \u_cordic/U/n271_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n272_s0  (
+	.I0(\u_cordic/U/n221_2 ),
+	.I1(y_i[11]),
+	.I2(init),
+	.F(\u_cordic/U/n272_3 )
+);
+defparam \u_cordic/U/n272_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n273_s0  (
+	.I0(\u_cordic/U/n222_2 ),
+	.I1(y_i[10]),
+	.I2(init),
+	.F(\u_cordic/U/n273_3 )
+);
+defparam \u_cordic/U/n273_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n274_s0  (
+	.I0(\u_cordic/U/n223_2 ),
+	.I1(y_i[9]),
+	.I2(init),
+	.F(\u_cordic/U/n274_3 )
+);
+defparam \u_cordic/U/n274_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n275_s0  (
+	.I0(\u_cordic/U/n224_2 ),
+	.I1(y_i[8]),
+	.I2(init),
+	.F(\u_cordic/U/n275_3 )
+);
+defparam \u_cordic/U/n275_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n276_s0  (
+	.I0(\u_cordic/U/n225_2 ),
+	.I1(y_i[7]),
+	.I2(init),
+	.F(\u_cordic/U/n276_3 )
+);
+defparam \u_cordic/U/n276_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n277_s0  (
+	.I0(\u_cordic/U/n226_2 ),
+	.I1(y_i[6]),
+	.I2(init),
+	.F(\u_cordic/U/n277_3 )
+);
+defparam \u_cordic/U/n277_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n278_s0  (
+	.I0(\u_cordic/U/n227_2 ),
+	.I1(y_i[5]),
+	.I2(init),
+	.F(\u_cordic/U/n278_3 )
+);
+defparam \u_cordic/U/n278_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n279_s0  (
+	.I0(\u_cordic/U/n228_2 ),
+	.I1(y_i[4]),
+	.I2(init),
+	.F(\u_cordic/U/n279_3 )
+);
+defparam \u_cordic/U/n279_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n280_s0  (
+	.I0(\u_cordic/U/n229_2 ),
+	.I1(y_i[3]),
+	.I2(init),
+	.F(\u_cordic/U/n280_3 )
+);
+defparam \u_cordic/U/n280_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n281_s0  (
+	.I0(\u_cordic/U/n230_2 ),
+	.I1(y_i[2]),
+	.I2(init),
+	.F(\u_cordic/U/n281_3 )
+);
+defparam \u_cordic/U/n281_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n282_s0  (
+	.I0(\u_cordic/U/n231_2 ),
+	.I1(y_i[1]),
+	.I2(init),
+	.F(\u_cordic/U/n282_3 )
+);
+defparam \u_cordic/U/n282_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n283_s0  (
+	.I0(\u_cordic/U/n232_2 ),
+	.I1(y_i[0]),
+	.I2(init),
+	.F(\u_cordic/U/n283_3 )
+);
+defparam \u_cordic/U/n283_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n285_s0  (
+	.I0(\u_cordic/U/n234_2 ),
+	.I1(theta_i[15]),
+	.I2(init),
+	.F(\u_cordic/U/n285_3 )
+);
+defparam \u_cordic/U/n285_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n286_s0  (
+	.I0(\u_cordic/U/n235_2 ),
+	.I1(theta_i[14]),
+	.I2(init),
+	.F(\u_cordic/U/n286_3 )
+);
+defparam \u_cordic/U/n286_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n287_s0  (
+	.I0(\u_cordic/U/n236_2 ),
+	.I1(theta_i[13]),
+	.I2(init),
+	.F(\u_cordic/U/n287_3 )
+);
+defparam \u_cordic/U/n287_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n288_s0  (
+	.I0(\u_cordic/U/n237_2 ),
+	.I1(theta_i[12]),
+	.I2(init),
+	.F(\u_cordic/U/n288_3 )
+);
+defparam \u_cordic/U/n288_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n289_s0  (
+	.I0(\u_cordic/U/n238_2 ),
+	.I1(theta_i[11]),
+	.I2(init),
+	.F(\u_cordic/U/n289_3 )
+);
+defparam \u_cordic/U/n289_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n290_s0  (
+	.I0(\u_cordic/U/n239_2 ),
+	.I1(theta_i[10]),
+	.I2(init),
+	.F(\u_cordic/U/n290_3 )
+);
+defparam \u_cordic/U/n290_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n291_s0  (
+	.I0(\u_cordic/U/n240_2 ),
+	.I1(theta_i[9]),
+	.I2(init),
+	.F(\u_cordic/U/n291_3 )
+);
+defparam \u_cordic/U/n291_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n292_s0  (
+	.I0(\u_cordic/U/n241_2 ),
+	.I1(theta_i[8]),
+	.I2(init),
+	.F(\u_cordic/U/n292_3 )
+);
+defparam \u_cordic/U/n292_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n293_s0  (
+	.I0(\u_cordic/U/n242_2 ),
+	.I1(theta_i[7]),
+	.I2(init),
+	.F(\u_cordic/U/n293_3 )
+);
+defparam \u_cordic/U/n293_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n294_s0  (
+	.I0(\u_cordic/U/n243_2 ),
+	.I1(theta_i[6]),
+	.I2(init),
+	.F(\u_cordic/U/n294_3 )
+);
+defparam \u_cordic/U/n294_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n295_s0  (
+	.I0(\u_cordic/U/n244_2 ),
+	.I1(theta_i[5]),
+	.I2(init),
+	.F(\u_cordic/U/n295_3 )
+);
+defparam \u_cordic/U/n295_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n296_s0  (
+	.I0(\u_cordic/U/n245_2 ),
+	.I1(theta_i[4]),
+	.I2(init),
+	.F(\u_cordic/U/n296_3 )
+);
+defparam \u_cordic/U/n296_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n297_s0  (
+	.I0(\u_cordic/U/n246_2 ),
+	.I1(theta_i[3]),
+	.I2(init),
+	.F(\u_cordic/U/n297_3 )
+);
+defparam \u_cordic/U/n297_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n298_s0  (
+	.I0(\u_cordic/U/n247_2 ),
+	.I1(theta_i[2]),
+	.I2(init),
+	.F(\u_cordic/U/n298_3 )
+);
+defparam \u_cordic/U/n298_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n299_s0  (
+	.I0(\u_cordic/U/n248_2 ),
+	.I1(theta_i[1]),
+	.I2(init),
+	.F(\u_cordic/U/n299_3 )
+);
+defparam \u_cordic/U/n299_s0 .INIT=8'hCA;
+LUT3 \u_cordic/U/n300_s0  (
+	.I0(\u_cordic/U/n249_2 ),
+	.I1(theta_i[0]),
+	.I2(init),
+	.F(\u_cordic/U/n300_3 )
+);
+defparam \u_cordic/U/n300_s0 .INIT=8'hCA;
+LUT4 \u_cordic/U/n284_s1  (
+	.I0(GND),
+	.I1(\u_cordic/U/n234_1_1 ),
+	.I2(theta_i[16]),
+	.I3(init),
+	.F(\u_cordic/U/n284_6 )
+);
+defparam \u_cordic/U/n284_s1 .INIT=16'hF099;
+DFFR \u_cordic/U/x_1_15_s0  (
+	.D(\u_cordic/U/n251_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[15])
+);
+defparam \u_cordic/U/x_1_15_s0 .INIT=1'b0;
+DFFR \u_cordic/U/x_1_14_s0  (
+	.D(\u_cordic/U/n252_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[14])
+);
+defparam \u_cordic/U/x_1_14_s0 .INIT=1'b0;
+DFFR \u_cordic/U/x_1_13_s0  (
+	.D(\u_cordic/U/n253_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[13])
+);
+defparam \u_cordic/U/x_1_13_s0 .INIT=1'b0;
+DFFR \u_cordic/U/x_1_12_s0  (
+	.D(\u_cordic/U/n254_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[12])
+);
+defparam \u_cordic/U/x_1_12_s0 .INIT=1'b0;
+DFFR \u_cordic/U/x_1_11_s0  (
+	.D(\u_cordic/U/n255_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[11])
+);
+defparam \u_cordic/U/x_1_11_s0 .INIT=1'b0;
+DFFR \u_cordic/U/x_1_10_s0  (
+	.D(\u_cordic/U/n256_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[10])
+);
+defparam \u_cordic/U/x_1_10_s0 .INIT=1'b0;
+DFFR \u_cordic/U/x_1_9_s0  (
+	.D(\u_cordic/U/n257_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[9])
+);
+defparam \u_cordic/U/x_1_9_s0 .INIT=1'b0;
+DFFR \u_cordic/U/x_1_8_s0  (
+	.D(\u_cordic/U/n258_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[8])
+);
+defparam \u_cordic/U/x_1_8_s0 .INIT=1'b0;
+DFFR \u_cordic/U/x_1_7_s0  (
+	.D(\u_cordic/U/n259_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[7])
+);
+defparam \u_cordic/U/x_1_7_s0 .INIT=1'b0;
+DFFR \u_cordic/U/x_1_6_s0  (
+	.D(\u_cordic/U/n260_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[6])
+);
+defparam \u_cordic/U/x_1_6_s0 .INIT=1'b0;
+DFFR \u_cordic/U/x_1_5_s0  (
+	.D(\u_cordic/U/n261_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[5])
+);
+defparam \u_cordic/U/x_1_5_s0 .INIT=1'b0;
+DFFR \u_cordic/U/x_1_4_s0  (
+	.D(\u_cordic/U/n262_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[4])
+);
+defparam \u_cordic/U/x_1_4_s0 .INIT=1'b0;
+DFFR \u_cordic/U/x_1_3_s0  (
+	.D(\u_cordic/U/n263_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[3])
+);
+defparam \u_cordic/U/x_1_3_s0 .INIT=1'b0;
+DFFR \u_cordic/U/x_1_2_s0  (
+	.D(\u_cordic/U/n264_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[2])
+);
+defparam \u_cordic/U/x_1_2_s0 .INIT=1'b0;
+DFFR \u_cordic/U/x_1_1_s0  (
+	.D(\u_cordic/U/n265_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[1])
+);
+defparam \u_cordic/U/x_1_1_s0 .INIT=1'b0;
+DFFR \u_cordic/U/x_1_0_s0  (
+	.D(\u_cordic/U/n266_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[0])
+);
+defparam \u_cordic/U/x_1_0_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_16_s0  (
+	.D(\u_cordic/U/n267_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[16])
+);
+defparam \u_cordic/U/y_1_16_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_15_s0  (
+	.D(\u_cordic/U/n268_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[15])
+);
+defparam \u_cordic/U/y_1_15_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_14_s0  (
+	.D(\u_cordic/U/n269_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[14])
+);
+defparam \u_cordic/U/y_1_14_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_13_s0  (
+	.D(\u_cordic/U/n270_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[13])
+);
+defparam \u_cordic/U/y_1_13_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_12_s0  (
+	.D(\u_cordic/U/n271_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[12])
+);
+defparam \u_cordic/U/y_1_12_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_11_s0  (
+	.D(\u_cordic/U/n272_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[11])
+);
+defparam \u_cordic/U/y_1_11_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_10_s0  (
+	.D(\u_cordic/U/n273_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[10])
+);
+defparam \u_cordic/U/y_1_10_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_9_s0  (
+	.D(\u_cordic/U/n274_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[9])
+);
+defparam \u_cordic/U/y_1_9_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_8_s0  (
+	.D(\u_cordic/U/n275_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[8])
+);
+defparam \u_cordic/U/y_1_8_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_7_s0  (
+	.D(\u_cordic/U/n276_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[7])
+);
+defparam \u_cordic/U/y_1_7_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_6_s0  (
+	.D(\u_cordic/U/n277_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[6])
+);
+defparam \u_cordic/U/y_1_6_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_5_s0  (
+	.D(\u_cordic/U/n278_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[5])
+);
+defparam \u_cordic/U/y_1_5_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_4_s0  (
+	.D(\u_cordic/U/n279_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[4])
+);
+defparam \u_cordic/U/y_1_4_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_3_s0  (
+	.D(\u_cordic/U/n280_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[3])
+);
+defparam \u_cordic/U/y_1_3_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_2_s0  (
+	.D(\u_cordic/U/n281_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[2])
+);
+defparam \u_cordic/U/y_1_2_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_1_s0  (
+	.D(\u_cordic/U/n282_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[1])
+);
+defparam \u_cordic/U/y_1_1_s0 .INIT=1'b0;
+DFFR \u_cordic/U/y_1_0_s0  (
+	.D(\u_cordic/U/n283_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(y_o[0])
+);
+defparam \u_cordic/U/y_1_0_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_16_s0  (
+	.D(\u_cordic/U/n284_6 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[16])
+);
+defparam \u_cordic/U/z_1_16_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_15_s0  (
+	.D(\u_cordic/U/n285_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[15])
+);
+defparam \u_cordic/U/z_1_15_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_14_s0  (
+	.D(\u_cordic/U/n286_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[14])
+);
+defparam \u_cordic/U/z_1_14_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_13_s0  (
+	.D(\u_cordic/U/n287_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[13])
+);
+defparam \u_cordic/U/z_1_13_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_12_s0  (
+	.D(\u_cordic/U/n288_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[12])
+);
+defparam \u_cordic/U/z_1_12_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_11_s0  (
+	.D(\u_cordic/U/n289_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[11])
+);
+defparam \u_cordic/U/z_1_11_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_10_s0  (
+	.D(\u_cordic/U/n290_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[10])
+);
+defparam \u_cordic/U/z_1_10_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_9_s0  (
+	.D(\u_cordic/U/n291_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[9])
+);
+defparam \u_cordic/U/z_1_9_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_8_s0  (
+	.D(\u_cordic/U/n292_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[8])
+);
+defparam \u_cordic/U/z_1_8_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_7_s0  (
+	.D(\u_cordic/U/n293_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[7])
+);
+defparam \u_cordic/U/z_1_7_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_6_s0  (
+	.D(\u_cordic/U/n294_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[6])
+);
+defparam \u_cordic/U/z_1_6_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_5_s0  (
+	.D(\u_cordic/U/n295_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[5])
+);
+defparam \u_cordic/U/z_1_5_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_4_s0  (
+	.D(\u_cordic/U/n296_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[4])
+);
+defparam \u_cordic/U/z_1_4_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_3_s0  (
+	.D(\u_cordic/U/n297_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[3])
+);
+defparam \u_cordic/U/z_1_3_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_2_s0  (
+	.D(\u_cordic/U/n298_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[2])
+);
+defparam \u_cordic/U/z_1_2_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_1_s0  (
+	.D(\u_cordic/U/n299_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[1])
+);
+defparam \u_cordic/U/z_1_1_s0 .INIT=1'b0;
+DFFR \u_cordic/U/z_1_0_s0  (
+	.D(\u_cordic/U/n300_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(theta_o[0])
+);
+defparam \u_cordic/U/z_1_0_s0 .INIT=1'b0;
+DFFR \u_cordic/U/x_1_16_s0  (
+	.D(\u_cordic/U/n250_3 ),
+	.CLK(clk),
+	.RESET(rst),
+	.Q(x_o[16])
+);
+defparam \u_cordic/U/x_1_16_s0 .INIT=1'b0;
+ALU \u_cordic/U/n215_1_s  (
+	.I0(\u_cordic/x [0]),
+	.I1(\u_cordic/U/y_i_shifted [0]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/z[16]_1_4 ),
+	.COUT(\u_cordic/U/n215_1_1 ),
+	.SUM(\u_cordic/U/n215_2 )
+);
+defparam \u_cordic/U/n215_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n214_1_s  (
+	.I0(\u_cordic/x [1]),
+	.I1(\u_cordic/U/y_i_shifted [1]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n215_1_1 ),
+	.COUT(\u_cordic/U/n214_1_1 ),
+	.SUM(\u_cordic/U/n214_2 )
+);
+defparam \u_cordic/U/n214_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n213_1_s  (
+	.I0(\u_cordic/x [2]),
+	.I1(\u_cordic/U/y_i_shifted [2]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n214_1_1 ),
+	.COUT(\u_cordic/U/n213_1_1 ),
+	.SUM(\u_cordic/U/n213_2 )
+);
+defparam \u_cordic/U/n213_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n212_1_s  (
+	.I0(\u_cordic/x [3]),
+	.I1(\u_cordic/U/y_i_shifted [3]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n213_1_1 ),
+	.COUT(\u_cordic/U/n212_1_1 ),
+	.SUM(\u_cordic/U/n212_2 )
+);
+defparam \u_cordic/U/n212_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n211_1_s  (
+	.I0(\u_cordic/x [4]),
+	.I1(\u_cordic/U/y_i_shifted [4]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n212_1_1 ),
+	.COUT(\u_cordic/U/n211_1_1 ),
+	.SUM(\u_cordic/U/n211_2 )
+);
+defparam \u_cordic/U/n211_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n210_1_s  (
+	.I0(\u_cordic/x [5]),
+	.I1(\u_cordic/U/y_i_shifted [5]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n211_1_1 ),
+	.COUT(\u_cordic/U/n210_1_1 ),
+	.SUM(\u_cordic/U/n210_2 )
+);
+defparam \u_cordic/U/n210_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n209_1_s  (
+	.I0(\u_cordic/x [6]),
+	.I1(\u_cordic/U/y_i_shifted [6]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n210_1_1 ),
+	.COUT(\u_cordic/U/n209_1_1 ),
+	.SUM(\u_cordic/U/n209_2 )
+);
+defparam \u_cordic/U/n209_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n208_1_s  (
+	.I0(\u_cordic/x [7]),
+	.I1(\u_cordic/U/y_i_shifted [7]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n209_1_1 ),
+	.COUT(\u_cordic/U/n208_1_1 ),
+	.SUM(\u_cordic/U/n208_2 )
+);
+defparam \u_cordic/U/n208_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n207_1_s  (
+	.I0(\u_cordic/x [8]),
+	.I1(\u_cordic/U/y_i_shifted [8]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n208_1_1 ),
+	.COUT(\u_cordic/U/n207_1_1 ),
+	.SUM(\u_cordic/U/n207_2 )
+);
+defparam \u_cordic/U/n207_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n206_1_s  (
+	.I0(\u_cordic/x [9]),
+	.I1(\u_cordic/U/y_i_shifted [9]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n207_1_1 ),
+	.COUT(\u_cordic/U/n206_1_1 ),
+	.SUM(\u_cordic/U/n206_2 )
+);
+defparam \u_cordic/U/n206_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n205_1_s  (
+	.I0(\u_cordic/x [10]),
+	.I1(\u_cordic/U/y_i_shifted [10]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n206_1_1 ),
+	.COUT(\u_cordic/U/n205_1_1 ),
+	.SUM(\u_cordic/U/n205_2 )
+);
+defparam \u_cordic/U/n205_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n204_1_s  (
+	.I0(\u_cordic/x [11]),
+	.I1(\u_cordic/U/y_i_shifted [11]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n205_1_1 ),
+	.COUT(\u_cordic/U/n204_1_1 ),
+	.SUM(\u_cordic/U/n204_2 )
+);
+defparam \u_cordic/U/n204_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n203_1_s  (
+	.I0(\u_cordic/x [12]),
+	.I1(\u_cordic/U/y_i_shifted [12]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n204_1_1 ),
+	.COUT(\u_cordic/U/n203_1_1 ),
+	.SUM(\u_cordic/U/n203_2 )
+);
+defparam \u_cordic/U/n203_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n202_1_s  (
+	.I0(\u_cordic/x [13]),
+	.I1(\u_cordic/U/y_i_shifted [13]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n203_1_1 ),
+	.COUT(\u_cordic/U/n202_1_1 ),
+	.SUM(\u_cordic/U/n202_2 )
+);
+defparam \u_cordic/U/n202_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n201_1_s  (
+	.I0(\u_cordic/x [14]),
+	.I1(\u_cordic/U/y_i_shifted [14]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n202_1_1 ),
+	.COUT(\u_cordic/U/n201_1_1 ),
+	.SUM(\u_cordic/U/n201_2 )
+);
+defparam \u_cordic/U/n201_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n200_1_s  (
+	.I0(\u_cordic/x [15]),
+	.I1(\u_cordic/U/y_i_shifted [15]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n201_1_1 ),
+	.COUT(\u_cordic/U/n200_1_1 ),
+	.SUM(\u_cordic/U/n200_2 )
+);
+defparam \u_cordic/U/n200_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n199_1_s  (
+	.I0(\u_cordic/x [16]),
+	.I1(\u_cordic/y [16]),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n200_1_1 ),
+	.COUT(\u_cordic/U/n199_1_0_COUT ),
+	.SUM(\u_cordic/U/n199_2 )
+);
+defparam \u_cordic/U/n199_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n249_1_s  (
+	.I0(\u_cordic/z [0]),
+	.I1(\u_cordic/n78_44 ),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/z[16]_1_4 ),
+	.COUT(\u_cordic/U/n249_1_1 ),
+	.SUM(\u_cordic/U/n249_2 )
+);
+defparam \u_cordic/U/n249_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n248_1_s  (
+	.I0(\u_cordic/z [1]),
+	.I1(\u_cordic/n77_29 ),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n249_1_1 ),
+	.COUT(\u_cordic/U/n248_1_1 ),
+	.SUM(\u_cordic/U/n248_2 )
+);
+defparam \u_cordic/U/n248_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n247_1_s  (
+	.I0(\u_cordic/z [2]),
+	.I1(\u_cordic/n76_33 ),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n248_1_1 ),
+	.COUT(\u_cordic/U/n247_1_1 ),
+	.SUM(\u_cordic/U/n247_2 )
+);
+defparam \u_cordic/U/n247_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n246_1_s  (
+	.I0(\u_cordic/z [3]),
+	.I1(\u_cordic/n75_30 ),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n247_1_1 ),
+	.COUT(\u_cordic/U/n246_1_1 ),
+	.SUM(\u_cordic/U/n246_2 )
+);
+defparam \u_cordic/U/n246_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n245_1_s  (
+	.I0(\u_cordic/z [4]),
+	.I1(\u_cordic/n74_31 ),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n246_1_1 ),
+	.COUT(\u_cordic/U/n245_1_1 ),
+	.SUM(\u_cordic/U/n245_2 )
+);
+defparam \u_cordic/U/n245_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n244_1_s  (
+	.I0(\u_cordic/z [5]),
+	.I1(\u_cordic/n73_29 ),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n245_1_1 ),
+	.COUT(\u_cordic/U/n244_1_1 ),
+	.SUM(\u_cordic/U/n244_2 )
+);
+defparam \u_cordic/U/n244_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n243_1_s  (
+	.I0(\u_cordic/z [6]),
+	.I1(\u_cordic/n72_30 ),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n244_1_1 ),
+	.COUT(\u_cordic/U/n243_1_1 ),
+	.SUM(\u_cordic/U/n243_2 )
+);
+defparam \u_cordic/U/n243_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n242_1_s  (
+	.I0(\u_cordic/z [7]),
+	.I1(\u_cordic/n71_29 ),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n243_1_1 ),
+	.COUT(\u_cordic/U/n242_1_1 ),
+	.SUM(\u_cordic/U/n242_2 )
+);
+defparam \u_cordic/U/n242_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n241_1_s  (
+	.I0(\u_cordic/z [8]),
+	.I1(\u_cordic/n70_27 ),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n242_1_1 ),
+	.COUT(\u_cordic/U/n241_1_1 ),
+	.SUM(\u_cordic/U/n241_2 )
+);
+defparam \u_cordic/U/n241_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n240_1_s  (
+	.I0(\u_cordic/z [9]),
+	.I1(\u_cordic/n69_32 ),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n241_1_1 ),
+	.COUT(\u_cordic/U/n240_1_1 ),
+	.SUM(\u_cordic/U/n240_2 )
+);
+defparam \u_cordic/U/n240_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n239_1_s  (
+	.I0(\u_cordic/z [10]),
+	.I1(\u_cordic/n68_29 ),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n240_1_1 ),
+	.COUT(\u_cordic/U/n239_1_1 ),
+	.SUM(\u_cordic/U/n239_2 )
+);
+defparam \u_cordic/U/n239_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n238_1_s  (
+	.I0(\u_cordic/z [11]),
+	.I1(\u_cordic/n67_32 ),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n239_1_1 ),
+	.COUT(\u_cordic/U/n238_1_1 ),
+	.SUM(\u_cordic/U/n238_2 )
+);
+defparam \u_cordic/U/n238_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n237_1_s  (
+	.I0(\u_cordic/z [12]),
+	.I1(\u_cordic/n66_29 ),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n238_1_1 ),
+	.COUT(\u_cordic/U/n237_1_1 ),
+	.SUM(\u_cordic/U/n237_2 )
+);
+defparam \u_cordic/U/n237_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n236_1_s  (
+	.I0(\u_cordic/z [13]),
+	.I1(\u_cordic/n65_31 ),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n237_1_1 ),
+	.COUT(\u_cordic/U/n236_1_1 ),
+	.SUM(\u_cordic/U/n236_2 )
+);
+defparam \u_cordic/U/n236_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n235_1_s  (
+	.I0(\u_cordic/z [14]),
+	.I1(GND),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n236_1_1 ),
+	.COUT(\u_cordic/U/n235_1_1 ),
+	.SUM(\u_cordic/U/n235_2 )
+);
+defparam \u_cordic/U/n235_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n234_1_s  (
+	.I0(\u_cordic/z [15]),
+	.I1(GND),
+	.I3(\u_cordic/z [16]),
+	.CIN(\u_cordic/U/n235_1_1 ),
+	.COUT(\u_cordic/U/n234_1_1 ),
+	.SUM(\u_cordic/U/n234_2 )
+);
+defparam \u_cordic/U/n234_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n232_1_s  (
+	.I0(\u_cordic/y [0]),
+	.I1(\u_cordic/U/x_i_shifted [0]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/z [16]),
+	.COUT(\u_cordic/U/n232_1_1 ),
+	.SUM(\u_cordic/U/n232_2 )
+);
+defparam \u_cordic/U/n232_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n231_1_s  (
+	.I0(\u_cordic/y [1]),
+	.I1(\u_cordic/U/x_i_shifted [1]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/U/n232_1_1 ),
+	.COUT(\u_cordic/U/n231_1_1 ),
+	.SUM(\u_cordic/U/n231_2 )
+);
+defparam \u_cordic/U/n231_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n230_1_s  (
+	.I0(\u_cordic/y [2]),
+	.I1(\u_cordic/U/x_i_shifted [2]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/U/n231_1_1 ),
+	.COUT(\u_cordic/U/n230_1_1 ),
+	.SUM(\u_cordic/U/n230_2 )
+);
+defparam \u_cordic/U/n230_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n229_1_s  (
+	.I0(\u_cordic/y [3]),
+	.I1(\u_cordic/U/x_i_shifted [3]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/U/n230_1_1 ),
+	.COUT(\u_cordic/U/n229_1_1 ),
+	.SUM(\u_cordic/U/n229_2 )
+);
+defparam \u_cordic/U/n229_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n228_1_s  (
+	.I0(\u_cordic/y [4]),
+	.I1(\u_cordic/U/x_i_shifted [4]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/U/n229_1_1 ),
+	.COUT(\u_cordic/U/n228_1_1 ),
+	.SUM(\u_cordic/U/n228_2 )
+);
+defparam \u_cordic/U/n228_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n227_1_s  (
+	.I0(\u_cordic/y [5]),
+	.I1(\u_cordic/U/x_i_shifted [5]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/U/n228_1_1 ),
+	.COUT(\u_cordic/U/n227_1_1 ),
+	.SUM(\u_cordic/U/n227_2 )
+);
+defparam \u_cordic/U/n227_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n226_1_s  (
+	.I0(\u_cordic/y [6]),
+	.I1(\u_cordic/U/x_i_shifted [6]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/U/n227_1_1 ),
+	.COUT(\u_cordic/U/n226_1_1 ),
+	.SUM(\u_cordic/U/n226_2 )
+);
+defparam \u_cordic/U/n226_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n225_1_s  (
+	.I0(\u_cordic/y [7]),
+	.I1(\u_cordic/U/x_i_shifted [7]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/U/n226_1_1 ),
+	.COUT(\u_cordic/U/n225_1_1 ),
+	.SUM(\u_cordic/U/n225_2 )
+);
+defparam \u_cordic/U/n225_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n224_1_s  (
+	.I0(\u_cordic/y [8]),
+	.I1(\u_cordic/U/x_i_shifted [8]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/U/n225_1_1 ),
+	.COUT(\u_cordic/U/n224_1_1 ),
+	.SUM(\u_cordic/U/n224_2 )
+);
+defparam \u_cordic/U/n224_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n223_1_s  (
+	.I0(\u_cordic/y [9]),
+	.I1(\u_cordic/U/x_i_shifted [9]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/U/n224_1_1 ),
+	.COUT(\u_cordic/U/n223_1_1 ),
+	.SUM(\u_cordic/U/n223_2 )
+);
+defparam \u_cordic/U/n223_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n222_1_s  (
+	.I0(\u_cordic/y [10]),
+	.I1(\u_cordic/U/x_i_shifted [10]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/U/n223_1_1 ),
+	.COUT(\u_cordic/U/n222_1_1 ),
+	.SUM(\u_cordic/U/n222_2 )
+);
+defparam \u_cordic/U/n222_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n221_1_s  (
+	.I0(\u_cordic/y [11]),
+	.I1(\u_cordic/U/x_i_shifted [11]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/U/n222_1_1 ),
+	.COUT(\u_cordic/U/n221_1_1 ),
+	.SUM(\u_cordic/U/n221_2 )
+);
+defparam \u_cordic/U/n221_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n220_1_s  (
+	.I0(\u_cordic/y [12]),
+	.I1(\u_cordic/U/x_i_shifted [12]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/U/n221_1_1 ),
+	.COUT(\u_cordic/U/n220_1_1 ),
+	.SUM(\u_cordic/U/n220_2 )
+);
+defparam \u_cordic/U/n220_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n219_1_s  (
+	.I0(\u_cordic/y [13]),
+	.I1(\u_cordic/U/x_i_shifted [13]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/U/n220_1_1 ),
+	.COUT(\u_cordic/U/n219_1_1 ),
+	.SUM(\u_cordic/U/n219_2 )
+);
+defparam \u_cordic/U/n219_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n218_1_s  (
+	.I0(\u_cordic/y [14]),
+	.I1(\u_cordic/U/x_i_shifted [14]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/U/n219_1_1 ),
+	.COUT(\u_cordic/U/n218_1_1 ),
+	.SUM(\u_cordic/U/n218_2 )
+);
+defparam \u_cordic/U/n218_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n217_1_s  (
+	.I0(\u_cordic/y [15]),
+	.I1(\u_cordic/U/x_i_shifted [15]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/U/n218_1_1 ),
+	.COUT(\u_cordic/U/n217_1_1 ),
+	.SUM(\u_cordic/U/n217_2 )
+);
+defparam \u_cordic/U/n217_1_s .ALU_MODE=2;
+ALU \u_cordic/U/n216_1_s  (
+	.I0(\u_cordic/y [16]),
+	.I1(\u_cordic/x [16]),
+	.I3(\u_cordic/z[16]_1_4 ),
+	.CIN(\u_cordic/U/n217_1_1 ),
+	.COUT(\u_cordic/U/n216_1_0_COUT ),
+	.SUM(\u_cordic/U/n216_2 )
+);
+defparam \u_cordic/U/n216_1_s .ALU_MODE=2;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_15_s  (
+	.I0(\u_cordic/x [15]),
+	.I1(\u_cordic/x [16]),
+	.I2(\u_cordic/n65_31 ),
+	.F(\u_cordic/U/x_i_shifted [15])
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_15_s .INIT=8'hAC;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_14_s  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_14_3 ),
+	.I1(\u_cordic/x [16]),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/x_i_shifted_14_4 ),
+	.F(\u_cordic/U/x_i_shifted [14])
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_14_s .INIT=16'hC5CC;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_13_s  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_13_3 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_13_4 ),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/x_i_shifted_14_4 ),
+	.F(\u_cordic/U/x_i_shifted [13])
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_13_s .INIT=16'h3A33;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_12_s  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_12_3 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_12_7 ),
+	.I2(\u_cordic/n67_32 ),
+	.F(\u_cordic/U/x_i_shifted [12])
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_12_s .INIT=8'h5C;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_11_s  (
+	.I0(\u_cordic/x [16]),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_11_6 ),
+	.I2(\u_cordic/x_i_shifted_11_4 ),
+	.F(\u_cordic/U/x_i_shifted [11])
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_11_s .INIT=8'hCA;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_10_s  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_10_3 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_10_7 ),
+	.I2(\u_cordic/x_i_shifted_11_4 ),
+	.F(\u_cordic/U/x_i_shifted [10])
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_10_s .INIT=8'hC5;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_9_s  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_9_3 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_9_4 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_9_5 ),
+	.I3(\u_cordic/x_i_shifted_14_4 ),
+	.F(\u_cordic/U/x_i_shifted [9])
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_9_s .INIT=16'h0F44;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_8_s  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_8_3 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_8_4 ),
+	.I2(\u_cordic/x [16]),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/x_i_shifted [8])
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_8_s .INIT=16'hF0EE;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_7_s  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_7_3 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_7_4 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_7_5 ),
+	.I3(\u_cordic/x_i_shifted_7_6 ),
+	.F(\u_cordic/U/x_i_shifted [7])
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_7_s .INIT=16'h0F22;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_6_s  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_6_3 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_6_4 ),
+	.I2(\u_cordic/x [16]),
+	.I3(\u_cordic/U/x_i_shifted_6_11 ),
+	.F(\u_cordic/U/x_i_shifted [6])
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_6_s .INIT=16'hF044;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_5_s  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_5_3 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_5_4 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_5_5 ),
+	.F(\u_cordic/U/x_i_shifted [5])
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_5_s .INIT=8'h4F;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_4_s  (
+	.I0(\u_cordic/U/x_i_shifted_4_14 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_4_18 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_4_5 ),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_4_6 ),
+	.F(\u_cordic/U/x_i_shifted [4])
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_4_s .INIT=16'h000D;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_3_s  (
+	.I0(\u_cordic/x_i_shifted_11_4 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_3_3 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_3_4 ),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_3_5 ),
+	.F(\u_cordic/U/x_i_shifted [3])
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_3_s .INIT=16'hF400;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_2_s  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_2_16 ),
+	.I1(\u_cordic/x_i_shifted_11_4 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_2_4 ),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_2_5 ),
+	.F(\u_cordic/U/x_i_shifted [2])
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_2_s .INIT=16'h8F00;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_1_s  (
+	.I0(\u_cordic/x [11]),
+	.I1(\u_cordic/U/x_i_shifted_6_11 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_1_3 ),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_1_4 ),
+	.F(\u_cordic/U/x_i_shifted [1])
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_1_s .INIT=16'h008F;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_0_s  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_0_3 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_0_4 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_0_5 ),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_0_6 ),
+	.F(\u_cordic/U/x_i_shifted [0])
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_0_s .INIT=16'hFFF4;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_14_s0  (
+	.I0(\u_cordic/x [14]),
+	.I1(\u_cordic/x [15]),
+	.I2(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_14_3 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_14_s0 .INIT=8'h35;
+LUT2 \u_cordic/U/x_shifter/x_i_shifted_14_s1  (
+	.I0(\u_cordic/iteration [3]),
+	.I1(\u_cordic/iteration [2]),
+	.F(\u_cordic/x_i_shifted_14_4 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_14_s1 .INIT=4'h1;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_13_s0  (
+	.I0(\u_cordic/x [13]),
+	.I1(\u_cordic/x [14]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/n69_30 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_13_3 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_13_s0 .INIT=16'hCA00;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_13_s1  (
+	.I0(\u_cordic/x [15]),
+	.I1(\u_cordic/x [16]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/x_i_shifted_14_4 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_13_4 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_13_s1 .INIT=16'h3533;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_12_s0  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_12_5 ),
+	.I1(\u_cordic/x [14]),
+	.I2(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_12_3 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_12_s0 .INIT=8'h3A;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_11_s1  (
+	.I0(\u_cordic/iteration [0]),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/iteration [2]),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/x_i_shifted_11_4 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_11_s1 .INIT=16'h001F;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_10_s0  (
+	.I0(\u_cordic/x [15]),
+	.I1(\u_cordic/x [16]),
+	.I2(\u_cordic/U/y_i_shifted_10_5 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_10_3 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_10_s0 .INIT=8'h53;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_9_s0  (
+	.I0(\u_cordic/x [15]),
+	.I1(\u_cordic/x [16]),
+	.I2(\u_cordic/U/y_i_shifted_10_5 ),
+	.I3(\u_cordic/U/x_i_shifted_9_6 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_9_3 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_9_s0 .INIT=16'h0503;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_9_s1  (
+	.I0(\u_cordic/x [14]),
+	.I1(\u_cordic/U/y_i_shifted_10_5 ),
+	.I2(\u_cordic/x [13]),
+	.I3(\u_cordic/x_i_shifted_11_4 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_9_4 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_9_s1 .INIT=16'hF0BB;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_9_s2  (
+	.I0(\u_cordic/x [12]),
+	.I1(\u_cordic/x [10]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_9_7 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_9_5 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_9_s2 .INIT=16'h305F;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_8_s0  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_12_3 ),
+	.I1(\u_cordic/x [15]),
+	.I2(\u_cordic/n67_28 ),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_8_3 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_8_s0 .INIT=16'hC500;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_8_s1  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_8_5 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_8_6 ),
+	.I2(\u_cordic/iteration [2]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_8_4 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_8_s1 .INIT=16'h0305;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_7_s0  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_7_7 ),
+	.I1(\u_cordic/x [16]),
+	.I2(\u_cordic/U/y_i_shifted_7_11 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_7_3 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_7_s0 .INIT=8'hCA;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_7_s1  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_7_8 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_7_9 ),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/x_i_shifted_14_4 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_7_4 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_7_s1 .INIT=16'hCA00;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_7_s2  (
+	.I0(\u_cordic/x [12]),
+	.I1(\u_cordic/x [14]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_7_10 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_7_5 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_7_s2 .INIT=16'h305F;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_7_s3  (
+	.I0(\u_cordic/iteration [3]),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/iteration [2]),
+	.F(\u_cordic/x_i_shifted_7_6 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_7_s3 .INIT=8'h10;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_6_s0  (
+	.I0(\u_cordic/x [12]),
+	.I1(\u_cordic/U/y_i_shifted_10_5 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_6_6 ),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_6_7 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_6_3 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_6_s0 .INIT=16'hF100;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_6_s1  (
+	.I0(\u_cordic/x [13]),
+	.I1(\u_cordic/U/x_i_shifted_6_8 ),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_14_3 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_6_4 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_6_s1 .INIT=16'h0BBB;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_5_s0  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_7_9 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_5_6 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_5_10 ),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_5_3 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_5_s0 .INIT=16'h0E03;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_5_s1  (
+	.I0(\u_cordic/x [12]),
+	.I1(\u_cordic/U/x_i_shifted_6_8 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_13_3 ),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_5_4 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_5_s1 .INIT=16'hB0BB;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_5_s2  (
+	.I0(\u_cordic/x [15]),
+	.I1(\u_cordic/U/x_i_shifted_6_11 ),
+	.I2(\u_cordic/x [16]),
+	.I3(\u_cordic/U/x_i_shifted_4_14 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_5_5 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_5_s2 .INIT=16'h0F77;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_4_s2  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_4_8 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_4_9 ),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_4_5 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_4_s2 .INIT=16'h030A;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_4_s3  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_4_16 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_4_11 ),
+	.I2(\u_cordic/n69_30 ),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_4_6 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_4_s3 .INIT=16'h3A33;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_3_s0  (
+	.I0(\u_cordic/x [8]),
+	.I1(\u_cordic/U/y_i_shifted_10_5 ),
+	.I2(\u_cordic/x [9]),
+	.I3(\u_cordic/U/x_i_shifted_3_6 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_3_3 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_3_s0 .INIT=16'hB0BB;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_3_s1  (
+	.I0(\u_cordic/iteration [1]),
+	.I1(\u_cordic/iteration [2]),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_3_7 ),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_3_8 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_3_4 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_3_s1 .INIT=16'h5300;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_3_s2  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_3_19 ),
+	.I1(\u_cordic/U/x_i_shifted_6_11 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_3_10 ),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_3_11 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_3_5 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_3_s2 .INIT=16'h00F4;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_2_s1  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_2_7 ),
+	.I1(\u_cordic/iteration [3]),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_2_8 ),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_2_9 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_2_4 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_2_s1 .INIT=16'h4F00;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_2_s2  (
+	.I0(\u_cordic/x [16]),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_2_10 ),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/U/x_i_shifted_4_7 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_2_5 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_2_s2 .INIT=16'hA3CC;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_1_s0  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_1_5 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_1_6 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_1_7 ),
+	.I3(\u_cordic/U/x_i_shifted_4_14 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_1_3 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_1_s0 .INIT=16'h004F;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_1_s1  (
+	.I0(\u_cordic/x [12]),
+	.I1(\u_cordic/iteration [2]),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_1_8 ),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_1_15 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_1_4 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_1_s1 .INIT=16'h0D00;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_0_s0  (
+	.I0(\u_cordic/x [4]),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_0_7 ),
+	.I2(\u_cordic/x_i_shifted_14_4 ),
+	.I3(\u_cordic/x_i_shifted_11_4 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_0_3 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_0_s0 .INIT=16'hC500;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_0_s1  (
+	.I0(\u_cordic/n69_30 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_8_5 ),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_0_8 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_0_4 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_0_s1 .INIT=16'h2F00;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_0_s2  (
+	.I0(\u_cordic/x [10]),
+	.I1(\u_cordic/iteration [0]),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_0_9 ),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_0_5 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_0_s2 .INIT=16'h0E00;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_0_s3  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_0_16 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_0_11 ),
+	.I2(\u_cordic/U/x_i_shifted_4_14 ),
+	.I3(\u_cordic/U/x_i_shifted_4_7 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_0_6 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_0_s3 .INIT=16'hB3C0;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_12_s2  (
+	.I0(\u_cordic/x [12]),
+	.I1(\u_cordic/x [13]),
+	.I2(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_12_5 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_12_s2 .INIT=8'h35;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_10_s2  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_8_6 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_12_5 ),
+	.I2(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_10_5 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_10_s2 .INIT=8'hCA;
+LUT2 \u_cordic/U/x_shifter/x_i_shifted_9_s3  (
+	.I0(\u_cordic/iteration [3]),
+	.I1(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/x_i_shifted_9_6 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_9_s3 .INIT=4'h1;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_9_s4  (
+	.I0(\u_cordic/x [9]),
+	.I1(\u_cordic/x [11]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_9_7 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_9_s4 .INIT=16'h0CFA;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_8_s2  (
+	.I0(\u_cordic/x [8]),
+	.I1(\u_cordic/x [9]),
+	.I2(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_8_5 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_8_s2 .INIT=8'h35;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_8_s3  (
+	.I0(\u_cordic/x [10]),
+	.I1(\u_cordic/x [11]),
+	.I2(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_8_6 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_8_s3 .INIT=8'h35;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_7_s4  (
+	.I0(\u_cordic/x [15]),
+	.I1(\u_cordic/iteration [3]),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_7_11 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_7_7 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_7_s4 .INIT=8'hB0;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_7_s5  (
+	.I0(\u_cordic/x [7]),
+	.I1(\u_cordic/x [8]),
+	.I2(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_7_8 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_7_s5 .INIT=8'h35;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_7_s6  (
+	.I0(\u_cordic/x [9]),
+	.I1(\u_cordic/x [10]),
+	.I2(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_7_9 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_7_s6 .INIT=8'h35;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_7_s7  (
+	.I0(\u_cordic/x [13]),
+	.I1(\u_cordic/x [11]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_7_10 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_7_s7 .INIT=16'hFA0C;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_6_s3  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_8_5 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_8_6 ),
+	.I2(\u_cordic/iteration [2]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_6_6 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_6_s3 .INIT=16'h0ACF;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_6_s4  (
+	.I0(\u_cordic/x [6]),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_6_9 ),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_6_7 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_6_s4 .INIT=16'h0C07;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_6_s5  (
+	.I0(\u_cordic/iteration [3]),
+	.I1(\u_cordic/iteration [2]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/x_i_shifted_6_8 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_6_s5 .INIT=16'h4000;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_5_s3  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_7_8 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_5_8 ),
+	.I2(\u_cordic/iteration [2]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_5_6 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_5_s3 .INIT=16'hF503;
+LUT2 \u_cordic/U/x_shifter/x_i_shifted_4_s4  (
+	.I0(\u_cordic/iteration [3]),
+	.I1(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/x_i_shifted_4_7 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_4_s4 .INIT=4'h8;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_4_s5  (
+	.I0(\u_cordic/x [7]),
+	.I1(\u_cordic/x [5]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_4_12 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_4_8 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_4_s5 .INIT=16'h305F;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_4_s6  (
+	.I0(\u_cordic/x [10]),
+	.I1(\u_cordic/iteration [0]),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_8_5 ),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_4_9 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_4_s6 .INIT=16'hEE0F;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_4_s8  (
+	.I0(\u_cordic/x [11]),
+	.I1(\u_cordic/U/x_i_shifted_6_8 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_12_5 ),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_4_11 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_4_s8 .INIT=16'h0BBB;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_3_s3  (
+	.I0(\u_cordic/iteration [3]),
+	.I1(\u_cordic/iteration [0]),
+	.I2(\u_cordic/iteration [2]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/x_i_shifted_3_6 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_3_s3 .INIT=16'h1000;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_3_s4  (
+	.I0(\u_cordic/x [5]),
+	.I1(\u_cordic/x [6]),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_3_7 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_3_s4 .INIT=16'h305F;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_3_s5  (
+	.I0(\u_cordic/iteration [1]),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_3_12 ),
+	.I2(\u_cordic/x [7]),
+	.I3(\u_cordic/x_i_shifted_14_4 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_3_8 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_3_s5 .INIT=16'hBBF0;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_3_s7  (
+	.I0(\u_cordic/x [10]),
+	.I1(\u_cordic/U/x_i_shifted_6_8 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_3_13 ),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_3_10 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_3_s7 .INIT=16'hB0BB;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_3_s8  (
+	.I0(\u_cordic/x [14]),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_3_17 ),
+	.I2(\u_cordic/U/x_i_shifted_4_7 ),
+	.I3(\u_cordic/U/x_i_shifted_4_14 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_3_11 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_3_s8 .INIT=16'h3500;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_2_s3  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_2_11 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_2_12 ),
+	.I2(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_2_6 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_2_s3 .INIT=8'hCA;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_2_s4  (
+	.I0(\u_cordic/x [10]),
+	.I1(\u_cordic/x [11]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/n69_30 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_2_7 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_2_s4 .INIT=16'hCA00;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_2_s5  (
+	.I0(\u_cordic/U/y_i_shifted_10_5 ),
+	.I1(\u_cordic/x [7]),
+	.I2(\u_cordic/x_i_shifted_11_4 ),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_2_13 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_2_8 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_2_s5 .INIT=16'h0D00;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_2_s6  (
+	.I0(\u_cordic/U/x_i_shifted_6_11 ),
+	.I1(\u_cordic/x [12]),
+	.I2(\u_cordic/U/x_i_shifted_4_14 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_2_9 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_2_s6 .INIT=8'h07;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_2_s7  (
+	.I0(\u_cordic/x [13]),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_14_3 ),
+	.I2(\u_cordic/U/x_i_shifted_4_14 ),
+	.I3(\u_cordic/U/x_i_shifted_4_7 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_2_10 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_2_s7 .INIT=16'hC0AF;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_1_s2  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_3_12 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_1_10 ),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/x_i_shifted_14_4 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_1_5 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_1_s2 .INIT=16'h5300;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_1_s3  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_5_8 ),
+	.I1(\u_cordic/x_i_shifted_7_6 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_1_19 ),
+	.I3(\u_cordic/U/y_i_shifted_10_5 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_1_6 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_1_s3 .INIT=16'hBBB0;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_1_s4  (
+	.I0(\u_cordic/n69_30 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_7_9 ),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_1_17 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_1_7 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_1_s4 .INIT=16'h002F;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_1_s5  (
+	.I0(\u_cordic/x [14]),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_1_13 ),
+	.I3(\u_cordic/U/x_i_shifted_4_7 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_1_8 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_1_s5 .INIT=16'h0E00;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_0_s4  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_0_12 ),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_2_11 ),
+	.I2(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_0_7 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_0_s4 .INIT=8'hCA;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_0_s5  (
+	.I0(\u_cordic/x [7]),
+	.I1(\u_cordic/U/x_i_shifted_6_8 ),
+	.I2(\u_cordic/U/x_shifter/x_i_shifted_0_13 ),
+	.I3(\u_cordic/x_i_shifted_11_4 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_0_8 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_0_s5 .INIT=16'hBBB0;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_0_s6  (
+	.I0(\u_cordic/x [13]),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/iteration [2]),
+	.I3(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_0_9 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_0_s6 .INIT=16'hDFF3;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_0_s8  (
+	.I0(\u_cordic/iteration [1]),
+	.I1(\u_cordic/U/x_shifter/x_i_shifted_14_3 ),
+	.I2(\u_cordic/x [11]),
+	.I3(\u_cordic/U/x_i_shifted_4_7 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_0_11 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_0_s8 .INIT=16'hDDF0;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_7_s8  (
+	.I0(\u_cordic/x [13]),
+	.I1(\u_cordic/U/x_i_shifted_3_6 ),
+	.I2(\u_cordic/x [14]),
+	.I3(\u_cordic/U/x_i_shifted_6_8 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_7_11 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_7_s8 .INIT=16'hB0BB;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_6_s6  (
+	.I0(\u_cordic/x [7]),
+	.I1(\u_cordic/iteration [0]),
+	.I2(\u_cordic/iteration [2]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_6_9 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_6_s6 .INIT=16'h0CC7;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_5_s5  (
+	.I0(\u_cordic/x [5]),
+	.I1(\u_cordic/x [6]),
+	.I2(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_5_8 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_5_s5 .INIT=8'h35;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_4_s9  (
+	.I0(\u_cordic/x [4]),
+	.I1(\u_cordic/x [6]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_4_12 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_4_s9 .INIT=16'h0CFA;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_3_s9  (
+	.I0(x_i[4]),
+	.I1(x_o[4]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_3_15 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_3_12 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_3_s9 .INIT=16'h305F;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_3_s10  (
+	.I0(\u_cordic/x [11]),
+	.I1(\u_cordic/x [12]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/n69_30 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_3_13 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_3_s10 .INIT=16'hCA00;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_2_s8  (
+	.I0(\u_cordic/x [2]),
+	.I1(\u_cordic/x [3]),
+	.I2(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_2_11 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_2_s8 .INIT=8'h35;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_2_s9  (
+	.I0(x_o[5]),
+	.I1(x_i[5]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_2_14 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_2_12 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_2_s9 .INIT=16'h305F;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_2_s10  (
+	.I0(\u_cordic/x [8]),
+	.I1(\u_cordic/U/x_i_shifted_3_6 ),
+	.I2(\u_cordic/x [9]),
+	.I3(\u_cordic/U/x_i_shifted_6_8 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_2_13 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_2_s10 .INIT=16'hB0BB;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_1_s7  (
+	.I0(\u_cordic/x [1]),
+	.I1(\u_cordic/x [2]),
+	.I2(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_1_10 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_1_s7 .INIT=8'h35;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_1_s10  (
+	.I0(\u_cordic/x [15]),
+	.I1(\u_cordic/x [16]),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_1_13 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_1_s10 .INIT=16'h305F;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_0_s9  (
+	.I0(x_i[1]),
+	.I1(x_o[1]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/U/x_shifter/x_i_shifted_0_14 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_0_12 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_0_s9 .INIT=16'h305F;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_0_s10  (
+	.I0(\u_cordic/x [6]),
+	.I1(\u_cordic/U/x_i_shifted_9_6 ),
+	.I2(\u_cordic/x [5]),
+	.I3(\u_cordic/U/y_i_shifted_10_5 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_0_13 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_0_s10 .INIT=16'hF0BB;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_3_s12  (
+	.I0(x_o[3]),
+	.I1(x_i[3]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(init),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_3_15 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_3_s12 .INIT=16'h0CFA;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_2_s11  (
+	.I0(x_i[4]),
+	.I1(x_o[4]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(init),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_2_14 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_2_s11 .INIT=16'hFA0C;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_0_s11  (
+	.I0(x_o[0]),
+	.I1(x_i[0]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(init),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_0_14 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_0_s11 .INIT=16'h0CFA;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_3_s13  (
+	.I0(\u_cordic/x [15]),
+	.I1(\u_cordic/x [16]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_3_17 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_3_s13 .INIT=16'hCCCA;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_0_s12  (
+	.I0(\u_cordic/x [12]),
+	.I1(\u_cordic/iteration [0]),
+	.I2(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_0_16 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_0_s12 .INIT=8'h02;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_1_s11  (
+	.I0(\u_cordic/iteration [0]),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/x [13]),
+	.I3(\u_cordic/U/x_i_shifted_4_14 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_1_15 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_1_s11 .INIT=16'hEF00;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_1_s12  (
+	.I0(x_o[8]),
+	.I1(x_i[8]),
+	.I2(init),
+	.I3(\u_cordic/U/x_i_shifted_6_8 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_1_17 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_1_s12 .INIT=16'h3500;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_4_s10  (
+	.I0(\u_cordic/iteration [0]),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/iteration [2]),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/x_i_shifted_4_14 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_4_s10 .INIT=16'hF800;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_1_s13  (
+	.I0(\u_cordic/x [7]),
+	.I1(\u_cordic/iteration [3]),
+	.I2(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_1_19 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_1_s13 .INIT=8'h01;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_5_s6  (
+	.I0(\u_cordic/iteration [3]),
+	.I1(\u_cordic/iteration [0]),
+	.I2(\u_cordic/x [11]),
+	.I3(\u_cordic/U/y_i_shifted_10_5 ),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_5_10 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_5_s6 .INIT=16'h00FE;
+LUT3 \u_cordic/U/x_shifter/x_i_shifted_6_s7  (
+	.I0(\u_cordic/iteration [2]),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/x_i_shifted_6_11 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_6_s7 .INIT=8'hE0;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_3_s14  (
+	.I0(\u_cordic/iteration [0]),
+	.I1(\u_cordic/x [13]),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_3_19 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_3_s14 .INIT=16'h0111;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_4_s11  (
+	.I0(\u_cordic/iteration [0]),
+	.I1(\u_cordic/x [14]),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_4_16 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_4_s11 .INIT=16'h0111;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_4_s12  (
+	.I0(\u_cordic/x [15]),
+	.I1(\u_cordic/x [16]),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_4_18 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_4_s12 .INIT=16'hCAAA;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_2_s12  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_2_6 ),
+	.I1(\u_cordic/x [6]),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_2_16 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_2_s12 .INIT=16'hCCC5;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_10_s3  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_10_5 ),
+	.I1(\u_cordic/x [14]),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_10_7 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_10_s3 .INIT=16'hCCC5;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_11_s2  (
+	.I0(\u_cordic/U/x_shifter/x_i_shifted_7_5 ),
+	.I1(\u_cordic/x [15]),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_11_6 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_11_s2 .INIT=16'hCCC5;
+LUT4 \u_cordic/U/x_shifter/x_i_shifted_12_s3  (
+	.I0(\u_cordic/x [15]),
+	.I1(\u_cordic/x [16]),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/x_shifter/x_i_shifted_12_7 )
+);
+defparam \u_cordic/U/x_shifter/x_i_shifted_12_s3 .INIT=16'hCCCA;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_15_s  (
+	.I0(\u_cordic/y [15]),
+	.I1(\u_cordic/y [16]),
+	.I2(\u_cordic/n65_31 ),
+	.F(\u_cordic/U/y_i_shifted [15])
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_15_s .INIT=8'hAC;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_14_s  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_14_3 ),
+	.I1(\u_cordic/y [16]),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/x_i_shifted_14_4 ),
+	.F(\u_cordic/U/y_i_shifted [14])
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_14_s .INIT=16'hC5CC;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_13_s  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_13_3 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_13_4 ),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/x_i_shifted_14_4 ),
+	.F(\u_cordic/U/y_i_shifted [13])
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_13_s .INIT=16'hC533;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_12_s  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_12_3 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_12_7 ),
+	.I2(\u_cordic/n67_32 ),
+	.F(\u_cordic/U/y_i_shifted [12])
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_12_s .INIT=8'h5C;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_11_s  (
+	.I0(\u_cordic/y [16]),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_11_7 ),
+	.I2(\u_cordic/x_i_shifted_11_4 ),
+	.F(\u_cordic/U/y_i_shifted [11])
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_11_s .INIT=8'hCA;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_10_s  (
+	.I0(\u_cordic/y [16]),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_10_3 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_10_4 ),
+	.I3(\u_cordic/U/y_i_shifted_10_5 ),
+	.F(\u_cordic/U/y_i_shifted [10])
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_10_s .INIT=16'hF3FA;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_9_s  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_9_3 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_9_8 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_9_5 ),
+	.I3(\u_cordic/U/y_i_shifted_10_5 ),
+	.F(\u_cordic/U/y_i_shifted [9])
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_9_s .INIT=16'hF5FC;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_8_s  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_8_3 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_8_4 ),
+	.I2(\u_cordic/x_i_shifted_14_4 ),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_8_5 ),
+	.F(\u_cordic/U/y_i_shifted [8])
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_8_s .INIT=16'h3A00;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_7_s  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_7_3 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_7_4 ),
+	.I2(\u_cordic/y [16]),
+	.I3(\u_cordic/U/y_i_shifted_7_11 ),
+	.F(\u_cordic/U/y_i_shifted [7])
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_7_s .INIT=16'hF044;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_6_s  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_6_3 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_6_4 ),
+	.I2(\u_cordic/y [16]),
+	.I3(\u_cordic/U/x_i_shifted_6_11 ),
+	.F(\u_cordic/U/y_i_shifted [6])
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_6_s .INIT=16'hF044;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_5_s  (
+	.I0(\u_cordic/x_i_shifted_11_4 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_5_11 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_5_4 ),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_5_5 ),
+	.F(\u_cordic/U/y_i_shifted [5])
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_5_s .INIT=16'hD0FF;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_4_s  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_4_3 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_4_4 ),
+	.I2(\u_cordic/U/y_i_shifted_10_5 ),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_4_5 ),
+	.F(\u_cordic/U/y_i_shifted [4])
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_4_s .INIT=16'h00BF;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_3_s  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_3_3 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_3_4 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_3_5 ),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_3_6 ),
+	.F(\u_cordic/U/y_i_shifted [3])
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_3_s .INIT=16'hFF40;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_2_s  (
+	.I0(\u_cordic/U/x_i_shifted_4_14 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_2_3 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_2_4 ),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_2_5 ),
+	.F(\u_cordic/U/y_i_shifted [2])
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_2_s .INIT=16'hEF00;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_1_s  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_1_3 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_1_4 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_1_5 ),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_1_6 ),
+	.F(\u_cordic/U/y_i_shifted [1])
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s .INIT=16'hFF0B;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_0_s  (
+	.I0(\u_cordic/iteration [3]),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_0_3 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_0_4 ),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_0_5 ),
+	.F(\u_cordic/U/y_i_shifted [0])
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_0_s .INIT=16'hB0FF;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_14_s0  (
+	.I0(y_i[15]),
+	.I1(y_o[15]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_14_4 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_14_3 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_14_s0 .INIT=16'h305F;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_13_s0  (
+	.I0(\u_cordic/y [13]),
+	.I1(\u_cordic/y [14]),
+	.I2(\u_cordic/n65_31 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_13_3 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_13_s0 .INIT=8'h53;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_13_s1  (
+	.I0(\u_cordic/iteration [0]),
+	.I1(\u_cordic/y [15]),
+	.I2(\u_cordic/x_i_shifted_14_4 ),
+	.I3(\u_cordic/y [16]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_13_4 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_13_s1 .INIT=16'hE04F;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_12_s0  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_12_5 ),
+	.I1(\u_cordic/y [14]),
+	.I2(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_12_3 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_12_s0 .INIT=8'h3A;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_10_s0  (
+	.I0(\u_cordic/x_i_shifted_14_4 ),
+	.I1(\u_cordic/y [14]),
+	.I2(\u_cordic/y [15]),
+	.I3(\u_cordic/x_i_shifted_11_4 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_10_3 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_10_s0 .INIT=16'hBB0F;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_10_s1  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_10_6 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_10_7 ),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/x_i_shifted_14_4 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_10_4 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_10_s1 .INIT=16'h3500;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_10_s2  (
+	.I0(\u_cordic/iteration [1]),
+	.I1(\u_cordic/iteration [2]),
+	.I2(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/y_i_shifted_10_5 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_10_s2 .INIT=8'h07;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_9_s0  (
+	.I0(\u_cordic/x_i_shifted_14_4 ),
+	.I1(\u_cordic/y [13]),
+	.I2(\u_cordic/y [14]),
+	.I3(\u_cordic/x_i_shifted_11_4 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_9_3 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_9_s0 .INIT=16'hBB0F;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_9_s2  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_9_6 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_10_6 ),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/x_i_shifted_14_4 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_9_5 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_9_s2 .INIT=16'h3500;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_8_s0  (
+	.I0(\u_cordic/y [14]),
+	.I1(\u_cordic/U/x_i_shifted_9_6 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_8_6 ),
+	.I3(\u_cordic/U/y_i_shifted_10_5 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_8_3 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_8_s0 .INIT=16'hF0BB;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_8_s1  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_8_7 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_9_6 ),
+	.I2(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_8_4 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_8_s1 .INIT=8'hCA;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_8_s2  (
+	.I0(\u_cordic/y [15]),
+	.I1(\u_cordic/U/x_i_shifted_6_8 ),
+	.I2(\u_cordic/y [16]),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_8_5 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_8_s2 .INIT=16'hB0BB;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_7_s0  (
+	.I0(\u_cordic/x_i_shifted_14_4 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_7_6 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_7_13 ),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_7_8 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_7_3 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_7_s0 .INIT=16'h00FE;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_7_s1  (
+	.I0(\u_cordic/y [14]),
+	.I1(\u_cordic/U/x_i_shifted_6_8 ),
+	.I2(\u_cordic/y [15]),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_7_4 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_7_s1 .INIT=16'hB0BB;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_6_s0  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_6_5 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_6_6 ),
+	.I2(\u_cordic/x_i_shifted_14_4 ),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_6_7 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_6_3 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_6_s0 .INIT=16'h001F;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_6_s1  (
+	.I0(\u_cordic/y [13]),
+	.I1(\u_cordic/U/x_i_shifted_6_8 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_6_8 ),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_6_4 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_6_s1 .INIT=16'h0BBB;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_5_s1  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_5_7 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_5_8 ),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_5_4 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_5_s1 .INIT=16'h0ACF;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_5_s2  (
+	.I0(\u_cordic/y [15]),
+	.I1(\u_cordic/U/x_i_shifted_6_11 ),
+	.I2(\u_cordic/y [16]),
+	.I3(\u_cordic/U/x_i_shifted_4_14 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_5_5 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_5_s2 .INIT=16'h0F77;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_4_s0  (
+	.I0(\u_cordic/n67_28 ),
+	.I1(\u_cordic/y [7]),
+	.I2(\u_cordic/iteration [2]),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_4_6 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_4_3 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_4_s0 .INIT=16'h0D00;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_4_s1  (
+	.I0(\u_cordic/x_i_shifted_14_4 ),
+	.I1(\u_cordic/y [8]),
+	.I2(\u_cordic/y [9]),
+	.I3(\u_cordic/x_i_shifted_11_4 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_4_4 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_4_s1 .INIT=16'hBB0F;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_4_s2  (
+	.I0(\u_cordic/iteration [1]),
+	.I1(\u_cordic/iteration [3]),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_4_7 ),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_4_8 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_4_5 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_4_s2 .INIT=16'hCA00;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_3_s0  (
+	.I0(\u_cordic/y [7]),
+	.I1(\u_cordic/y [8]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/x_i_shifted_7_6 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_3_3 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_3_s0 .INIT=16'h3500;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_3_s1  (
+	.I0(\u_cordic/y [9]),
+	.I1(\u_cordic/U/x_i_shifted_3_6 ),
+	.I2(\u_cordic/y [10]),
+	.I3(\u_cordic/U/x_i_shifted_6_8 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_3_4 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_3_s1 .INIT=16'hB0BB;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_3_s2  (
+	.I0(\u_cordic/iteration [2]),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_3_7 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_3_8 ),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_3_5 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_3_s2 .INIT=16'hF0BB;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_3_s3  (
+	.I0(\u_cordic/y [16]),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_3_9 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_3_10 ),
+	.I3(\u_cordic/U/x_i_shifted_4_7 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_3_6 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_3_s3 .INIT=16'hCEC0;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_2_s0  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_2_6 ),
+	.I1(\u_cordic/y [6]),
+	.I2(\u_cordic/x_i_shifted_14_4 ),
+	.I3(\u_cordic/x_i_shifted_11_4 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_2_3 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_2_s0 .INIT=16'h5C00;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_2_s1  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_2_13 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_2_8 ),
+	.I2(\u_cordic/y [12]),
+	.I3(\u_cordic/U/x_i_shifted_6_11 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_2_4 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_2_s1 .INIT=16'h0BBB;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_2_s2  (
+	.I0(\u_cordic/y [16]),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_2_9 ),
+	.I2(\u_cordic/U/x_i_shifted_4_7 ),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_2_5 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_2_s2 .INIT=16'hA333;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_1_s0  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_1_7 ),
+	.I1(\u_cordic/n69_30 ),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_1_8 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_1_3 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s0 .INIT=16'h4F00;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_1_s1  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_1_20 ),
+	.I1(\u_cordic/x_i_shifted_11_4 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_1_10 ),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_1_11 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_1_4 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s1 .INIT=16'hBF00;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_1_s2  (
+	.I0(\u_cordic/iteration [0]),
+	.I1(\u_cordic/iteration [2]),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_1_12 ),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_1_5 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s2 .INIT=16'hCA00;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_1_s3  (
+	.I0(\u_cordic/y [14]),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_1_13 ),
+	.I3(\u_cordic/U/x_i_shifted_4_7 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_1_6 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s3 .INIT=16'h0E00;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_0_s0  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_0_6 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_4_6 ),
+	.I2(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_0_3 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_0_s0 .INIT=8'h3A;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_0_s1  (
+	.I0(\u_cordic/y [7]),
+	.I1(\u_cordic/U/x_i_shifted_6_8 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_0_7 ),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_0_4 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_0_s1 .INIT=16'hB0BB;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_0_s2  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_0_8 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_0_9 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_0_10 ),
+	.I3(\u_cordic/U/x_i_shifted_4_7 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_0_5 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_0_s2 .INIT=16'hB0BB;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_14_s1  (
+	.I0(y_o[14]),
+	.I1(y_i[14]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(init),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_14_4 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_14_s1 .INIT=16'h0CFA;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_12_s2  (
+	.I0(\u_cordic/y [12]),
+	.I1(\u_cordic/y [13]),
+	.I2(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_12_5 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_12_s2 .INIT=8'h35;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_11_s1  (
+	.I0(\u_cordic/y [12]),
+	.I1(\u_cordic/y [14]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_11_5 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_11_4 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_11_s1 .INIT=16'h305F;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_10_s3  (
+	.I0(y_i[12]),
+	.I1(y_o[12]),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_10_8 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_10_6 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_10_s3 .INIT=16'h305F;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_10_s4  (
+	.I0(\u_cordic/y [11]),
+	.I1(\u_cordic/y [13]),
+	.I2(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_10_7 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_10_s4 .INIT=8'h35;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_9_s3  (
+	.I0(\u_cordic/y [9]),
+	.I1(\u_cordic/y [11]),
+	.I2(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_9_6 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_9_s3 .INIT=8'h35;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_8_s3  (
+	.I0(\u_cordic/y [12]),
+	.I1(\u_cordic/y [13]),
+	.I2(\u_cordic/x_i_shifted_11_4 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_8_6 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_8_s3 .INIT=8'hAC;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_8_s4  (
+	.I0(\u_cordic/y [8]),
+	.I1(\u_cordic/y [10]),
+	.I2(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_8_7 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_8_s4 .INIT=8'h35;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_7_s3  (
+	.I0(\u_cordic/y [11]),
+	.I1(\u_cordic/y [12]),
+	.I2(\u_cordic/x_i_shifted_11_4 ),
+	.I3(\u_cordic/U/y_i_shifted_10_5 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_7_6 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_7_s3 .INIT=16'h5300;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_7_s5  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_8_7 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_7_9 ),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/x_i_shifted_14_4 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_7_8 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_7_s5 .INIT=16'h5300;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_6_s2  (
+	.I0(\u_cordic/y [7]),
+	.I1(\u_cordic/y [9]),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_6_5 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_6_s2 .INIT=16'hCA00;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_6_s3  (
+	.I0(\u_cordic/y [6]),
+	.I1(\u_cordic/y [8]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_6_6 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_6_s3 .INIT=16'h0C0A;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_6_s4  (
+	.I0(\u_cordic/y [12]),
+	.I1(\u_cordic/U/x_i_shifted_9_6 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_6_9 ),
+	.I3(\u_cordic/U/y_i_shifted_10_5 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_6_7 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_6_s4 .INIT=16'h0FBB;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_6_s5  (
+	.I0(\u_cordic/y [15]),
+	.I1(\u_cordic/iteration [0]),
+	.I2(\u_cordic/y [14]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_6_8 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_6_s5 .INIT=8'h47;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_5_s3  (
+	.I0(\u_cordic/y [6]),
+	.I1(\u_cordic/y [8]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_5_9 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_5_6 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_5_s3 .INIT=16'h305F;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_5_s4  (
+	.I0(\u_cordic/y [11]),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_10_6 ),
+	.I3(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_5_7 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_5_s4 .INIT=16'h0FBB;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_5_s5  (
+	.I0(\u_cordic/y [13]),
+	.I1(\u_cordic/y [14]),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_5_8 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_5_s5 .INIT=16'h0C0A;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_4_s3  (
+	.I0(\u_cordic/iteration [1]),
+	.I1(\u_cordic/y [5]),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_4_9 ),
+	.I3(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_4_6 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_4_s3 .INIT=16'hEE0F;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_4_s4  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_12_5 ),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_4_10 ),
+	.I2(\u_cordic/iteration [2]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_4_7 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_4_s4 .INIT=16'h3FFA;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_4_s5  (
+	.I0(\u_cordic/iteration [2]),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_14_3 ),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_4_13 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_4_8 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_4_s5 .INIT=16'h00FB;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_3_s4  (
+	.I0(\u_cordic/y [4]),
+	.I1(\u_cordic/y [6]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_3_11 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_3_7 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_3_s4 .INIT=16'h305F;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_3_s5  (
+	.I0(\u_cordic/y [11]),
+	.I1(\u_cordic/y [12]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/n69_30 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_3_8 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_3_s5 .INIT=16'hCA00;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_3_s6  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_3_12 ),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/iteration [2]),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_3_9 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_3_s6 .INIT=16'h1800;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_3_s7  (
+	.I0(\u_cordic/y [13]),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/U/x_i_shifted_4_7 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_3_10 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_3_s7 .INIT=16'h03FA;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_2_s3  (
+	.I0(\u_cordic/y [5]),
+	.I1(\u_cordic/y [3]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_2_10 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_2_6 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_2_s3 .INIT=16'h305F;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_2_s5  (
+	.I0(\u_cordic/U/x_i_shifted_6_8 ),
+	.I1(\u_cordic/y [9]),
+	.I2(\u_cordic/x_i_shifted_11_4 ),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_2_11 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_2_8 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_2_s5 .INIT=16'h0D00;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_2_s6  (
+	.I0(\u_cordic/y [13]),
+	.I1(\u_cordic/U/y_shifter/y_i_shifted_14_3 ),
+	.I2(\u_cordic/U/x_i_shifted_4_7 ),
+	.I3(\u_cordic/U/x_i_shifted_4_14 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_2_9 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_2_s6 .INIT=16'hC500;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_1_s4  (
+	.I0(\u_cordic/y [9]),
+	.I1(\u_cordic/y [10]),
+	.I2(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_1_7 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s4 .INIT=8'h35;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_1_s5  (
+	.I0(\u_cordic/U/y_i_shifted_10_5 ),
+	.I1(\u_cordic/y [6]),
+	.I2(\u_cordic/x_i_shifted_11_4 ),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_1_14 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_1_8 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s5 .INIT=16'h0D00;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_1_s7  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_1_15 ),
+	.I1(\u_cordic/x_i_shifted_14_4 ),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_1_16 ),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_1_10 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s7 .INIT=16'h0F77;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_1_s8  (
+	.I0(\u_cordic/U/x_i_shifted_6_11 ),
+	.I1(\u_cordic/y [11]),
+	.I2(\u_cordic/U/x_i_shifted_4_14 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_1_11 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s8 .INIT=8'h07;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_1_s9  (
+	.I0(\u_cordic/y [13]),
+	.I1(\u_cordic/y [12]),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_1_12 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s9 .INIT=16'hCFF5;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_1_s10  (
+	.I0(\u_cordic/y [15]),
+	.I1(\u_cordic/y [16]),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_1_13 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s10 .INIT=16'h305F;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_0_s3  (
+	.I0(\u_cordic/y [3]),
+	.I1(\u_cordic/y [1]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_0_11 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_0_6 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_0_s3 .INIT=16'h305F;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_0_s4  (
+	.I0(\u_cordic/y [8]),
+	.I1(\u_cordic/y [9]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/n69_30 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_0_7 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_0_s4 .INIT=16'hCA00;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_0_s5  (
+	.I0(\u_cordic/y [11]),
+	.I1(\u_cordic/n67_28 ),
+	.I2(\u_cordic/iteration [2]),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_0_14 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_0_8 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_0_s5 .INIT=16'h00F4;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_0_s6  (
+	.I0(\u_cordic/y [10]),
+	.I1(\u_cordic/iteration [2]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/U/x_i_shifted_6_11 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_0_9 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_0_s6 .INIT=16'h3E00;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_0_s7  (
+	.I0(\u_cordic/y [13]),
+	.I1(\u_cordic/iteration [0]),
+	.I2(\u_cordic/U/y_shifter/y_i_shifted_14_3 ),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_0_10 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_0_s7 .INIT=16'hF077;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_11_s2  (
+	.I0(\u_cordic/y [13]),
+	.I1(\u_cordic/y [11]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_11_5 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_11_s2 .INIT=16'hFA0C;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_10_s5  (
+	.I0(y_o[10]),
+	.I1(y_i[10]),
+	.I2(\u_cordic/iteration [1]),
+	.I3(init),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_10_8 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_10_s5 .INIT=16'h0CFA;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_7_s6  (
+	.I0(\u_cordic/y [7]),
+	.I1(\u_cordic/y [9]),
+	.I2(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_7_9 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_7_s6 .INIT=8'h35;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_6_s6  (
+	.I0(\u_cordic/x_i_shifted_14_4 ),
+	.I1(\u_cordic/y [10]),
+	.I2(\u_cordic/y [11]),
+	.I3(\u_cordic/x_i_shifted_11_4 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_6_9 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_6_s6 .INIT=16'hBB0F;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_5_s6  (
+	.I0(\u_cordic/y [7]),
+	.I1(\u_cordic/y [5]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_5_9 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_5_s6 .INIT=16'hFA0C;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_4_s6  (
+	.I0(\u_cordic/y [4]),
+	.I1(\u_cordic/y [6]),
+	.I2(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_4_9 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_4_s6 .INIT=8'h35;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_4_s7  (
+	.I0(\u_cordic/y [10]),
+	.I1(\u_cordic/y [11]),
+	.I2(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_4_10 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_4_s7 .INIT=8'h35;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_3_s8  (
+	.I0(\u_cordic/y [5]),
+	.I1(\u_cordic/y [3]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_3_11 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_3_s8 .INIT=16'hFA0C;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_3_s9  (
+	.I0(\u_cordic/y [15]),
+	.I1(\u_cordic/y [14]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_3_12 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_3_s9 .INIT=16'hCFF5;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_2_s7  (
+	.I0(\u_cordic/y [2]),
+	.I1(\u_cordic/y [4]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_2_10 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_2_s7 .INIT=16'h0CFA;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_2_s8  (
+	.I0(\u_cordic/y [8]),
+	.I1(\u_cordic/U/x_i_shifted_9_6 ),
+	.I2(\u_cordic/y [7]),
+	.I3(\u_cordic/U/y_i_shifted_10_5 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_2_11 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_2_s8 .INIT=16'hF0BB;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_1_s11  (
+	.I0(\u_cordic/y [7]),
+	.I1(\u_cordic/U/x_i_shifted_3_6 ),
+	.I2(\u_cordic/y [8]),
+	.I3(\u_cordic/U/x_i_shifted_6_8 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_1_14 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s11 .INIT=16'hB0BB;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_1_s12  (
+	.I0(y_i[2]),
+	.I1(y_o[2]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_1_17 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_1_15 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s12 .INIT=16'h305F;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_1_s13  (
+	.I0(y_i[4]),
+	.I1(y_o[4]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/U/y_shifter/y_i_shifted_1_18 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_1_16 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s13 .INIT=16'h305F;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_0_s8  (
+	.I0(\u_cordic/y [0]),
+	.I1(\u_cordic/y [2]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [1]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_0_11 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_0_s8 .INIT=16'h0CFA;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_1_s14  (
+	.I0(y_o[1]),
+	.I1(y_i[1]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(init),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_1_17 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s14 .INIT=16'h0CFA;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_1_s15  (
+	.I0(y_o[3]),
+	.I1(y_i[3]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(init),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_1_18 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s15 .INIT=16'h0CFA;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_1_s16  (
+	.I0(y_o[5]),
+	.I1(y_i[5]),
+	.I2(init),
+	.I3(\u_cordic/x_i_shifted_14_4 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_1_20 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_1_s16 .INIT=16'h0035;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_9_s4  (
+	.I0(\u_cordic/y [15]),
+	.I1(\u_cordic/y [16]),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [0]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_9_8 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_9_s4 .INIT=16'hCCCA;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_0_s10  (
+	.I0(\u_cordic/iteration [1]),
+	.I1(y_o[12]),
+	.I2(y_i[12]),
+	.I3(init),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_0_14 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_0_s10 .INIT=16'h5044;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_2_s9  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_4_10 ),
+	.I1(\u_cordic/iteration [2]),
+	.I2(\u_cordic/iteration [1]),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_2_13 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_2_s9 .INIT=16'hFE00;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_7_s7  (
+	.I0(\u_cordic/iteration [2]),
+	.I1(\u_cordic/iteration [1]),
+	.I2(\u_cordic/iteration [0]),
+	.I3(\u_cordic/iteration [3]),
+	.F(\u_cordic/U/y_i_shifted_7_11 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_7_s7 .INIT=16'hFE00;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_7_s8  (
+	.I0(y_o[13]),
+	.I1(y_i[13]),
+	.I2(init),
+	.I3(\u_cordic/U/x_i_shifted_3_6 ),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_7_13 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_7_s8 .INIT=16'h3500;
+LUT3 \u_cordic/U/y_shifter/y_i_shifted_4_s9  (
+	.I0(\u_cordic/y [16]),
+	.I1(\u_cordic/iteration [3]),
+	.I2(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_4_13 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_4_s9 .INIT=8'h80;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_5_s7  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_5_6 ),
+	.I1(\u_cordic/y [9]),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_5_11 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_5_s7 .INIT=16'hCCC5;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_11_s3  (
+	.I0(\u_cordic/U/y_shifter/y_i_shifted_11_4 ),
+	.I1(\u_cordic/y [15]),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_11_7 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_11_s3 .INIT=16'hCCC5;
+LUT4 \u_cordic/U/y_shifter/y_i_shifted_12_s3  (
+	.I0(\u_cordic/y [15]),
+	.I1(\u_cordic/y [16]),
+	.I2(\u_cordic/iteration [3]),
+	.I3(\u_cordic/iteration [2]),
+	.F(\u_cordic/U/y_shifter/y_i_shifted_12_7 )
+);
+defparam \u_cordic/U/y_shifter/y_i_shifted_12_s3 .INIT=16'hCCCA;
+endmodule

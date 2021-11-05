@@ -1,0 +1,17 @@
+<?xml version="1" encoding="UTF-8"?>
+<!DOCTYPE gowin-fpga-project>
+<Project>
+    <Template>FPGA</Template>
+    <Version>5</Version>
+    <Device name="GW1N-1" pn="GW1N-LV1QN48C6/I5">gw1n1-004</Device>
+    <FileList>
+        <File path="src/cordic/cordic.v" type="file.verilog" enable="1"/>
+        <File path="src/gowin_osc/gowin_osc.v" type="file.verilog" enable="1"/>
+        <File path="src/gowin_rpll/gowin_rpll.v" type="file.verilog" enable="1"/>
+        <File path="src/gowin_sp/gowin_sp.v" type="file.verilog" enable="1"/>
+        <File path="src/init.v" type="file.verilog" enable="1"/>
+        <File path="src/ram.v" type="file.verilog" enable="1"/>
+        <File path="src/use.v" type="file.verilog" enable="1"/>
+        <File path="src/port.cst" type="file.cst" enable="1"/>
+    </FileList>
+</Project>
