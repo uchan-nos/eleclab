@@ -2,3 +2,6 @@
 */tangnano/impl/gwsynthesis
 */tangnano/impl/pnr
 */tangnano/impl/temp
+**/*.X/nbproject/Makefile-*
+**/*.X/nbproject/Package-default.bash
+**/*.X/nbproject/private
