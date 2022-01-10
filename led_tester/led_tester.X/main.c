@@ -25,16 +25,18 @@ void main(void) {
     char s[17];
     
     for (;;) {
-        // I[mA] = (adc_value * 5/1024)[V] / 51[Ω] * 1000
-        //       ≒ adc_value * 0.0957
-        // 10I ≒ adc_value * 96 / 100
-        int current = (ADC_GetConversion(AN_SENSE) * 96) / 100;
+        // I[mA] = (adc_value * 1/1000)[V] / 50[Ω] * 1000
+        //       = adc_value / 50
+        // 100I = adc_value * 2
+        ADCON1bits.ADPREF = 3; // Vref+ = FVR (1.024V)
+        int current = ADC_GetConversion(AN_SENSE) * 2;
         // 100Vf = 100(5[V] - adc_value * 5/1024)
+        ADCON1bits.ADPREF = 0; // Vref+ = VDD (5V)
         int vf = 500 - (ADC_GetConversion(AN_LEDVF) * 500l) / 1024;
 
-        strcpy(s, " 0.0mA Vf=0.00V");
-        format_dec(s + 0, current, 4, 2);
-        format_dec(s + 10, vf, 4, 1);
+        strcpy(s, " 0.00mA Vf=0.00V");
+        format_dec(s + 0, current, 5, 2);
+        format_dec(s + 11, vf, 4, 1);
         lcd_cursor_at(0, 0);
         lcd_puts(s);
 
