@@ -50,25 +50,25 @@ void main(void) {
             IO_OPAMP_EN_TRIS = 1;
             strcpy(s, "5:      33:     ");
             if (current == 0) {
-                strncpy(s + 2, "+Inf", 4);
-                strncpy(s + 11, "+Inf", 4);
+                strncpy(s + 3, "+Inf", 4);
+                strncpy(s + 12, "+Inf", 4);
             } else {
                 // Vdd=5[V] のときの抵抗両端の電圧 Rv[V] = 5 - Vf = 5 - vf/100
-                // 抵抗の電流 Ir[mA] = I = current/10
+                // 抵抗の電流 Ir[mA] = I = current/100
                 // R[ohm] = Rv / (Ir/1000)
-                //        = (5 - vf/100) / (current/10000)
-                //        = 10000 * (5 - vf/100) / current
-                long reg5v = (50000l - 100l * vf) / current;
-                long reg3v3 = (33000l - 100l * vf) / current;
+                //        = (5 - vf/100) / (current/100000)
+                //        = 100000 * (5 - vf/100) / current
+                long reg5v = (500000l - 1000l * vf) / current;
+                long reg3v3 = (330000l - 1000l * vf) / current;
                 if (reg5v >= 0) {
                     format_dec(s + 2, reg5v, 5, 5);
                 } else {
-                    s[2] = '-';
+                    s[6] = '-';
                 }
                 if (reg3v3 >= 0) {
                     format_dec(s + 11, reg3v3, 5, 5);
                 } else {
-                    s[11] = '-';
+                    s[15] = '-';
                 }
             }
             lcd_puts(s);
