@@ -63,12 +63,6 @@
 
 
 /**
-  Section: Macro Declarations
-*/
-
-#define TMR0_INTERRUPT_TICKER_FACTOR    1
-
-/**
   Section: TMR0 APIs
 */
 
@@ -295,23 +289,6 @@ void TMR0_Reload(void);
  */
 void TMR0_ISR(void);
 
-/**
-  @Summary
-    CallBack function
-
-  @Description
-    This function is called from the timer ISR. User can write your code in this function.
-
-  @Preconditions
-    Initialize  the TMR0 module with interrupt before calling this function.
-
-  @Param
-    None
-
-  @Returns
-    None
-*/
-void TMR0_CallBack(void);
 
 /**
   @Summary

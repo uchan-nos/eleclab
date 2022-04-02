@@ -6068,7 +6068,7 @@
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="TMR0" name="CallbackFuncRate"/>
-         <value>0.005</value>
+         <value>0</value>
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="TMR0" name="TMR0_TMRIISRFunction"/>
@@ -6120,7 +6120,7 @@
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="TMR0" name="tickerFactor"/>
-         <value>1</value>
+         <value>0</value>
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="TMR0" name="timerstart"/>
@@ -6430,7 +6430,7 @@
       </entry>
       <entry>
          <file>mcc_generated_files\tmr0.h</file>
-         <hash>bb89012e1b1e8f02f6f0cf39087ec061326e78188dead832ab408c49e3d2ee7c</hash>
+         <hash>1fe948ea13c16535be27accf351646deefcb109c279a202c2fd94c135e1049be</hash>
       </entry>
       <entry>
          <file>main.c</file>
@@ -6450,7 +6450,7 @@
       </entry>
       <entry>
          <file>mcc_generated_files\tmr0.c</file>
-         <hash>db2611c2ef86d27bd20568fa22557ab7bc40411425e607817cb29fda040fa448</hash>
+         <hash>207310c03652e564796e44628bca8d8e80093c916fc7c2e79bf2be63a003471e</hash>
       </entry>
       <entry>
          <file>mcc_generated_files\pin_manager.c</file>

@@ -136,25 +136,16 @@ void TMR0_ISR(void)
     // clear the TMR0 interrupt flag
     PIR0bits.TMR0IF = 0;
     // Write to the Timer0 register
-    TMR0H = timer0ReloadVal16bit >> 8;
-    TMR0L = (uint8_t) timer0ReloadVal16bit;
-
-    // ticker function call;
-    // ticker is 1 -> Callback function gets called every time this ISR executes
-    TMR0_CallBack();
-
-    // add your TMR0 interrupt custom code
-}
-
-void TMR0_CallBack(void)
-{
-    // Add your custom callback code here
+    TMR0_StopTimer();
 
     if(TMR0_InterruptHandler)
     {
         TMR0_InterruptHandler();
     }
+
+    // add your TMR0 interrupt custom code
 }
+
 
 void TMR0_SetInterruptHandler(void (* InterruptHandler)(void)){
     TMR0_InterruptHandler = InterruptHandler;
