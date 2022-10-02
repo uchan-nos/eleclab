@@ -7,119 +7,120 @@
 
 #include "main.h"
 
+#include <inttypes.h>
 #include <stdatomic.h>
 #include <stdio.h>
 
-extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
-extern TIM_HandleTypeDef htim4;
 extern UART_HandleTypeDef huart2;
 
 void SystemClock_Config(void);
 
-atomic_int pulsetimer_tick; // 現在時刻 [ms]
+// 固定少数の桁位置
+#define DP (INT32_C(100000))
+
+// 1 Mega
+#define MEG (INT32_C(1000000))
 
 struct MotorStatus {
-  int current_pps;  // 現在速さ [pulse/sec] の 1000 倍の値（固定小数）
-  int target_pps;   // 目標速さ [pulse/sec] の 1000 倍の値（固定小数）
-  int acceleration; // 加減速度 [pulse/sec^2] の 1000 倍の値（固定小数）
-
-  uint32_t period_us; // 1 パルスの周期
-  uint32_t next_us; // 次にパルスを出す時刻
-  int8_t phase;        // 励磁フェーズ（0, 1, 2, 3）
-  int8_t dir;          // 1: 正転、-1: 逆転
+  uint32_t steps; // 残りのステップ数
+  uint8_t phase;  // 励磁フェーズ
+  int8_t dir;     // 1: 正転、-1: 逆転
   uint8_t pins[4]; // モータ制御ピン番号（A1, A2, B1, B2）
+
+  int32_t current_pps;  // 現在の速度 [pulse/sec] の DP 倍の値
+  int32_t target_pps;   // 目標の速度 [pulse/sec] の DP 倍の値
+  int32_t acceleration; // 加速度 [pulse/sec^2] の DP 倍の値
 };
 
 struct MotorStatus motor_right, motor_left;
 
 void InitMotorStatus(struct MotorStatus *stat, uint8_t pin_a1, uint8_t pin_a2, uint8_t pin_b1, uint8_t pin_b2) {
-  stat->current_pps = stat->target_pps = stat->acceleration = 0;
-  stat->period_us = stat->next_us = 0;
+  stat->steps = 0;
   stat->phase = 0;
   stat->dir = 1;
   stat->pins[0] = pin_a1;
   stat->pins[1] = pin_a2;
   stat->pins[2] = pin_b1;
   stat->pins[3] = pin_b2;
+
+  stat->current_pps = stat->target_pps = stat->acceleration = 0;
 }
 
-void SetMotorTargetSpeed(struct MotorStatus *stat, int target_pps, int acc) {
-  // 割り込みを禁止する必要がある気がする
-  stat->target_pps = target_pps;
-  int diff_pps = target_pps - stat->current_pps;
-  if (diff_pps < 0 && acc > 0) {
-    acc = -acc;
-  }
-  stat->acceleration = acc;
+const uint32_t kTriangularWave = 0x8ceff731;
 
-  if (stat->current_pps == 0) {
-    stat->period_us = 0;
+// stat->steps の下位 4 ビットが 0 になったときに 0 を返す
+int StepOne(struct MotorStatus *stat) {
+  if (stat->steps == 0) {
+    for (int i = 0; i < 4; i++) {
+      HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[i], 0);
+    }
+    return 0;
+  }
+
+  uint8_t sub_phase = stat->phase & 15u;
+  const uint32_t pulse_pattern = stat->current_pps < 100 * DP ? kTriangularWave : 0xffffffff;
+
+  if (stat->phase <= 15) {
+    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[1], 0); // A2
+    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[2], 0); // B1
+    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[0], (pulse_pattern >> sub_phase) & 1);
+    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[3], (pulse_pattern >> (15 - sub_phase)) & 1);
+  } else if (stat->phase <= 31) {
+    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[1], 0); // A2
+    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[3], 0); // B2
+    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[0], (pulse_pattern >> (15 - sub_phase)) & 1);
+    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[2], (pulse_pattern >> sub_phase) & 1);
+  } else if (stat->phase <= 47) {
+    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[0], 0); // A1
+    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[3], 0); // B2
+    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[1], (pulse_pattern >> sub_phase) & 1);
+    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[2], (pulse_pattern >> (15 - sub_phase)) & 1);
   } else {
-    stat->period_us = 1000000000 / stat->current_pps;
+    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[0], 0); // A1
+    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[2], 0); // B1
+    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[1], (pulse_pattern >> (15 - sub_phase)) & 1);
+    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[3], (pulse_pattern >> sub_phase) & 1);
   }
-  stat->next_us = pulsetimer_tick * 1000;
+
+  stat->phase = (stat->phase + stat->dir) & 63u;
+  sub_phase = (stat->phase & 15u);
+
+  if (sub_phase == 0) {
+    stat->steps--;
+  }
+  return sub_phase;
 }
 
-void UpdateMotorSpeed(struct MotorStatus *stat) {
-  const int diff_pps = stat->target_pps - stat->current_pps;
-  const int acc_10ms = stat->acceleration / 100;
-  if (diff_pps > 0 && acc_10ms > 0) {
-    stat->current_pps += diff_pps < acc_10ms ? diff_pps : acc_10ms;
-  } else if (diff_pps < 0 && acc_10ms < 0) {
-    stat->current_pps += diff_pps > acc_10ms ? diff_pps : acc_10ms;
-  }
-  if (stat->current_pps == 0) {
-    stat->period_us = 0;
-  } else {
-    stat->period_us = 1000000000 / stat->current_pps;
-  }
-
-  if (diff_pps == 0) {
-    HAL_GPIO_WritePin(UserLED_GPIO_Port, UserLED_Pin, 1);
-  } else {
-    HAL_GPIO_WritePin(UserLED_GPIO_Port, UserLED_Pin, 0);
-  }
-}
-
-static const uint8_t motor_excitation[4] = {
-    0b0101, 0b0110, 0b1010, 0b1001
-};
-
-void StepOne(struct MotorStatus *stat) {
-  uint8_t e = motor_excitation[stat->phase];
-  stat->phase = (stat->phase + stat->dir) & 3u;
-  for (int i = 0; i < 4; i++) {
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[i], (e >> i) & 1u);
-  }
-}
+volatile atomic_int motor_right_step_add, motor_left_step_add; // ステップ数加算要求
 
 void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim) {
   if (htim->Instance == htim3.Instance) {
-    // 制御周期 1ms
-    pulsetimer_tick++;
-    if (motor_right.next_us <= pulsetimer_tick * 1000) {
-      StepOne(&motor_right);
-      motor_right.next_us += motor_right.period_us;
+    // 制御周期はステッピングモータの 1 ステップの 1/16
+    motor_right.steps += atomic_exchange(&motor_right_step_add, 0);
+    motor_left.steps += atomic_exchange(&motor_left_step_add, 0);
 
-      static int count = 0;
-      if ((count++ % 100) == 0) {
-        printf("TIM3 right: pulsetimer_tick=%4d count=%d\n", pulsetimer_tick, count);
+    if (motor_right.current_pps == 0 && motor_right.acceleration > 0) {
+      motor_right.current_pps = motor_right.acceleration / 10;
+      uint16_t new_arr = ((int64_t)(MEG) * DP / 16) / motor_right.current_pps;
+      __HAL_TIM_SET_AUTORELOAD(htim, new_arr);
+    }
+
+    if (StepOne(&motor_right) == 0 && motor_right.current_pps != motor_right.target_pps) {
+      uint16_t arr = __HAL_TIM_GET_AUTORELOAD(htim);
+      // タイマクロック = 1MHz なので、タイマ周期 = arr+1 [us]
+      // したがって、モータの 1 ステップ = 16*(arr+1) [us] = 16*(arr+1)/MEG [s]
+      int32_t acc_diff = ((int64_t)(motor_right.acceleration) * 16*(arr+1)) / MEG;
+      motor_right.current_pps += acc_diff;
+      if (motor_right.current_pps > motor_right.target_pps) {
+        motor_right.current_pps = motor_right.target_pps;
+      } else if (motor_right.current_pps < 0) {
+        motor_right.current_pps = 0;
       }
+
+      uint16_t new_arr = ((int64_t)(MEG) * DP / 16) / motor_right.current_pps;
+      __HAL_TIM_SET_AUTORELOAD(htim, new_arr);
     }
-    if (motor_left.next_us <= pulsetimer_tick * 1000) {
-      StepOne(&motor_left);
-      motor_left.next_us += motor_left.period_us;
-    }
-  } else if (htim->Instance == htim2.Instance) {
-    static int count = 0;
-    if ((count % 500) == 0) {
-      printf("TIM2 callback: %d\n", count);
-    }
-    count++;
-    // 制御周期 10ms
-    UpdateMotorSpeed(&motor_right);
-    UpdateMotorSpeed(&motor_left);
   }
 }
 
@@ -136,9 +137,10 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim) {
  */
 int main(void) {
   InitMotorStatus(&motor_right, 4, 5, 0, 1);
-  SetMotorTargetSpeed(&motor_right, 500 * 1000, 25 * 1000);
+  motor_right.target_pps = 500 * DP;
+  motor_right.acceleration = 250 * DP;
+  motor_right.steps = 120 * 10;
   InitMotorStatus(&motor_left, 6, 7, 9, 8);
-  SetMotorTargetSpeed(&motor_left, 500 * 1000, 20 * 1000);
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
@@ -149,47 +151,93 @@ int main(void) {
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
-  MX_TIM2_Init();
   MX_TIM3_Init();
 
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, 0);  // パラレル制御
 
+  HAL_TIM_Base_Start_IT(&htim3);
+
+  /*
   while (1) {
-    for (int d = 15; d >= 2; d--) {
-      for (int i = 0; i < 120; i++) {
-        StepOne(&motor_right);
-        StepOne(&motor_left);
-        HAL_Delay(d);
-      }
-      motor_right.dir = motor_left.dir = -motor_right.dir;
-    }
+    kMicrostepPattern = 0xffffffff;
+    __HAL_TIM_SET_AUTORELOAD(&htim3, 999);
+    motor_right_step_add = 120 * 3;
+    HAL_Delay(2000);
+    kMicrostepPattern = 0x8ceff731;
+    __HAL_TIM_SET_AUTORELOAD(&htim3, 999);
+    motor_right_step_add = 120 * 3;
+    HAL_Delay(3000);
+
+    kMicrostepPattern = 0xffffffff;
+    __HAL_TIM_SET_AUTORELOAD(&htim3, 1499);
+    motor_right_step_add = 120 * 3;
+    HAL_Delay(2000);
+    kMicrostepPattern = 0x8ceff731;
+    __HAL_TIM_SET_AUTORELOAD(&htim3, 1499);
+    motor_right_step_add = 120 * 3;
+    HAL_Delay(3000);
+
+    kMicrostepPattern = 0xffffffff;
+    __HAL_TIM_SET_AUTORELOAD(&htim3, 1999);
+    motor_right_step_add = 120 * 2;
+    HAL_Delay(2000);
+    kMicrostepPattern = 0x8ceff731;
+    __HAL_TIM_SET_AUTORELOAD(&htim3, 1999);
+    motor_right_step_add = 120 * 2;
+    HAL_Delay(3000);
+
+    kMicrostepPattern = 0xffffffff;
+    __HAL_TIM_SET_AUTORELOAD(&htim3, 2999);
+    motor_right_step_add = 120 * 1;
+    HAL_Delay(2000);
+    kMicrostepPattern = 0x8ceff731;
+    __HAL_TIM_SET_AUTORELOAD(&htim3, 2999);
+    motor_right_step_add = 120 * 1;
+    HAL_Delay(3000);
+
+    kMicrostepPattern = 0xffffffff;
+    __HAL_TIM_SET_AUTORELOAD(&htim3, 3999);
+    motor_right_step_add = 120 * 1;
+    HAL_Delay(2000);
+    kMicrostepPattern = 0x8ceff731;
+    __HAL_TIM_SET_AUTORELOAD(&htim3, 3999);
+    motor_right_step_add = 120 * 1;
+    HAL_Delay(3000);
   }
-
-  //HAL_TIM_Base_Start_IT(&htim2);
-  //HAL_TIM_Base_Start_IT(&htim3);
+  */
 
   while (1) {
-    printf("%05d: %8d->%8d @%8d %8d;%d [%d]\n", pulsetimer_tick,
-           motor_right.current_pps, motor_right.target_pps, motor_right.acceleration,
-           motor_right.period_us, motor_right.next_us, motor_right.phase);
-    HAL_Delay(500);
+    HAL_Delay(1000);
+    HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
   }
+  /*
+   * ARR   1ステップ周期
+   * 499   1ms
+   * 999   2ms
+   * 1499  3ms
+   * 1999  4ms
+   * 9999  20ms
+   * 24999 50ms
+   * 49999 100ms
+   */
 
+  /*
   while (1) {
-    int acc = 0;
-    printf("acc> ");
-    scanf("%d", &acc);
-    printf("acc == %d\n", acc);
-
-    printf("hello\n");
-    if (motor_right.acceleration > 0) {
-      motor_right.target_pps = 0;
-      motor_right.acceleration = -acc * 1000;
+    uint16_t arr;
+    int pat, steps;
+    printf("arr pat(0/1) steps: ");
+    scanf("%" PRIu16 " %d %d", &arr, &pat, &steps);
+    if (pat) {
+      kMicrostepPattern = 0x8ceff731;
     } else {
-      motor_right.target_pps = 500 * 1000;
-      motor_right.acceleration = acc * 1000;
+      kMicrostepPattern = 0xffffffff;
     }
+    __HAL_TIM_SET_AUTORELOAD(&htim3, arr);
+
+    motor_right_step_add = steps;
+    motor_left_step_add = steps;
   }
+  */
 }
 
 /********************************
