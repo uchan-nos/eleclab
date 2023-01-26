@@ -6,6 +6,7 @@
  */
 
 #include "main.h"
+#include "stepper_motor.h"
 
 #include <inttypes.h>
 #include <math.h>
@@ -15,6 +16,7 @@
 #include <core_cm4.h>
 
 extern TIM_HandleTypeDef htim3;
+extern TIM_HandleTypeDef htim4;
 extern UART_HandleTypeDef huart2;
 
 void SystemClock_Config(void);
@@ -25,87 +27,8 @@ void SystemClock_Config(void);
 // 1 Mega
 #define MEG (INT32_C(1000000))
 
-#define MOTORSTEP_ACCURATE
-
-struct MotorStatus {
-  uint32_t steps; // 残りのステップ数
-  uint8_t phase;  // 励磁フェーズ
-  int8_t dir;     // 1: 正転、-1: 逆転
-  uint8_t pins[4]; // モータ制御ピン番号（A1, A2, B1, B2）
-#ifdef MOTORSTEP_ACCURATE
-  uint32_t step; // 現在のステップ番号
-  uint32_t prev_sqrt;
-#endif
-
-  int32_t current_pps;  // 現在の速度 [pulse/sec] の DP 倍の値
-  int32_t target_pps;   // 目標の速度 [pulse/sec] の DP 倍の値
-  int32_t acceleration; // 加速度 [pulse/sec^2] の DP 倍の値
-};
-
-struct MotorStatus motor_right, motor_left;
-
-void InitMotorStatus(struct MotorStatus *stat, uint8_t pin_a1, uint8_t pin_a2, uint8_t pin_b1, uint8_t pin_b2) {
-  stat->steps = 0;
-  stat->phase = 0;
-  stat->dir = 1;
-  stat->pins[0] = pin_a1;
-  stat->pins[1] = pin_a2;
-  stat->pins[2] = pin_b1;
-  stat->pins[3] = pin_b2;
-#ifdef MOTORSTEP_ACCURATE
-  stat->step = 0;
-  stat->prev_sqrt = 0;
-#endif
-
-  stat->current_pps = stat->target_pps = stat->acceleration = 0;
-}
-
-const uint32_t kTriangularWave = 0x8ceff731;
-
-// stat->steps の下位 4 ビットが 0 になったときに 0 を返す
-int StepOne(struct MotorStatus *stat) {
-  if (stat->steps == 0) {
-    for (int i = 0; i < 4; i++) {
-      HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[i], 0);
-    }
-    return 0;
-  }
-
-  uint8_t sub_phase = stat->phase & 15u;
-  const uint32_t pulse_pattern = stat->current_pps < 100 * DP ? kTriangularWave : 0xffffffff;
-
-  if (stat->phase <= 15) {
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[1], 0); // A2
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[2], 0); // B1
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[0], (pulse_pattern >> sub_phase) & 1);
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[3], (pulse_pattern >> (15 - sub_phase)) & 1);
-  } else if (stat->phase <= 31) {
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[1], 0); // A2
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[3], 0); // B2
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[0], (pulse_pattern >> (15 - sub_phase)) & 1);
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[2], (pulse_pattern >> sub_phase) & 1);
-  } else if (stat->phase <= 47) {
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[0], 0); // A1
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[3], 0); // B2
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[1], (pulse_pattern >> sub_phase) & 1);
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[2], (pulse_pattern >> (15 - sub_phase)) & 1);
-  } else {
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[0], 0); // A1
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[2], 0); // B1
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[1], (pulse_pattern >> (15 - sub_phase)) & 1);
-    HAL_GPIO_WritePin(GPIOB, 1u << stat->pins[3], (pulse_pattern >> sub_phase) & 1);
-  }
-
-  stat->phase = (stat->phase + stat->dir) & 63u;
-  sub_phase = (stat->phase & 15u);
-
-  if (sub_phase == 0) {
-    stat->steps--;
-  }
-  return sub_phase;
-}
-
-volatile atomic_int motor_right_step_add, motor_left_step_add; // ステップ数加算要求
+#define MOTOR_R 0
+#define MOTOR_L 1
 
 unsigned int mcrowne_isqrt(unsigned long val);
 unsigned julery_isqrt(unsigned long val);
@@ -114,51 +37,22 @@ uint32_t julery_isqrt64(uint64_t val);
 
 void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim) {
   if (htim->Instance == htim3.Instance) {
-    // 制御周期はステッピングモータの 1 ステップの 1/16
-    motor_right.steps += atomic_exchange(&motor_right_step_add, 0);
-    motor_left.steps += atomic_exchange(&motor_left_step_add, 0);
-
-    if (StepOne(&motor_right) == 0 && motor_right.current_pps != motor_right.target_pps) {
-      uint32_t start = DWT->CYCCNT;
-
-#ifndef MOTORSTEP_ACCURATE
-      uint16_t arr = __HAL_TIM_GET_AUTORELOAD(htim);
-      // タイマクロック = 1MHz なので、タイマ周期 = arr+1 [us]
-      // したがって、モータの 1 ステップ = 16*(arr+1) [us] = 16*(arr+1)/MEG [s]
-      int32_t acc_diff = ((int64_t)(motor_right.acceleration) * 16*(arr+1)) / MEG;
-      motor_right.current_pps += acc_diff;
-      if (motor_right.current_pps > motor_right.target_pps) {
-        motor_right.current_pps = motor_right.target_pps;
-      } else if (motor_right.current_pps < 0) {
-        motor_right.current_pps = 0;
-      }
-
-      uint16_t new_arr = ((int64_t)(MEG) * DP / 16) / motor_right.current_pps;
+    uint16_t new_arr = StepMotor(MOTOR_R);
+    if (new_arr == 0) {
+      PowerOffMotor(MOTOR_R);
+      // 停止時の制御周期を 1ms とする
+      __HAL_TIM_SET_AUTORELOAD(htim, 999);
+    } else {
       __HAL_TIM_SET_AUTORELOAD(htim, new_arr);
-#else
-      motor_right.step++;
-      //unsigned int dp = 0, dp2 = dp << 1;
-      //uint32_t a = isqrt((motor_right.acceleration * (motor_right.step + 1) >> 1) << dp2);
-      //uint32_t a = mcrowne_isqrt(motor_right.acceleration * (motor_right.step + 1) >> 1);
-      float a;
-      a = sqrtf(motor_right.acceleration * (motor_right.step + 1) >> 1);
-      uint32_t b = motor_right.prev_sqrt;
-      motor_right.prev_sqrt = (uint32_t)a;
-      motor_right.current_pps = (uint32_t)a + b;
-      uint16_t new_arr = MEG / motor_right.current_pps / 16;
-
-      if (motor_right.current_pps > motor_right.target_pps) {
-        motor_right.current_pps = motor_right.target_pps;
-      } else if (motor_right.current_pps < 0) {
-        motor_right.current_pps = 0;
-      }
-
+    }
+  } else if (htim->Instance == htim4.Instance) {
+    uint16_t new_arr = StepMotor(MOTOR_L);
+    if (new_arr == 0) {
+      PowerOffMotor(MOTOR_L);
+      // 停止時の制御周期を 1ms とする
+      __HAL_TIM_SET_AUTORELOAD(htim, 999);
+    } else {
       __HAL_TIM_SET_AUTORELOAD(htim, new_arr);
-
-#endif
-
-      uint32_t elapsed = DWT->CYCCNT - start;
-      printf("%lu\n", elapsed);
     }
   }
 }
@@ -175,17 +69,8 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim) {
  * PB9: Motor2 B2
  */
 int main(void) {
-  InitMotorStatus(&motor_right, 4, 5, 0, 1);
-#ifndef MOTORSTEP_ACCURATE
-  motor_right.target_pps = 500 * DP;
-  motor_right.acceleration = 250 * DP;
-  motor_right.steps = 120 * 10;
-#else
-  motor_right.target_pps = 500;
-  motor_right.acceleration = 250;
-  motor_right.steps = 120 * 10;
-#endif
-  InitMotorStatus(&motor_left, 6, 7, 9, 8);
+  InitMotor(MOTOR_R, 4, 5, 0, 1);
+  InitMotor(MOTOR_L, 6, 7, 9, 8);
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
@@ -197,143 +82,27 @@ int main(void) {
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   MX_TIM3_Init();
+  MX_TIM4_Init();
   DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, 0);  // パラレル制御
 
-  printf("sizeof int=%lu long=%lu ll=%lu f=%lu d=%lu\n",
-         sizeof(int), sizeof(long), sizeof(long long), sizeof(float), sizeof(double));
+  HAL_TIM_Base_Start_IT(&htim3);
+  HAL_TIM_Base_Start_IT(&htim4);
 
-  uint32_t t;
-  uint32_t start, elapsed;
-  float ft;
-  double dt;
-
-  printf("mcrowne_isqrt\n");
-  t = 0;
-  start = DWT->CYCCNT;
-  for (int i = 0; i < 100000; i++) {
-    t += mcrowne_isqrt(i);
-  }
-  elapsed = DWT->CYCCNT - start;
-  printf("t=%lu elapsed=%9lu avg=%2lu.%05lu[us]\n",
-         t, elapsed, elapsed / 80 / 100000, (elapsed / 80) % 100000);
-
-  printf("julery_isqrt\n");
-  t = 0;
-  start = DWT->CYCCNT;
-  for (int i = 0; i < 100000; i++) {
-    t += julery_isqrt(i);
-  }
-  elapsed = DWT->CYCCNT - start;
-  printf("t=%lu elapsed=%9lu avg=%2lu.%05lu[us]\n",
-         t, elapsed, elapsed / 80 / 100000, (elapsed / 80) % 100000);
-
-  printf("julery_isqrt64\n");
-  t = 0;
-  start = DWT->CYCCNT;
-  for (int i = 0; i < 100000; i++) {
-    t += julery_isqrt64(i);
-  }
-  elapsed = DWT->CYCCNT - start;
-  printf("t=%lu elapsed=%9lu avg=%2lu.%05lu[us]\n",
-         t, elapsed, elapsed / 80 / 100000, (elapsed / 80) % 100000);
-
-  /*
-  printf("arm_sqrt_f32\n");
-  ft = 0;
-  start = DWT->CYCCNT;
-  for (int i = 0; i < 100000; i++) {
-    float out;
-    arm_sqrt_f32(i, &out);
-    ft += out;
-  }
-  elapsed = DWT->CYCCNT - start;
-  printf("ft=%f elapsed=%9lu avg=%2lu.%05lu[us]\n",
-         ft, elapsed, elapsed / 80 / 100000, (elapsed / 80) % 100000);
-  */
-
-  printf("sqrtf\n");
-  ft = 0;
-  start = DWT->CYCCNT;
-  for (int i = 0; i < 100000; i++) {
-    ft += sqrtf(i);
-  }
-  elapsed = DWT->CYCCNT - start;
-  printf("ft=%f elapsed=%9lu avg=%2lu.%05lu[us]\n",
-         ft, elapsed, elapsed / 80 / 100000, (elapsed / 80) % 100000);
-
-  printf("sqrt\n");
-  dt = 0;
-  start = DWT->CYCCNT;
-  for (int i = 0; i < 100000; i++) {
-    dt += sqrt(i);
-  }
-  elapsed = DWT->CYCCNT - start;
-  printf("dt=%f elapsed=%9lu avg=%2lu.%05lu[us]\n",
-         dt, elapsed, elapsed / 80 / 100000, (elapsed / 80) % 100000);
-
-
+  int dir = 1;
   while (1) {
+    StartMotor(MOTOR_R, 500, 500);
+    StartMotor(MOTOR_L, 500, 500);
     HAL_Delay(500);
     HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
-  }
-
-
-  HAL_TIM_Base_Start_IT(&htim3);
-
-  /*
-  while (1) {
-    kMicrostepPattern = 0xffffffff;
-    __HAL_TIM_SET_AUTORELOAD(&htim3, 999);
-    motor_right_step_add = 120 * 3;
-    HAL_Delay(2000);
-    kMicrostepPattern = 0x8ceff731;
-    __HAL_TIM_SET_AUTORELOAD(&htim3, 999);
-    motor_right_step_add = 120 * 3;
-    HAL_Delay(3000);
-
-    kMicrostepPattern = 0xffffffff;
-    __HAL_TIM_SET_AUTORELOAD(&htim3, 1499);
-    motor_right_step_add = 120 * 3;
-    HAL_Delay(2000);
-    kMicrostepPattern = 0x8ceff731;
-    __HAL_TIM_SET_AUTORELOAD(&htim3, 1499);
-    motor_right_step_add = 120 * 3;
-    HAL_Delay(3000);
-
-    kMicrostepPattern = 0xffffffff;
-    __HAL_TIM_SET_AUTORELOAD(&htim3, 1999);
-    motor_right_step_add = 120 * 2;
-    HAL_Delay(2000);
-    kMicrostepPattern = 0x8ceff731;
-    __HAL_TIM_SET_AUTORELOAD(&htim3, 1999);
-    motor_right_step_add = 120 * 2;
-    HAL_Delay(3000);
-
-    kMicrostepPattern = 0xffffffff;
-    __HAL_TIM_SET_AUTORELOAD(&htim3, 2999);
-    motor_right_step_add = 120 * 1;
-    HAL_Delay(2000);
-    kMicrostepPattern = 0x8ceff731;
-    __HAL_TIM_SET_AUTORELOAD(&htim3, 2999);
-    motor_right_step_add = 120 * 1;
-    HAL_Delay(3000);
-
-    kMicrostepPattern = 0xffffffff;
-    __HAL_TIM_SET_AUTORELOAD(&htim3, 3999);
-    motor_right_step_add = 120 * 1;
-    HAL_Delay(2000);
-    kMicrostepPattern = 0x8ceff731;
-    __HAL_TIM_SET_AUTORELOAD(&htim3, 3999);
-    motor_right_step_add = 120 * 1;
-    HAL_Delay(3000);
-  }
-  */
-
-  while (1) {
-    HAL_Delay(1000);
+    StopMotor(MOTOR_R, 500);
+    StopMotor(MOTOR_L, 500);
+    HAL_Delay(500);
     HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
+    dir = -dir;
+    SetMotorDirection(MOTOR_R, dir);
+    SetMotorDirection(MOTOR_L, dir);
   }
   /*
    * ARR   1ステップ周期
