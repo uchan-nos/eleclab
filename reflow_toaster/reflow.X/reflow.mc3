@@ -2815,7 +2815,7 @@
          <value>SMT2 enabled</value>
       </entry>
       <entry>
-         <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="Pin Module" name="ADCACTPPS%aux2"/>
+         <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="Pin Module" name="ADCACTPPS%aux1"/>
          <value>%DESELECT%</value>
       </entry>
       <entry>
@@ -3039,11 +3039,11 @@
          <value>disabled</value>
       </entry>
       <entry>
-         <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="Pin Module" name="RXPPS%aux1"/>
+         <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="Pin Module" name="RXPPS%aux0"/>
          <value>23</value>
       </entry>
       <entry>
-         <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="Pin Module" name="T0CKIPPS%aux0"/>
+         <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="Pin Module" name="T0CKIPPS%aux2"/>
          <value>%DESELECT%</value>
       </entry>
       <entry>
@@ -8005,12 +8005,12 @@
          <hash>6cc1407c20d92b82ef901182628b4b0e5a6314eeec97b8a78e96e7337d041990</hash>
       </entry>
       <entry>
-         <file>mcc_generated_files\pin_manager.h</file>
-         <hash>28a671c9aaab85d4064ecf4a96bda4e2b906deef42eb2871cb2c44a1ba6adf85</hash>
-      </entry>
-      <entry>
          <file>mcc_generated_files\adcc.h</file>
          <hash>7bac2c4fd8389eaae7e33b4f115e9b230c7d9dce1d7ca9b1866fde274d42e42f</hash>
+      </entry>
+      <entry>
+         <file>mcc_generated_files\pin_manager.h</file>
+         <hash>28a671c9aaab85d4064ecf4a96bda4e2b906deef42eb2871cb2c44a1ba6adf85</hash>
       </entry>
       <entry>
          <file>mcc_generated_files\eusart.c</file>
@@ -8054,7 +8054,7 @@
       </entry>
       <entry>
          <file>mcc_generated_files\mcc.c</file>
-         <hash>06de74e31530389fc3a36fe94b62f3185c5b3474fd53304a803c009d20816383</hash>
+         <hash>451bb80a327bab87bce21a663b7078631dc40be765ac16e5b0e66f68675fd50c</hash>
       </entry>
    </generatedFileHashHistoryMap>
 </config>
