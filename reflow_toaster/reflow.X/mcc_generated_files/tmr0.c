@@ -67,8 +67,8 @@ void TMR0_Initialize(void)
 {
     // Set TMR0 to the options selected in the User Interface
 
-    // T0CS HFINTOSC; T0CKPS 1:1; T0ASYNC not_synchronised; 
-    T0CON1 = 0x70;
+    // T0CS HFINTOSC; T0CKPS 1:8; T0ASYNC not_synchronised; 
+    T0CON1 = 0x73;
 
     // TMR0H 236; 
     TMR0H = 0xEC;
@@ -136,7 +136,8 @@ void TMR0_ISR(void)
     // clear the TMR0 interrupt flag
     PIR0bits.TMR0IF = 0;
     // Write to the Timer0 register
-    TMR0_StopTimer();
+    TMR0H = timer0ReloadVal16bit >> 8;
+    TMR0L = (uint8_t) timer0ReloadVal16bit;
 
     if(TMR0_InterruptHandler)
     {

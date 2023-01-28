@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 
 #include "mcc_generated_files/mcc.h"
@@ -21,6 +22,18 @@ void Tmr0ISR() {
   IO_LOAD0_LAT = 0;
 }
 
+volatile float tc1_filtered;
+#define TC_FILTER_FACTOR 0.1
+
+void UpdateThermoValues() {
+  tc1_filtered = (1 - TC_FILTER_FACTOR) * tc1_filtered +
+                 TC_FILTER_FACTOR * ADCC_GetSingleConversion(channel_TC1);
+}
+
+void Tmr6ISR() {
+  UpdateThermoValues();
+}
+
 void FlushStdin() {
   int c;
   while ((c = getchar()) != '\n' && c != EOF);
@@ -33,13 +46,19 @@ static const int KTC_UV[] = { // K型熱電対の起電力 [uv]
 /* 200 */ 8539,  8940,  9343,  9747, 10153, 10561, 10971, 11382, 11795, 12209,
 };
 
+/** K型熱電対（K ThermoCouple）の起電力から温度差を計算する。
+ * 
+ * @param amp25_mv  熱電対の起電力を 25 倍した値
+ * @return 温度差
+ */
 int KTC_CalcTemp(int amp25_mv) {
-  int ktc_uv = amp25_mv * 40; // amp25_mv * 1000 / 25
+  int ktc_uv = amp25_mv * 40; // 熱電対の起電力を μV 単位に変換
   int i = 0;
   while (KTC_UV[i + 1] <= ktc_uv) {
     i++;
   }
   // ここで KTC_UV[i] ≦ ktc_uv ＜ KTC_UV[i + 1]
+  // KTC_UV[i] ～ KTC_UV[i + 1] で線形補間
   return 10 * i + 10 * (ktc_uv - KTC_UV[i]) / (KTC_UV[i + 1] - KTC_UV[i]);
 }
 
@@ -47,10 +66,13 @@ void main(void) {
   SYSTEM_Initialize();
   IOCBF0_SetInterruptHandler(PhaseISR);
   TMR0_SetInterruptHandler(Tmr0ISR);
+  TMR6_SetInterruptHandler(Tmr6ISR);
   INTERRUPT_GlobalInterruptEnable();
   INTERRUPT_PeripheralInterruptEnable();
   
   printf("hello, reflow toaster!\n");
+  
+  tc1_filtered = ADCC_GetSingleConversion(channel_TC1);
   
   TMR0_StartTimer();
 
@@ -59,10 +81,12 @@ void main(void) {
   for (;;) {
     
     int mcp_value = ADCC_GetSingleConversion(channel_MCP);
+    // MCP9700A: 0℃=500mV, 10mV/℃
     int deg10 = mcp_value - 500;
-    printf("mcp=%u (%d.%d deg)\n", mcp_value, deg10 / 10, deg10 % 10);
+    printf("mcp =%u (%d.%d deg)\n", mcp_value, deg10 / 10, deg10 % 10);
     int tc1_value = ADCC_GetSingleConversion(channel_TC1);
-    printf("tc1=%u (%d deg)\n", tc1_value, deg10 / 10 + KTC_CalcTemp(tc1_value - 704));
+    printf("tc1 =%u (%d deg)\n", tc1_value, deg10 / 10 + KTC_CalcTemp(tc1_value - 704));
+    printf("tc1f=%u\n", (unsigned int)round(tc1_filtered));
     
     __delay_ms(500);
     
