@@ -22,12 +22,17 @@ void Tmr0ISR() {
   IO_LOAD0_LAT = 0;
 }
 
-volatile float tc1_filtered;
-#define TC_FILTER_FACTOR 0.1
+volatile float mcp_filtered, tc1_filtered;
+#define TC_FILTER_FACTOR 0.02
+
+float FilterThermoValue(float v_filtered, adcc_channel_t ch) {
+  return (1 - TC_FILTER_FACTOR) * v_filtered +
+         TC_FILTER_FACTOR * ADCC_GetSingleConversion(ch);
+}
 
 void UpdateThermoValues() {
-  tc1_filtered = (1 - TC_FILTER_FACTOR) * tc1_filtered +
-                 TC_FILTER_FACTOR * ADCC_GetSingleConversion(channel_TC1);
+  mcp_filtered = FilterThermoValue(mcp_filtered, channel_MCP);
+  tc1_filtered = FilterThermoValue(tc1_filtered, channel_TC1);
 }
 
 void Tmr6ISR() {
@@ -80,7 +85,7 @@ void main(void) {
   unsigned long v = 6000;
   for (;;) {
     
-    int mcp_value = ADCC_GetSingleConversion(channel_MCP);
+    int mcp_value = mcp_filtered;
     // MCP9700A: 0℃=500mV, 10mV/℃
     int deg10 = mcp_value - 500;
     printf("mcp =%u (%d.%d deg)\n", mcp_value, deg10 / 10, deg10 % 10);
