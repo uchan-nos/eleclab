@@ -6,20 +6,20 @@
 // DAC の出力電圧（mv）
 #define DAC_MV 704
 
-volatile uint8_t tmr0_cnt;
-volatile uint8_t tmr0_load0_cnt, tmr0_load1_cnt;
+volatile uint8_t phase_tick; // ゼロクロス点からの位相（ms）
+volatile uint8_t phase_load0, phase_load1; // 負荷を ON にする位相（ms）
 
 void PhaseISR() {
-  if (tmr0_load0_cnt == 0) {
+  if (phase_load0 == 0) {
     IO_LOAD0_LAT = 1;
   }
-  if (tmr0_load1_cnt == 0) {
+  if (phase_load1 == 0) {
     IO_LOAD1_LAT = 1;
   }
 
-  tmr0_cnt = 0;
-  TMR0_Reload();
-  TMR0_StartTimer();
+  phase_tick = 0;
+  TMR2_WriteTimer(0);
+  TMR2_StartTimer();
 
   if (IO_PHASE_PORT == 1) {
     IO_LOAD0_LAT = 1;
@@ -28,22 +28,22 @@ void PhaseISR() {
   }
 }
 
-void Tmr0ISR() {
+void Tmr2ISR() {
   // TMR0 周期 1ms、 AC 電源周期 20ms
-  tmr0_cnt++;
+  phase_tick++;
 
   IO_LOAD0_LAT = 0;
   IO_LOAD1_LAT = 0;
-  if (tmr0_cnt >= 9) {
+  if (phase_tick >= 9) {
     // 半周期は 10 ms
-    TMR0_StopTimer();
+    TMR2_StopTimer();
     return;
   }
 
-  if (tmr0_load0_cnt == tmr0_cnt) {
+  if (phase_load0 == phase_tick) {
     IO_LOAD0_LAT = 1;
   }
-  if (tmr0_load1_cnt == tmr0_cnt) {
+  if (phase_load1 == phase_tick) {
     IO_LOAD1_LAT = 1;
   }
 }
@@ -143,24 +143,24 @@ void ControlHeaters() {
   
   // temp_diff: -300 ～ 300 程度
   if (temp_diff < -20) {
-    tmr0_load0_cnt = tmr0_load1_cnt = 0; // 最大出力
+    phase_load0 = phase_load1 = 0; // 最大出力
   } else if (temp_diff < -10) {
-    tmr0_load0_cnt = tmr0_load1_cnt = 2; // 出力 90%
+    phase_load0 = phase_load1 = 2; // 出力 90%
   } else if (temp_diff < -5) {
-    tmr0_load0_cnt = tmr0_load1_cnt = 3; // 出力 80%
+    phase_load0 = phase_load1 = 3; // 出力 80%
   } else if (temp_diff < 0) {
-    tmr0_load0_cnt = tmr0_load1_cnt = 5; // 出力 50%
+    phase_load0 = phase_load1 = 5; // 出力 50%
   } else if (temp_diff < 5) {
-    tmr0_load0_cnt = tmr0_load1_cnt = 6; // 出力 35%
+    phase_load0 = phase_load1 = 6; // 出力 35%
   } else {
-    tmr0_load0_cnt = tmr0_load1_cnt = 10; // ヒーター停止
+    phase_load0 = phase_load1 = 10; // ヒーター停止
   }
 }
 
 void main(void) {
   SYSTEM_Initialize();
   IOCCF5_SetInterruptHandler(PhaseISR);
-  TMR0_SetInterruptHandler(Tmr0ISR);
+  TMR2_SetInterruptHandler(Tmr2ISR);
   TMR6_SetInterruptHandler(Tmr6ISR);
   INTERRUPT_GlobalInterruptEnable();
   INTERRUPT_PeripheralInterruptEnable();
@@ -176,7 +176,7 @@ void main(void) {
   for (;;) {
     int tc1 = ReadTC1Temp();
     printf("Tair=%d Ttc1=%d Ttgt=%d\n", (int)round(ReadAirTemp()), tc1, target_temp);
-    printf("tmr0_load0_cnt=%d ms\n", tmr0_load0_cnt);
+    printf("phase_load0=%d ms\n", phase_load0);
     
     if (target_temp == 30 && tc1 > target_temp) {
       target_temp = 20;

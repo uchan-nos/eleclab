@@ -56,8 +56,8 @@
 #include "fvr.h"
 #include "adcc.h"
 #include "tmr6.h"
+#include "tmr2.h"
 #include "dac.h"
-#include "tmr0.h"
 #include "eusart.h"
 
 

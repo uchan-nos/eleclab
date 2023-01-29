@@ -12,11 +12,11 @@
         <itemPath>mcc_generated_files/eusart.h</itemPath>
         <itemPath>mcc_generated_files/device_config.h</itemPath>
         <itemPath>mcc_generated_files/interrupt_manager.h</itemPath>
-        <itemPath>mcc_generated_files/tmr0.h</itemPath>
         <itemPath>mcc_generated_files/adcc.h</itemPath>
         <itemPath>mcc_generated_files/fvr.h</itemPath>
         <itemPath>mcc_generated_files/dac.h</itemPath>
         <itemPath>mcc_generated_files/tmr6.h</itemPath>
+        <itemPath>mcc_generated_files/tmr2.h</itemPath>
       </logicalFolder>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
@@ -34,11 +34,11 @@
         <itemPath>mcc_generated_files/eusart.c</itemPath>
         <itemPath>mcc_generated_files/device_config.c</itemPath>
         <itemPath>mcc_generated_files/interrupt_manager.c</itemPath>
-        <itemPath>mcc_generated_files/tmr0.c</itemPath>
         <itemPath>mcc_generated_files/fvr.c</itemPath>
         <itemPath>mcc_generated_files/adcc.c</itemPath>
         <itemPath>mcc_generated_files/dac.c</itemPath>
         <itemPath>mcc_generated_files/tmr6.c</itemPath>
+        <itemPath>mcc_generated_files/tmr2.c</itemPath>
       </logicalFolder>
       <itemPath>main.c</itemPath>
     </logicalFolder>
