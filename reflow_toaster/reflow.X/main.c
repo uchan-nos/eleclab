@@ -10,26 +10,17 @@ volatile uint8_t phase_tick; // ゼロクロス点からの位相（ms）
 volatile uint8_t phase_load0, phase_load1; // 負荷を ON にする位相（ms）
 
 void PhaseISR() {
-  if (phase_load0 == 0) {
-    IO_LOAD0_LAT = 1;
-  }
-  if (phase_load1 == 0) {
-    IO_LOAD1_LAT = 1;
-  }
-
-  phase_tick = 0;
+  // 最速で TMR2 を開始したい
   TMR2_WriteTimer(0);
   TMR2_StartTimer();
 
-  if (IO_PHASE_PORT == 1) {
-    IO_LOAD0_LAT = 1;
-    __delay_us(20);
-    IO_LOAD0_LAT = 0;
-  }
+  IO_LOAD0_LAT = phase_load0 == 0;
+  IO_LOAD1_LAT = phase_load1 == 0;
+  phase_tick = 0;
 }
 
 void Tmr2ISR() {
-  // TMR0 周期 1ms、 AC 電源周期 20ms
+  // TMR2 周期 1ms、 AC 電源周期 20ms
   phase_tick++;
 
   IO_LOAD0_LAT = 0;
@@ -40,12 +31,8 @@ void Tmr2ISR() {
     return;
   }
 
-  if (phase_load0 == phase_tick) {
-    IO_LOAD0_LAT = 1;
-  }
-  if (phase_load1 == phase_tick) {
-    IO_LOAD1_LAT = 1;
-  }
+  IO_LOAD0_LAT = phase_load0 == phase_tick;
+  IO_LOAD1_LAT = phase_load1 == phase_tick;
 }
 
 volatile unsigned long tick_ms;
