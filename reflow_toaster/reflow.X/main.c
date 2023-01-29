@@ -3,27 +3,58 @@
 
 #include "mcc_generated_files/mcc.h"
 
-volatile unsigned long phase_cnt;
-volatile uint16_t tmr0_reload_value;
+// DAC の出力電圧（mv）
+#define DAC_MV 704
+
+volatile uint8_t tmr0_cnt;
+volatile uint8_t tmr0_load0_cnt, tmr0_load1_cnt;
 
 void PhaseISR() {
-  TMR0_WriteTimer(tmr0_reload_value);
+  if (tmr0_load0_cnt == 0) {
+    IO_LOAD0_LAT = 1;
+  }
+  if (tmr0_load1_cnt == 0) {
+    IO_LOAD1_LAT = 1;
+  }
+
+  tmr0_cnt = 0;
+  TMR0_Reload();
   TMR0_StartTimer();
-  phase_cnt++;
+
+  if (IO_PHASE_PORT == 1) {
+    IO_LOAD0_LAT = 1;
+    __delay_us(20);
+    IO_LOAD0_LAT = 0;
+  }
 }
 
-volatile unsigned long tmr0_cnt;
-
 void Tmr0ISR() {
+  // TMR0 周期 1ms、 AC 電源周期 20ms
   tmr0_cnt++;
 
-  IO_LOAD0_LAT = 1;
-  __delay_us(200);
   IO_LOAD0_LAT = 0;
+  IO_LOAD1_LAT = 0;
+  if (tmr0_cnt >= 9) {
+    // 半周期は 10 ms
+    TMR0_StopTimer();
+    return;
+  }
+
+  if (tmr0_load0_cnt == tmr0_cnt) {
+    IO_LOAD0_LAT = 1;
+  }
+  if (tmr0_load1_cnt == tmr0_cnt) {
+    IO_LOAD1_LAT = 1;
+  }
+}
+
+volatile unsigned long tick_ms;
+void Tmr6ISR() {
+  tick_ms++;
 }
 
 volatile float mcp_filtered, tc1_filtered;
-#define TC_FILTER_FACTOR 0.02
+#define TC_FILTER_FACTOR 0.1
 
 float FilterThermoValue(float v_filtered, adcc_channel_t ch) {
   return (1 - TC_FILTER_FACTOR) * v_filtered +
@@ -35,13 +66,18 @@ void UpdateThermoValues() {
   tc1_filtered = FilterThermoValue(tc1_filtered, channel_TC1);
 }
 
-void Tmr6ISR() {
-  UpdateThermoValues();
-}
-
 void FlushStdin() {
   int c;
   while ((c = getchar()) != '\n' && c != EOF);
+}
+
+/** 気温を読み取る
+ * 
+ * @return 気温
+ */
+float ReadAirTemp() {
+  // MCP9700A: 0℃=500mV, 10mV/℃
+  return (mcp_filtered - 500) / 10;
 }
 
 static const int KTC_UV[] = { // K型熱電対の起電力 [uv]
@@ -54,9 +90,9 @@ static const int KTC_UV[] = { // K型熱電対の起電力 [uv]
 /** K型熱電対（K ThermoCouple）の起電力から温度差を計算する。
  * 
  * @param amp25_mv  熱電対の起電力を 25 倍した値
- * @return 温度差
+ * @return 温度差（℃）
  */
-int KTC_CalcTemp(int amp25_mv) {
+int KTC_CalcTempDiff(int amp25_mv) {
   int ktc_uv = amp25_mv * 40; // 熱電対の起電力を μV 単位に変換
   int i = 0;
   while (KTC_UV[i + 1] <= ktc_uv) {
@@ -67,39 +103,96 @@ int KTC_CalcTemp(int amp25_mv) {
   return 10 * i + 10 * (ktc_uv - KTC_UV[i]) / (KTC_UV[i + 1] - KTC_UV[i]);
 }
 
+int ReadTC1Temp() {
+  return KTC_CalcTempDiff((int)tc1_filtered - DAC_MV) + (int)round(ReadAirTemp());
+}
+
+/* ヒーターの出力とトライアックを ON するまでの待ち時間の表
+ * ヒーターの最大出力を 1、オフを 0 とする。
+ * 位相は正弦波のゼロクロス点を 0 とする。
+ * 
+ * 出力  位相  待ち時間（ms）
+ * 1.00     0  0.0
+ * 0.95    25  1.4
+ * 0.90    36  2.0
+ * 0.85    45  2.5
+ * 0.80    53  3.0
+ * 0.75    60  3.3
+ * 0.70    66  3.7
+ * 0.65    72  4.0
+ * 0.60    78  4.4
+ * 0.55    84  4.7
+ * 0.50    90  5.0
+ * 0.45    95  5.3
+ * 0.40   101  5.6
+ * 0.35   107  6.0
+ * 0.30   113  6.3
+ * 0.25   120  6.7
+ * 0.20   126  7.0
+ * 0.15   134  7.5
+ * 0.10   143  8.0
+ * 0.05   154  8.6
+ * 0.00   180  10.0
+ */
+
+volatile int target_temp;
+
+void ControlHeaters() {
+  int tc1_temp = ReadTC1Temp();
+  int temp_diff = tc1_temp - target_temp;
+  
+  // temp_diff: -300 ～ 300 程度
+  if (temp_diff < -20) {
+    tmr0_load0_cnt = tmr0_load1_cnt = 0; // 最大出力
+  } else if (temp_diff < -10) {
+    tmr0_load0_cnt = tmr0_load1_cnt = 2; // 出力 90%
+  } else if (temp_diff < -5) {
+    tmr0_load0_cnt = tmr0_load1_cnt = 3; // 出力 80%
+  } else if (temp_diff < 0) {
+    tmr0_load0_cnt = tmr0_load1_cnt = 5; // 出力 50%
+  } else if (temp_diff < 5) {
+    tmr0_load0_cnt = tmr0_load1_cnt = 6; // 出力 35%
+  } else {
+    tmr0_load0_cnt = tmr0_load1_cnt = 10; // ヒーター停止
+  }
+}
+
 void main(void) {
   SYSTEM_Initialize();
-  IOCBF0_SetInterruptHandler(PhaseISR);
+  IOCCF5_SetInterruptHandler(PhaseISR);
   TMR0_SetInterruptHandler(Tmr0ISR);
   TMR6_SetInterruptHandler(Tmr6ISR);
   INTERRUPT_GlobalInterruptEnable();
   INTERRUPT_PeripheralInterruptEnable();
   
   printf("hello, reflow toaster!\n");
-  
+
+  mcp_filtered = ADCC_GetSingleConversion(channel_MCP);
   tc1_filtered = ADCC_GetSingleConversion(channel_TC1);
   
-  TMR0_StartTimer();
+  target_temp = 30;
+  unsigned long current_tick_ms = tick_ms;
 
-  char s[32];
-  unsigned long v = 6000;
   for (;;) {
+    int tc1 = ReadTC1Temp();
+    printf("Tair=%d Ttc1=%d Ttgt=%d\n", (int)round(ReadAirTemp()), tc1, target_temp);
+    printf("tmr0_load0_cnt=%d ms\n", tmr0_load0_cnt);
     
-    int mcp_value = mcp_filtered;
-    // MCP9700A: 0℃=500mV, 10mV/℃
-    int deg10 = mcp_value - 500;
-    printf("mcp =%u (%d.%d deg)\n", mcp_value, deg10 / 10, deg10 % 10);
-    int tc1_value = ADCC_GetSingleConversion(channel_TC1);
-    printf("tc1 =%u (%d deg)\n", tc1_value, deg10 / 10 + KTC_CalcTemp(tc1_value - 704));
-    printf("tc1f=%u\n", (unsigned int)round(tc1_filtered));
+    if (target_temp == 30 && tc1 > target_temp) {
+      target_temp = 20;
+    } else if (target_temp == 20 && tc1 < 25) {
+      target_temp = 30;
+    }
+
+    ControlHeaters();
     
-    __delay_ms(500);
-    
-    /*
-    printf("DAC(%d)>", DAC_GetOutput());
-    scanf("%d", &dac);
-    DAC_SetOutput(dac);
-    FlushStdin();
-    */
+    while (tick_ms < current_tick_ms + 500) {
+      unsigned long next_ms = current_tick_ms;
+      if (tick_ms >= next_ms) {
+        UpdateThermoValues();
+        next_ms += 50;
+      }
+    }
+    current_tick_ms += 500;
   }
 }

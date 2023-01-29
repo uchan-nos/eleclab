@@ -65,8 +65,8 @@ void TMR6_Initialize(void)
 {
     // Set TMR6 to the options selected in the User Interface
 
-    // T6CS FOSC/4; 
-    T6CLKCON = 0x01;
+    // T6CS HFINTOSC; 
+    T6CLKCON = 0x03;
 
     // T6PSYNC Not Synchronized; T6MODE Software control; T6CKPOL Rising Edge; T6CKSYNC Not Synchronized; 
     T6HLT = 0x00;
@@ -74,8 +74,8 @@ void TMR6_Initialize(void)
     // T6RSEL T6CKIPPS pin; 
     T6RST = 0x00;
 
-    // PR6 30; 
-    T6PR = 0x1E;
+    // PR6 99; 
+    T6PR = 0x63;
 
     // TMR6 0; 
     T6TMR = 0x00;
@@ -89,8 +89,8 @@ void TMR6_Initialize(void)
     // Set Default Interrupt Handler
     TMR6_SetInterruptHandler(TMR6_DefaultInterruptHandler);
 
-    // T6CKPS 1:128; T6OUTPS 1:16; TMR6ON on; 
-    T6CON = 0xFF;
+    // T6CKPS 1:8; T6OUTPS 1:10; TMR6ON on; 
+    T6CON = 0xB9;
 }
 
 void TMR6_ModeSet(TMR6_HLT_MODE mode)
