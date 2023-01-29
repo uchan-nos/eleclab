@@ -16,6 +16,8 @@ void PhaseISR() {
 
   IO_LOAD0_LAT = phase_load0 == 0;
   IO_LOAD1_LAT = phase_load1 == 0;
+  TMR4_Start();
+
   phase_tick = 0;
 }
 
@@ -23,16 +25,19 @@ void Tmr2ISR() {
   // TMR2 周期 1ms、 AC 電源周期 20ms
   phase_tick++;
 
-  IO_LOAD0_LAT = 0;
-  IO_LOAD1_LAT = 0;
-  if (phase_tick >= 9) {
-    // 半周期は 10 ms
-    TMR2_StopTimer();
-    return;
-  }
-
   IO_LOAD0_LAT = phase_load0 == phase_tick;
   IO_LOAD1_LAT = phase_load1 == phase_tick;
+  TMR4_Start();
+}
+
+void Tmr4ISR() {
+  // ワンショットタイマ、トライアックゲート制御用  
+  if (phase_tick >= 9) {
+    TMR2_Stop();
+  }
+
+  IO_LOAD0_LAT = 0;
+  IO_LOAD1_LAT = 0;
 }
 
 volatile unsigned long tick_ms;
@@ -148,6 +153,7 @@ void main(void) {
   SYSTEM_Initialize();
   IOCCF5_SetInterruptHandler(PhaseISR);
   TMR2_SetInterruptHandler(Tmr2ISR);
+  TMR4_SetInterruptHandler(Tmr4ISR);
   TMR6_SetInterruptHandler(Tmr6ISR);
   INTERRUPT_GlobalInterruptEnable();
   INTERRUPT_PeripheralInterruptEnable();

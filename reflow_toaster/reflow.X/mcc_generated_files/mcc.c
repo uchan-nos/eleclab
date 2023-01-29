@@ -56,6 +56,7 @@ void SYSTEM_Initialize(void)
     FVR_Initialize();
     TMR6_Initialize();
     ADCC_Initialize();
+    TMR4_Initialize();
     TMR2_Initialize();
     EUSART_Initialize();
 }

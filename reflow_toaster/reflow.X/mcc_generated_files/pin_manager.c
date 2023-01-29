@@ -128,6 +128,7 @@ void PIN_MANAGER_Initialize(void)
     
 	
     RXPPS = 0x17;   //RC7->EUSART:RX;    
+    T4AINPPS = 0x15;   //RC5->TMR4:T4IN;    
     RC6PPS = 0x10;   //RC6->EUSART:TX;    
 }
   
