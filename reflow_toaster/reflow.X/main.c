@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "mcc_generated_files/mcc.h"
 
@@ -149,6 +150,30 @@ void ControlHeaters() {
   }
 }
 
+void PrintStatus() {
+  printf("Tair=%d Ttc1=%d Ttgt=%d\n",
+         (int)round(ReadAirTemp()), ReadTC1Temp(), target_temp);
+  printf("phase_load0=%d ms\n", phase_load0);
+}
+
+_Bool repeat_status;
+
+int ExecCmd(const char *cmd) {
+  if (strncmp(cmd, "sett ", 5) == 0) { // set temperature
+    target_temp = atoi(cmd + 5);
+  } else if (strcmp(cmd, "stat") == 0) { // status
+    PrintStatus();
+  } else if (strcmp(cmd, "reps") == 0) {
+    repeat_status = 1;
+  } else if (strcmp(cmd, "quiet") == 0) {
+    repeat_status = 0;
+  } else {
+    printf("unknown command: '%s'\n", cmd);
+    return 1;
+  }
+  return 0;
+}
+
 void main(void) {
   SYSTEM_Initialize();
   IOCCF5_SetInterruptHandler(PhaseISR);
@@ -166,26 +191,38 @@ void main(void) {
   target_temp = 30;
   unsigned long current_tick_ms = tick_ms;
 
+  char cmd[32];
+  size_t cmd_i = 0;
+  
   for (;;) {
-    int tc1 = ReadTC1Temp();
-    printf("Tair=%d Ttc1=%d Ttgt=%d\n", (int)round(ReadAirTemp()), tc1, target_temp);
-    printf("phase_load0=%d ms\n", phase_load0);
-    
-    if (target_temp == 30 && tc1 > target_temp) {
-      target_temp = 20;
-    } else if (target_temp == 20 && tc1 < 25) {
-      target_temp = 30;
-    }
-
     ControlHeaters();
     
-    while (tick_ms < current_tick_ms + 500) {
-      unsigned long next_ms = current_tick_ms;
-      if (tick_ms >= next_ms) {
+    if (repeat_status) {
+      PrintStatus();
+    }
+    
+    unsigned long sensor_tick = current_tick_ms;
+    while (tick_ms < current_tick_ms + 1000) {
+      uint8_t c;
+      while (EUSART_DataReady) {
+        c = EUSART_Read();
+        if (c == '\n') {
+          if (cmd_i > 0) {
+            cmd[cmd_i] = '\0';
+            cmd_i = 0;
+            if (ExecCmd(cmd) == 0) {
+              printf("cmd succeeded\n");
+            }
+          }
+        } else {
+          cmd[cmd_i++] = c;
+        }
+      }
+      if (tick_ms >= sensor_tick) {
         UpdateThermoValues();
-        next_ms += 50;
+        sensor_tick += 50;
       }
     }
-    current_tick_ms += 500;
+    current_tick_ms += 1000;
   }
 }
