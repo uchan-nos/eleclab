@@ -130,16 +130,20 @@ int ReadTC1Temp() {
 
 volatile int target_temp;
 
-void ControlHeaters() {
+/** 現在の庫内温度に応じてヒーターの出力を調整する
+ * 
+ * @return 現在の庫内温度
+ */
+int ControlHeaters() {
   int tc1_temp = ReadTC1Temp();
   int temp_diff = tc1_temp - target_temp;
   
   // temp_diff: -300 ～ 300 程度
-  if (temp_diff < -20) {
+  if (temp_diff < -10) {
     phase_load0 = phase_load1 = 0; // 最大出力
-  } else if (temp_diff < -10) {
-    phase_load0 = phase_load1 = 2; // 出力 90%
   } else if (temp_diff < -5) {
+    phase_load0 = phase_load1 = 2; // 出力 90%
+  } else if (temp_diff < -2) {
     phase_load0 = phase_load1 = 3; // 出力 80%
   } else if (temp_diff < 0) {
     phase_load0 = phase_load1 = 5; // 出力 50%
@@ -148,6 +152,8 @@ void ControlHeaters() {
   } else {
     phase_load0 = phase_load1 = 10; // ヒーター停止
   }
+  
+  return tc1_temp;
 }
 
 void PrintStatus() {
@@ -174,6 +180,18 @@ int ExecCmd(const char *cmd) {
   return 0;
 }
 
+struct TargetTemp {
+  uint8_t temp;     // 目標温度
+  uint16_t duration; // 目標温度の継続時間（s）
+};
+
+const struct TargetTemp target_temp_list[32] = {
+  { 150, 60 * 30 / 100 },
+  { 80,  60 * 60 / 100 },
+  { 220, 60 * 30 / 100 },
+  { 0, 0 },
+};
+
 void main(void) {
   SYSTEM_Initialize();
   IOCCF5_SetInterruptHandler(PhaseISR);
@@ -188,17 +206,47 @@ void main(void) {
   mcp_filtered = ADCC_GetSingleConversion(channel_MCP);
   tc1_filtered = ADCC_GetSingleConversion(channel_TC1);
   
-  target_temp = 30;
+  uint8_t target_temp_index = 0; // 現在の目標温度の番号
+  uint16_t target_temp_tick_s = 0; // 目標温度になったときの時刻（s）
+  _Bool heating = 1; // 加熱中=1、冷却中=0
+  _Bool maintaining = 1; // 目標温度を維持=1、目標温度に遷移中=0
+  
+  target_temp = target_temp_list[target_temp_index].temp;
   unsigned long current_tick_ms = tick_ms;
 
   char cmd[32];
   size_t cmd_i = 0;
   
   for (;;) {
-    ControlHeaters();
+    int oven_temp = ControlHeaters();
     
     if (repeat_status) {
       PrintStatus();
+    }
+    
+    if (target_temp_list[target_temp_index].temp == 0 &&
+        target_temp_list[target_temp_index].duration == 0) {
+      // すべての工程が完了
+    } else {
+      if (maintaining) {
+        // 加熱・冷却が完了して目標温度になった時点から時間待ちを開始
+        unsigned long duration_s = current_tick_ms / 1000 - target_temp_tick_s;
+        if (duration_s <= target_temp_list[target_temp_index].duration) {
+          target_temp_index++;
+          maintaining = 0;
+          
+          uint8_t new_temp = target_temp_list[target_temp_index].temp;
+          heating = new_temp > target_temp;
+          target_temp = new_temp;
+        }
+      } else if ((heating && oven_temp < target_temp) ||
+                 (!heating && oven_temp > target_temp)) {
+        // 加熱・冷却中は target_temp_tick_s を現在時刻で更新しつづける
+        target_temp_tick_s = current_tick_ms / 1000;
+      } else {
+        // 炉内の温度が目標温度に到達した
+        maintaining = 1;
+      }
     }
     
     unsigned long sensor_tick = current_tick_ms;
