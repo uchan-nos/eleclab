@@ -209,7 +209,7 @@ void main(void) {
   uint8_t target_temp_index = 0; // 現在の目標温度の番号
   uint16_t target_temp_tick_s = 0; // 目標温度になったときの時刻（s）
   _Bool heating = 1; // 加熱中=1、冷却中=0
-  _Bool maintaining = 1; // 目標温度を維持=1、目標温度に遷移中=0
+  _Bool maintaining = 0; // 目標温度を維持=1、目標温度に遷移中=0
   
   target_temp = target_temp_list[target_temp_index].temp;
   unsigned long current_tick_ms = tick_ms;
