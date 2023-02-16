@@ -205,6 +205,23 @@
 #define RB2_SetAnalogMode()         do { ANSELBbits.ANSB2 = 1; } while(0)
 #define RB2_SetDigitalMode()        do { ANSELBbits.ANSB2 = 0; } while(0)
 
+// get/set IO_MODE aliases
+#define IO_MODE_TRIS                 TRISBbits.TRISB3
+#define IO_MODE_LAT                  LATBbits.LATB3
+#define IO_MODE_PORT                 PORTBbits.RB3
+#define IO_MODE_WPU                  WPUBbits.WPUB3
+#define IO_MODE_ANS                  ANSELBbits.ANSB3
+#define IO_MODE_SetHigh()            do { LATBbits.LATB3 = 1; } while(0)
+#define IO_MODE_SetLow()             do { LATBbits.LATB3 = 0; } while(0)
+#define IO_MODE_Toggle()             do { LATBbits.LATB3 = ~LATBbits.LATB3; } while(0)
+#define IO_MODE_GetValue()           PORTBbits.RB3
+#define IO_MODE_SetDigitalInput()    do { TRISBbits.TRISB3 = 1; } while(0)
+#define IO_MODE_SetDigitalOutput()   do { TRISBbits.TRISB3 = 0; } while(0)
+#define IO_MODE_SetPullup()          do { WPUBbits.WPUB3 = 1; } while(0)
+#define IO_MODE_ResetPullup()        do { WPUBbits.WPUB3 = 0; } while(0)
+#define IO_MODE_SetAnalogMode()      do { ANSELBbits.ANSB3 = 1; } while(0)
+#define IO_MODE_SetDigitalMode()     do { ANSELBbits.ANSB3 = 0; } while(0)
+
 // get/set RC6 procedures
 #define RC6_SetHigh()            do { LATCbits.LATC6 = 1; } while(0)
 #define RC6_SetLow()             do { LATCbits.LATC6 = 0; } while(0)

@@ -2,8 +2,7 @@
 
 #define TARGET_CURRENT_MA 200
 #define TARGET_VOLTAGE_MV 4350
-#define NO_BATTERY_MV     4700
-#define NO_BATTERY_VF_MV  100
+#define NO_BATTERY_MV     4074
 
 #define MV_TO_ADC(mv)       ((adc_result_t)(mv / 2 / 4))
 #define TARGET_VOLTAGE_ADC  MV_TO_ADC(TARGET_VOLTAGE_MV)
@@ -17,6 +16,7 @@ enum RunState {
   CHARGE_CV,
   CHARGED,
   HIGHVOLT,   // MOSFET に規定以上の電圧が加わっている
+  DISCHARGE_CC,
 };
 volatile enum RunState run_state = NO_BATTERY;
 
@@ -30,12 +30,6 @@ void set_current(uint8_t dac_val) {
   DAC1_SetOutput(dac_val);
 }
 
-_Bool battery_exist() {
-  set_current(1);
-  adc_result_t vf_adc = ADC_GetConversion(channel_VF);
-  stop_current();
-  return vf_adc > NO_BATTERY_VF_ADC;
-}
 
 void constant_current() {
   adc_result_t bat_adc = ADC_GetConversion(channel_BAT);
@@ -91,8 +85,40 @@ void control_dac() {
 }
 */
 
+_Bool BatteryExist() {
+  set_current(1);
+  adc_result_t vf_adc = ADC_GetConversion(channel_VF);
+  stop_current();
+  return vf_adc > NO_BATTERY_VF_ADC;
+}
+
+enum RunState NextRunState() {
+  if (CMP1_GetOutputStatus()) {
+    return HIGHVOLT;
+  }
+  
+  if (bat_mv < (NO_BATTERY_MV - 200) || bat_mv > (NO_BATTERY_MV + 200)) {
+    return IO_MODE_PORT ? CHARGE_CC : DISCHARGE_CC;
+  } else {
+    // 電流を一瞬流し、電圧変動があるかをみる
+    if (BatteryExist()) {
+      return IO_MODE_PORT ? CHARGE_CC : DISCHARGE_CC;
+    }
+    return NO_BATTERY;
+  }
+}
+
 void stop_current() {
   DAC1_SetOutput(0);
+}
+
+volatile float bat_mv; // 電池の電圧 [mV]
+
+void adc_isr() {
+  adc_result_t bat_adc = ADC_GetConversionResult();
+  // ADC は 12bit モード かつ VREF+ = FVR 4.096V なので分解能は 1mV
+  // channel_BAT には BAT/2 [V] が印加されているので 2 倍する
+  bat_mv = 0.9 * bat_mv + 0.1 * 2 * bat_adc;
 }
 
 volatile uint8_t tick = 0;
@@ -101,8 +127,8 @@ void tmr_isr() {
   tick++;
   //control_dac();
   
-  if (CMP1_GetOutputStatus()) {
-    run_state = HIGHVOLT;
+  if ((tick % 10) == 0) {
+    ADC_StartConversion(channel_BAT);
   }
 }
 
@@ -120,6 +146,7 @@ void main(void) {
   
   uint8_t current = 0;
   TMR2_SetInterruptHandler(tmr_isr);
+  ADC_SetInterruptHandler(adc_isr);
   INTERRUPT_PeripheralInterruptEnable();
   INTERRUPT_GlobalInterruptEnable();
   TMR2_StartTimer();
@@ -150,6 +177,8 @@ void main(void) {
    */
   
   while (1) {
+    run_state = NextRunState();
+    
     switch (run_state) {
     case NO_BATTERY:
       IO_LED_LAT = 1;
@@ -157,11 +186,6 @@ void main(void) {
       IO_LED_LAT = 0;
       sleep_tick(95);
       stop_current();
-      
-      //nobat++;
-      //if (nobat >= 3) {
-      //  charge_state = CHARGE_CC;
-      //}
       break;
     case CHARGE_CC:
       IO_LED_LAT = 1;

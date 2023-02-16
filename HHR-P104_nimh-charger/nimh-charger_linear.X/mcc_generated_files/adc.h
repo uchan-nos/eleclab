@@ -279,6 +279,76 @@ adc_result_t ADC_GetConversion(adc_channel_t channel);
 */
 void ADC_TemperatureAcquisitionDelay(void);
 
+/**
+  @Summary
+    Implements ISR
+
+  @Description
+    This routine is used to implement the ISR for the interrupt-driven
+    implementations.
+
+  @Returns
+    None
+
+  @Param
+    None
+*/
+void ADC_ISR(void);
+
+/**
+  @Summary
+    Set Timer Interrupt Handler
+
+  @Description
+    This sets the function to be called during the ISR
+
+  @Preconditions
+    Initialize  the ADC module with interrupt before calling this.
+
+  @Param
+    Address of function to be set
+
+  @Returns
+    None
+*/
+ void ADC_SetInterruptHandler(void (* InterruptHandler)(void));
+
+/**
+  @Summary
+    Timer Interrupt Handler
+
+  @Description
+    This is a function pointer to the function that will be called during the ISR
+
+  @Preconditions
+    Initialize  the ADC module with interrupt before calling this isr.
+
+  @Param
+    None
+
+  @Returns
+    None
+*/
+extern void (*ADC_InterruptHandler)(void);
+
+/**
+  @Summary
+    Default Timer Interrupt Handler
+
+  @Description
+    This is the default Interrupt Handler function
+
+  @Preconditions
+    Initialize  the ADC module with interrupt before calling this isr.
+
+  @Param
+    None
+
+  @Returns
+    None
+*/
+void ADC_DefaultInterruptHandler(void);
+
 #ifdef __cplusplus  // Provide C++ Compatibility
 
     }
