@@ -16,18 +16,19 @@ void PhaseISR() {
   TMR2_StartTimer();
 
   IO_LOAD0_LAT = phase_load0 == 0;
-  IO_LOAD1_LAT = phase_load1 == 0;
-  TMR4_Start();
+  IO_LOAD1_LAT = phase_load1 == 0;  
 
   phase_tick = 0;
 }
 
 void Tmr2ISR() {
   // TMR2 周期 1ms、 AC 電源周期 20ms
-  phase_tick++;
-
   IO_LOAD0_LAT = phase_load0 == phase_tick;
-  IO_LOAD1_LAT = phase_load1 == phase_tick;
+  IO_LOAD1_LAT = phase_load1 == phase_tick;  
+
+  // 位相検出タイミングよりヒーター電源の位相が若干遅れるのでパルスを 1ms 遅らせる
+  phase_tick++;
+  
   TMR4_Start();
 }
 
@@ -186,9 +187,8 @@ struct TargetTemp {
 };
 
 const struct TargetTemp target_temp_list[32] = {
-  { 150, 60 * 30 / 100 },
-  { 80,  60 * 60 / 100 },
-  { 220, 60 * 30 / 100 },
+  { 150, 60 },
+  { 250, 10 },
   { 0, 0 },
 };
 
@@ -231,7 +231,7 @@ void main(void) {
       if (maintaining) {
         // 加熱・冷却が完了して目標温度になった時点から時間待ちを開始
         unsigned long duration_s = current_tick_ms / 1000 - target_temp_tick_s;
-        if (duration_s <= target_temp_list[target_temp_index].duration) {
+        if (duration_s >= target_temp_list[target_temp_index].duration) {
           target_temp_index++;
           maintaining = 0;
           
