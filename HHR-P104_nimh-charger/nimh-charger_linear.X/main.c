@@ -7,7 +7,6 @@
 #define MV_TO_ADC(mv)       ((adc_result_t)(mv / 2 / 4))
 #define TARGET_VOLTAGE_ADC  MV_TO_ADC(TARGET_VOLTAGE_MV)
 #define NO_BATTERY_ADC      MV_TO_ADC(NO_BATTERY_MV)
-#define NO_BATTERY_VF_ADC   MV_TO_ADC(NO_BATTERY_VF_MV)
 #define DACFVR_MV 1024
 
 enum RunState {
@@ -85,19 +84,35 @@ void control_dac() {
 }
 */
 
-_Bool BatteryExist() {
-  set_current(1);
-  adc_result_t vf_adc = ADC_GetConversion(channel_VF);
-  stop_current();
-  return vf_adc > NO_BATTERY_VF_ADC;
+void stop_current() {
+  DAC1_SetOutput(0);
 }
+
+_Bool BatteryExist() {
+  //set_current(1);
+  //adc_result_t vf_adc = ADC_GetConversion(channel_VF);
+  stop_current();
+  //return vf_adc > NO_BATTERY_VF_ADC;
+  return 0;
+}
+
+// 電池電圧/2 [mV] を表す変数
+// 4 ビット左シフトした固定小数点表現（Q4 フォーマット）
+volatile int32_t bat_mv2_q4;
+volatile adc_result_t bat_mv2_latest;
+
+int32_t FilterADCValueQ4(int32_t v_filtered, adc_result_t v_adc) {
+  return v_filtered - (v_filtered >> 4) + (int16_t)v_adc;
+}
+
+#define BAT_MV ((bat_mv2_q4) >> 3)
 
 enum RunState NextRunState() {
   if (CMP1_GetOutputStatus()) {
     return HIGHVOLT;
   }
   
-  if (bat_mv < (NO_BATTERY_MV - 200) || bat_mv > (NO_BATTERY_MV + 200)) {
+  if (BAT_MV < (NO_BATTERY_MV - 200) || BAT_MV > (NO_BATTERY_MV + 200)) {
     return IO_MODE_PORT ? CHARGE_CC : DISCHARGE_CC;
   } else {
     // 電流を一瞬流し、電圧変動があるかをみる
@@ -108,17 +123,14 @@ enum RunState NextRunState() {
   }
 }
 
-void stop_current() {
-  DAC1_SetOutput(0);
-}
-
-volatile float bat_mv; // 電池の電圧 [mV]
-
 void adc_isr() {
-  adc_result_t bat_adc = ADC_GetConversionResult();
   // ADC は 12bit モード かつ VREF+ = FVR 4.096V なので分解能は 1mV
-  // channel_BAT には BAT/2 [V] が印加されているので 2 倍する
-  bat_mv = 0.9 * bat_mv + 0.1 * 2 * bat_adc;
+  // channel_BAT には 電池電圧/2 が印加される
+  //adc_result_t bat_adc = ADC_GetConversionResult();
+  bat_mv2_latest = ADC_GetConversionResult();
+
+  // bat_mv = (15.0/16) * bat_mv + (1.0/16) * bat_adc; を固定小数点数で計算
+  bat_mv2_q4 = FilterADCValueQ4(bat_mv2_q4, bat_mv2_latest);
 }
 
 volatile uint8_t tick = 0;
@@ -128,7 +140,7 @@ void tmr_isr() {
   //control_dac();
   
   if ((tick % 10) == 0) {
-    ADC_StartConversion(channel_BAT);
+    ADC_StartConversion(channel_TEMP);
   }
 }
 
@@ -156,29 +168,35 @@ void main(void) {
    */
   stop_current();
 
-  OPA2CONbits.OPA2EN = 0;
-  TRISBbits.TRISB1 = 0;
-  LATBbits.LATB1 = 0;
   //IO_RB1_LAT = 0;
 
-  for (int i = 0; i < 2; i++) {
-    IO_LED_LAT = 1;
-    __delay_ms(500);
-    IO_LED_LAT = 0;
-    __delay_ms(500);
-  }
+  //while (ADC_GetConversion(channel_BAT) > 1000);
 
-  while (ADC_GetConversion(channel_BAT) > 1000);
-
-  /*
-  while (1) {
-    IO_LED_LAT = 1;
-  }
-   */
+  TRISBbits.TRISB1 = 0;
+  LATBbits.LATB1 = 0;
+  OPA2CONbits.OPA2EN = 0;
+  IO_OPA1OUT_LAT = 0;
+  IO_OPA1OUT_TRIS = 1;
   
   while (1) {
+    IO_LED_LAT = CMP1_GetOutputStatus();
+    printf("fvr=%d temp=%d an3=%d\n", ADC_GetConversion(channel_FVR), ADC_GetConversion(channel_TEMP), ADC_GetConversion(channel_AN3));
+    __delay_ms(300);
+  }
+  
+  bat_mv2_q4 = (int16_t)ADC_GetConversion(channel_TEMP) << 4;
+
+  long temp, batn;
+  while (1) {
+    //printf("bat3=%ld bat=%ld adc=%04x\n", bat_mv2_q4 >> 4, (bat_mv2_q4 >> 4) * 3, bat_mv2_latest);
+    temp = ADC_GetConversion(channel_TEMP);
+    batn = ADC_GetConversion(channel_BATN);
+    printf("TEMP=%ld BATN=%ld BAT=%ld\n", temp, batn, (temp - batn) * 3);
+    __delay_ms(300);
+  }
+  while (1) {
     run_state = NextRunState();
-    
+
     switch (run_state) {
     case NO_BATTERY:
       IO_LED_LAT = 1;
@@ -210,6 +228,12 @@ void main(void) {
       sleep_tick(45);
       IO_LED_LAT = 0;
       sleep_tick(5);
+      break;
+    case DISCHARGE_CC:
+      IO_LED_LAT = 1;
+      sleep_tick(200);
+      IO_LED_LAT = 0;
+      sleep_tick(200);
       break;
     }
   }

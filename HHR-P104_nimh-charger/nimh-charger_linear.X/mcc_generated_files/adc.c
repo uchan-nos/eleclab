@@ -74,8 +74,8 @@ void ADC_Initialize(void)
     // ADFM 2s_complement; ADNREF VSS; ADPREF FVR; ADCS FOSC/2; 
     ADCON1 = 0x83;
     
-    // TRIGSEL disabled; CHSN AN0; 
-    ADCON2 = 0x00;
+    // TRIGSEL disabled; CHSN ADNREF; 
+    ADCON2 = 0x0F;
     
     // ADRESH 0; 
     ADRESH = 0x00;

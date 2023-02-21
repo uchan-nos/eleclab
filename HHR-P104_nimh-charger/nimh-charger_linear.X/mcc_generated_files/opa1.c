@@ -57,8 +57,8 @@
 
 void OPA1_Initialize(void)
 {
-    // OPA1SP High_GBWP_mode; OPA1EN enabled; OPA1PCH OPA1IN; 
-    OPA1CON = 0xC0;
+    // OPA1SP High_GBWP_mode; OPA1EN disabled; OPA1PCH OPA1IN; 
+    OPA1CON = 0x40;
 }
 /**
  End of File
