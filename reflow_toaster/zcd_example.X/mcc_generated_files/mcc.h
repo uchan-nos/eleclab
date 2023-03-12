@@ -53,6 +53,7 @@
 #include <stdbool.h>
 #include <conio.h>
 #include "interrupt_manager.h"
+#include "clc1.h"
 #include "zcd.h"
 
 

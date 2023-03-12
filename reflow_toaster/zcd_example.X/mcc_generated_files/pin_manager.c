@@ -64,7 +64,7 @@ void PIN_MANAGER_Initialize(void)
     /**
     TRISx registers
     */
-    TRISA = 0xFF;
+    TRISA = 0xFE;
     TRISB = 0xCF;
     TRISC = 0xC0;
 
@@ -111,6 +111,8 @@ void PIN_MANAGER_Initialize(void)
 
    
     
+	
+    RA0PPS = 0x01;   //RA0->CLC1:CLC1OUT;    
 }
   
 void PIN_MANAGER_IOC(void)
