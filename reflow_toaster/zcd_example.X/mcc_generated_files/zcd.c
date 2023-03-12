@@ -74,12 +74,6 @@ bool ZCD_IsLogicLevel(void)
     // Return ZCD logic level depending on the output polarity selected.
     return (ZCDCONbits.ZCDOUT);
 }
-
-void ZCD_ISR(void)
-{
-    // Clear the ZCD interrupt flag
-    PIR2bits.ZCDIF = 0;
-}
 /**
  End of File
 */
