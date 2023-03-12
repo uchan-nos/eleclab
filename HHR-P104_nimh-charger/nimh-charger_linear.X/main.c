@@ -1,97 +1,90 @@
 #include "mcc_generated_files/mcc.h"
 
-#define TARGET_CURRENT_MA 200
+#define CHARGE_CURRENT_MA 200
 #define TARGET_VOLTAGE_MV 4350
+#define DISCHARGE_CURRENT_MA 1000
+#define DISCHARGE_HARD_LIMIT_MV  (900 * 3)
 #define NO_BATTERY_MV     4074
+#define BAT_TOO_LOW_MV    (300 * 3)
 
 #define MV_TO_ADC(mv)       ((adc_result_t)(mv / 2 / 4))
 #define TARGET_VOLTAGE_ADC  MV_TO_ADC(TARGET_VOLTAGE_MV)
 #define NO_BATTERY_ADC      MV_TO_ADC(NO_BATTERY_MV)
 #define DACFVR_MV 1024
 
+// DAC VREF+ = FVR (1.024V)、電流検出抵抗 1Ω なので電流範囲は 0mA ～ 1024mA
+// DAC の精度を N ビットとすると、電流分解能は 2^10/2^N = 2^(10-N) [mA/div]
+#define DAC_PRECISION_BITS  8
+#define DAC_TO_MA(dac_val)  ((dac_val) << (10 - DAC_PRECISION_BITS))
+#define MA_TO_DAC(cur_ma)   ((cur_ma) >> (10 - DAC_PRECISION_BITS))
+
 enum RunState {
   NO_BATTERY, // 充放電対象の電池が接続されていない
   CHARGE_CC,
   CHARGE_CV,
   CHARGED,
-  HIGHVOLT,   // MOSFET に規定以上の電圧が加わっている
   DISCHARGE_CC,
+  DISCHARGED,
+  HIGHVOLT,   // MOSFET に規定以上の電圧が加わっている
+  BAT_TOO_LOW, // 電池が過放電の状態
 };
 volatile enum RunState run_state = NO_BATTERY;
 
-/*
 uint16_t adc_to_mv(adc_result_t adc) {
   return adc * 4; // 1024 = 4.096V (FVRx4)
 }
 
-void set_current(uint8_t dac_val) {
-  DACCON0bits.DAC1NSS = 1;
+void SetCurrentMA(uint16_t cur_ma) {
+  uint16_t dac_val = MA_TO_DAC(cur_ma);
   DAC1_SetOutput(dac_val);
+  OPA2CONbits.OPA2EN = 1;
 }
 
-
-void constant_current() {
-  adc_result_t bat_adc = ADC_GetConversion(channel_BAT);
-  if (bat_adc >= TARGET_VOLTAGE_ADC) {
-    charge_state = CHARGE_CV;
-    // 何回か継続して上回ったら、とした方がよさそう。ノイズ対策。
-    return;
-  }
-
-  //uint16_t vf_mv = adc_to_mv(ADC_GetConversion(channel_VF));
-  //uint16_t dac_fullrange_mv = DACFVR_MV - vf_mv;
-  //uint16_t new_dac_val = 32 * TARGET_CURRENT_MA / dac_fullrange_mv;
-  // DAC(mV):Current(mA) = 4:1
-  // DAC=0mV@0～1024mV@32 ==> Current=0mA@0～256mA@32
-  uint16_t new_dac_val = 32 * TARGET_CURRENT_MA / 1024;
-  set_current(new_dac_val);
+void StopCurrent() {
+  OPA2CONbits.OPA2EN = 0;
+  DAC1_SetOutput(0);
 }
 
-void constant_voltage() {
-  adc_result_t bat_adc = ADC_GetConversion(channel_BAT);
-  if (bat_adc < TARGET_VOLTAGE_ADC) {
+void ChargeCV() {
+  if (BAT_MV < TARGET_VOLTAGE_MV) {
     return;
   }
 
   uint8_t dac_val = DAC1_GetOutput();
   if (dac_val > 1) {
-    set_current(dac_val - 1);
+    DAC1_SetOutput(dac_val - 1);
   } else {
-    stop_current();
-    charge_state = CHARGED;
+    StopCurrent();
   }
 }
 
-void control_dac() {
-  switch (charge_state) {
+int16_t discharge_stop_mv = 3000;
+
+void ControlDAC() {
+  switch (run_state) {
   case NO_BATTERY:
-    //if (battery_exist()) {
-    //  charge_state = CHARGE_CC;
-    //}
+  case HIGHVOLT:
+  case BAT_TOO_LOW:
+  case CHARGED:
+  case DISCHARGED:
+    StopCurrent();
     break;
   case CHARGE_CC:
-    constant_current();
+    SetCurrentMA(CHARGE_CURRENT_MA);
     break;
   case CHARGE_CV:
-    constant_voltage();
+    ChargeCV();
     break;
-  case CHARGED:
-    //if (!battery_exist()) {
-    //  charge_state = NO_BATTERY;
-    //}
+  case DISCHARGE_CC:
+    SetCurrentMA(DISCHARGE_CURRENT_MA);
     break;
   }
-}
-*/
-
-void stop_current() {
-  DAC1_SetOutput(0);
 }
 
 _Bool BatteryExist() {
-  //set_current(1);
+  //SetCurrentMA(1);
   //adc_result_t vf_adc = ADC_GetConversion(channel_VF);
-  stop_current();
+  StopCurrent();
   //return vf_adc > NO_BATTERY_VF_ADC;
   return 0;
 }
@@ -107,19 +100,59 @@ int32_t FilterADCValueQ4(int32_t v_filtered, adc_result_t v_adc) {
 
 #define BAT_MV ((bat_mv2_q4) >> 3)
 
-enum RunState NextRunState() {
+/** 異常発生を検知する。
+ *
+ * @return 異常の種類。異常が無ければ現在の run_state をそのまま返す。
+ */
+enum RunState CheckAnomaly() {
+  // 高電圧が発生していないか
   if (CMP1_GetOutputStatus()) {
     return HIGHVOLT;
   }
-  
-  if (BAT_MV < (NO_BATTERY_MV - 200) || BAT_MV > (NO_BATTERY_MV + 200)) {
-    return IO_MODE_PORT ? CHARGE_CC : DISCHARGE_CC;
-  } else {
-    // 電流を一瞬流し、電圧変動があるかをみる
-    if (BatteryExist()) {
-      return IO_MODE_PORT ? CHARGE_CC : DISCHARGE_CC;
-    }
+
+  // 電池が接続されているか、劣化していないか
+  int16_t bat_mv = BAT_MV;
+  if (bat_mv > 4900) {
     return NO_BATTERY;
+  } else if (bat_mv < BAT_TOO_LOW_MV) {
+    return BAT_TOO_LOW;
+  }
+
+  return run_state;
+}
+
+enum RunState NextRunState() {
+  // 異常を最初にチェック
+  enum RunState anomary = CheckAnomary();
+
+  if (IO_PORT_MODE) { // 充電モード
+    switch (anormary) {
+    case NO_BATTERY:
+    case HIGHVOLT:
+    case BAT_TOO_LOW:
+      return anormary;
+    case CHARGE_CC:
+      return BAT_MV < TARGET_VOLTAGE_MV ? CHARGE_CC : CHARGE_CV;
+    case CHARGE_CV:
+      return DAC1_GetOutput() >= 1 ? CHARGE_CV : CHARGED;
+    case CHARGED:
+      return CHARGED;
+    default:
+      return BAT_MV < TARGET_VOLTAGE_MV ? CHARGE_CC : CHARGED;
+    }
+  } else { // 放電モード
+    switch (run_state) {
+    case NO_BATTERY:
+    case HIGHVOLT:
+    case BAT_TOO_LOW:
+      return anormary;
+    case DISCHARGE_CC:
+      return BAT_MV > discharge_stop_mv ? DISCHARGE_CC : DISCHARGED;
+    case DISCHARGED:
+      return DISCHARGED;
+    default:
+      return DISCHARGE_CC;
+    }
   }
 }
 
@@ -137,11 +170,17 @@ volatile uint8_t tick = 0;
 void tmr_isr() {
   // interrupt period = 10ms
   tick++;
-  //control_dac();
-  
-  if ((tick % 10) == 0) {
-    ADC_StartConversion(channel_TEMP);
+
+  ADC_StartConversion(channel_TEMP);
+}
+
+void cmp_isr() {
+  if (!CMP1_GetOutputStatus()) {
+    return;
   }
+
+  run_state = HIGHVOLT;
+  StopCurrent();
 }
 
 void sleep_tick(uint8_t duration_tick) {
@@ -166,7 +205,7 @@ void main(void) {
   /*
   int nobat = 0;
    */
-  stop_current();
+  StopCurrent();
 
   //IO_RB1_LAT = 0;
 
@@ -177,25 +216,12 @@ void main(void) {
   OPA2CONbits.OPA2EN = 0;
   IO_OPA1OUT_LAT = 0;
   IO_OPA1OUT_TRIS = 1;
-  
-  while (1) {
-    IO_LED_LAT = CMP1_GetOutputStatus();
-    printf("fvr=%d temp=%d an3=%d\n", ADC_GetConversion(channel_FVR), ADC_GetConversion(channel_TEMP), ADC_GetConversion(channel_AN3));
-    __delay_ms(300);
-  }
-  
+
   bat_mv2_q4 = (int16_t)ADC_GetConversion(channel_TEMP) << 4;
 
-  long temp, batn;
-  while (1) {
-    //printf("bat3=%ld bat=%ld adc=%04x\n", bat_mv2_q4 >> 4, (bat_mv2_q4 >> 4) * 3, bat_mv2_latest);
-    temp = ADC_GetConversion(channel_TEMP);
-    batn = ADC_GetConversion(channel_BATN);
-    printf("TEMP=%ld BATN=%ld BAT=%ld\n", temp, batn, (temp - batn) * 3);
-    __delay_ms(300);
-  }
   while (1) {
     run_state = NextRunState();
+    ControlDAC();
 
     switch (run_state) {
     case NO_BATTERY:
@@ -203,7 +229,6 @@ void main(void) {
       sleep_tick(5);
       IO_LED_LAT = 0;
       sleep_tick(95);
-      stop_current();
       break;
     case CHARGE_CC:
       IO_LED_LAT = 1;
