@@ -15,8 +15,8 @@
 // DAC VREF+ = FVR (1.024V)、電流検出抵抗 1Ω なので電流範囲は 0mA ～ 1024mA
 // DAC の精度を N ビットとすると、電流分解能は 2^10/2^N = 2^(10-N) [mA/div]
 #define DAC_PRECISION_BITS  8
-#define DAC_TO_MA(dac_val)  ((dac_val) << (10 - DAC_PRECISION_BITS))
-#define MA_TO_DAC(cur_ma)   ((cur_ma) >> (10 - DAC_PRECISION_BITS))
+#define DAC_TO_MA(dac_val)  ((uint16_t)(dac_val) << (10 - DAC_PRECISION_BITS))
+#define MA_TO_DAC(cur_ma)   ((uint8_t)((cur_ma) >> (10 - DAC_PRECISION_BITS)))
 
 enum RunState {
   NO_BATTERY, // 充放電対象の電池が接続されていない
@@ -30,12 +30,22 @@ enum RunState {
 };
 volatile enum RunState run_state = NO_BATTERY;
 
+
+// bat_mv2_q4: 電池電圧/2 [mV] を表す変数
+// 4 ビット左シフトした固定小数点表現（Q4 フォーマット）
+// ADC は 12 ビット、2 つ使って差動モードなので 13 ビットレンジ。
+// そのため、変数の下位 17 ビットが有効値となる。
+volatile int32_t bat_mv2_q4;
+volatile adc_result_t bat_mv2_latest;
+
+#define BAT_MV ((int16_t)((bat_mv2_q4) >> 3))
+
 uint16_t adc_to_mv(adc_result_t adc) {
   return adc * 4; // 1024 = 4.096V (FVRx4)
 }
 
 void SetCurrentMA(uint16_t cur_ma) {
-  uint16_t dac_val = MA_TO_DAC(cur_ma);
+  uint8_t dac_val = MA_TO_DAC(cur_ma);
   DAC1_SetOutput(dac_val);
   OPA2CONbits.OPA2EN = 1;
 }
@@ -89,22 +99,15 @@ _Bool BatteryExist() {
   return 0;
 }
 
-// 電池電圧/2 [mV] を表す変数
-// 4 ビット左シフトした固定小数点表現（Q4 フォーマット）
-volatile int32_t bat_mv2_q4;
-volatile adc_result_t bat_mv2_latest;
-
 int32_t FilterADCValueQ4(int32_t v_filtered, adc_result_t v_adc) {
   return v_filtered - (v_filtered >> 4) + (int16_t)v_adc;
 }
-
-#define BAT_MV ((bat_mv2_q4) >> 3)
 
 /** 異常発生を検知する。
  *
  * @return 異常の種類。異常が無ければ現在の run_state をそのまま返す。
  */
-enum RunState CheckAnomaly() {
+enum RunState CheckAnomary() {
   // 高電圧が発生していないか
   if (CMP1_GetOutputStatus()) {
     return HIGHVOLT;
@@ -125,12 +128,12 @@ enum RunState NextRunState() {
   // 異常を最初にチェック
   enum RunState anomary = CheckAnomary();
 
-  if (IO_PORT_MODE) { // 充電モード
-    switch (anormary) {
+  if (IO_MODE_PORT) { // 充電モード
+    switch (anomary) {
     case NO_BATTERY:
     case HIGHVOLT:
     case BAT_TOO_LOW:
-      return anormary;
+      return anomary;
     case CHARGE_CC:
       return BAT_MV < TARGET_VOLTAGE_MV ? CHARGE_CC : CHARGE_CV;
     case CHARGE_CV:
@@ -145,7 +148,7 @@ enum RunState NextRunState() {
     case NO_BATTERY:
     case HIGHVOLT:
     case BAT_TOO_LOW:
-      return anormary;
+      return anomary;
     case DISCHARGE_CC:
       return BAT_MV > discharge_stop_mv ? DISCHARGE_CC : DISCHARGED;
     case DISCHARGED:
@@ -259,6 +262,18 @@ void main(void) {
       sleep_tick(200);
       IO_LED_LAT = 0;
       sleep_tick(200);
+      break;
+    case DISCHARGED:
+      IO_LED_LAT = 1;
+      sleep_tick(100);
+      IO_LED_LAT = 0;
+      sleep_tick(200);
+      break;
+    case BAT_TOO_LOW:
+      IO_LED_LAT = 1;
+      sleep_tick(95);
+      IO_LED_LAT = 0;
+      sleep_tick(5);
       break;
     }
   }
