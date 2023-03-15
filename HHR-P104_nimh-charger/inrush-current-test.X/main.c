@@ -7,8 +7,9 @@ void main(void) {
   TRISBbits.TRISB1 = 0;
   LATBbits.LATB1 = 0;
   
-  // 電流制御用オペアンプの - 入力の電圧を 0V とする
-  DAC1_SetOutput(0);
+  // 電流制御用オペアンプの - 入力の電圧を 8mV とする。
+  // 0V では、入力オフセット電圧によっては端子解放時にオペアンプが ON しない。
+  DAC1_SetOutput(2);
 
   while (1) {
     // 電流制御用オペアンプを有効にする
