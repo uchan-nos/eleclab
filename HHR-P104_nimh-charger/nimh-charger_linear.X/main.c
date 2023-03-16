@@ -31,6 +31,29 @@ enum RunState {
 volatile enum RunState run_state = NO_BATTERY;
 
 
+#define SIN_STRIDE_DEG 5 /* 1 ステップの角度 */
+#define SIN_NUM_STEPS  (360 / SIN_STRIDE_DEG)
+
+// 5 - 80 度の 5 度刻みの sin テーブル（0, 90 度は自明なので省略）
+const uint8_t sin_table[SIN_NUM_STEPS] = {
+    0,   0,   2,   4,   8,  12,  17,  23,  30,  37,  46,  54,  64,  74,  84,  95, 105, 116,
+  127, 139, 150, 160, 171, 181, 191, 201, 209, 218, 225, 232, 238, 243, 247, 251, 253, 255,
+  255, 255, 253, 251, 247, 243, 238, 232, 225, 218, 209, 201, 191, 181, 171, 160, 150, 139,
+  128, 116, 105,  95,  84,  74,  64,  54,  46,  37,  30,  23,  17,  12,   8,   4,   2,   0
+};
+volatile uint8_t sin_step_index = 0;
+volatile uint8_t pwmtmr_count = 0;
+volatile uint8_t sin_speed = 0; // 設定範囲 0 - 3、 255: PWM で LED を制御しない
+
+// 緩やかに LED を点滅させる
+void pwmtmr_isr() {
+  if (sin_speed == 255) {
+    return;
+  }
+  IO_LED_LAT = pwmtmr_count <= sin_table[sin_step_index];
+  pwmtmr_count += 2;
+}
+
 // bat_mv2_q4: 電池電圧/2 [mV] を表す変数
 // 4 ビット左シフトした固定小数点表現（Q4 フォーマット）
 // ADC は 12 ビット、2 つ使って差動モードなので 13 ビットレンジ。
@@ -175,6 +198,13 @@ void tmr_isr() {
   tick++;
 
   ADC_StartConversion(channel_TEMP);
+  
+  if (sin_speed <= 3 && (tick & (7u >> sin_speed)) == 0) {
+    sin_step_index++;
+    if (sin_step_index >= SIN_NUM_STEPS) {
+      sin_step_index = 0;
+    }
+  }
 }
 
 void cmp_isr() {
@@ -201,6 +231,7 @@ void main(void) {
   uint8_t current = 0;
   TMR2_SetInterruptHandler(tmr_isr);
   ADC_SetInterruptHandler(adc_isr);
+  TMR0_SetInterruptHandler(pwmtmr_isr);
   INTERRUPT_PeripheralInterruptEnable();
   INTERRUPT_GlobalInterruptEnable();
   TMR2_StartTimer();
@@ -217,8 +248,6 @@ void main(void) {
   TRISBbits.TRISB1 = 0;
   LATBbits.LATB1 = 0;
   OPA2CONbits.OPA2EN = 0;
-  IO_OPA1OUT_LAT = 0;
-  IO_OPA1OUT_TRIS = 1;
 
   bat_mv2_q4 = (int16_t)ADC_GetConversion(channel_TEMP) << 4;
 
@@ -258,16 +287,10 @@ void main(void) {
       sleep_tick(5);
       break;
     case DISCHARGE_CC:
-      IO_LED_LAT = 1;
-      sleep_tick(200);
-      IO_LED_LAT = 0;
-      sleep_tick(200);
+      sin_speed = 3;
       break;
     case DISCHARGED:
-      IO_LED_LAT = 1;
-      sleep_tick(100);
-      IO_LED_LAT = 0;
-      sleep_tick(200);
+      sin_speed = 1;
       break;
     case BAT_TOO_LOW:
       IO_LED_LAT = 1;
