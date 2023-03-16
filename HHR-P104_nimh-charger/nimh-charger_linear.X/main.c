@@ -43,13 +43,17 @@ const uint8_t sin_table[SIN_NUM_STEPS] = {
 };
 volatile uint8_t sin_step_index = 0;
 volatile uint8_t pwmtmr_count = 0;
-volatile uint8_t sin_speed = 0; // 設定範囲 0 - 3、 255: PWM で LED を制御しない
 
-#define SIN_DISABLE 255
+// LED の点滅モード設定
+// 0～3: 0.72, 1.44, 2.88, 5.76 秒周期のサイン波点滅 （T=0.72×2^n）
+// 4: 予約
+// 5 - 250: 10×n ミリ秒周期の矩形波点滅（ON 時間は led_on_width で指定）
+// 251 - 255: 予約
+volatile uint8_t led_mode = 5, led_on_width = 0;
 
 // 緩やかに LED を点滅させる
 void pwmtmr_isr() {
-  if (sin_speed == SIN_DISABLE) {
+  if (led_mode > 3) {
     return;
   }
   IO_LED_LAT = pwmtmr_count <= sin_table[sin_step_index];
@@ -200,11 +204,19 @@ void tmr_isr() {
 
   ADC_StartConversion(channel_BAT);
   
-  if (sin_speed <= 3 && (tick & (7u >> sin_speed)) == 0) {
-    sin_step_index++;
-    if (sin_step_index >= SIN_NUM_STEPS) {
+  if (led_mode <= 3 && (tick & ((1u << led_mode) - 1)) == 0) {
+    if (sin_step_index < SIN_NUM_STEPS - 1) {
+      sin_step_index++;
+    } else {
       sin_step_index = 0;
     }
+  } else if (5 <= led_mode && led_mode <= 250) {
+    if (sin_step_index < led_mode) {
+      sin_step_index++;
+    } else {
+      sin_step_index = 0;
+    }
+    IO_LED_LAT = sin_step_index <= led_on_width;
   }
 }
 
@@ -258,52 +270,34 @@ void main(void) {
 
     switch (run_state) {
     case NO_BATTERY:
-      sin_speed = SIN_DISABLE;
-      IO_LED_LAT = 1;
-      sleep_tick(5);
-      IO_LED_LAT = 0;
-      sleep_tick(95);
+      led_mode = 100;
+      led_on_width = 5;
       break;
     case CHARGE_CC:
-      sin_speed = SIN_DISABLE;
-      IO_LED_LAT = 1;
-      sleep_tick(50);
-      IO_LED_LAT = 0;
-      sleep_tick(200);
+      led_mode = 250;
+      led_on_width = 50;
       break;
     case CHARGE_CV:
-      sin_speed = SIN_DISABLE;
-      IO_LED_LAT = 1;
-      sleep_tick(50);
-      IO_LED_LAT = 0;
-      sleep_tick(50);
+      led_mode = 100;
+      led_on_width = 50;
       break;
     case CHARGED:
-      sin_speed = SIN_DISABLE;
-      IO_LED_LAT = 1;
-      sleep_tick(20);
-      IO_LED_LAT = 0;
-      sleep_tick(20);
+      led_mode = 40;
+      led_on_width = 20;
       break;
     case HIGHVOLT:
-      sin_speed = SIN_DISABLE;
-      IO_LED_LAT = 1;
-      sleep_tick(45);
-      IO_LED_LAT = 0;
-      sleep_tick(5);
+      led_mode = 50;
+      led_on_width = 45;
       break;
     case DISCHARGE_CC:
-      sin_speed = 3;
+      led_mode = 3;
       break;
     case DISCHARGED:
-      sin_speed = 1;
+      led_mode = 1;
       break;
     case BAT_TOO_LOW:
-      sin_speed = SIN_DISABLE;
-      IO_LED_LAT = 1;
-      sleep_tick(95);
-      IO_LED_LAT = 0;
-      sleep_tick(5);
+      led_mode = 100;
+      led_on_width = 95;
       break;
     }
   }
