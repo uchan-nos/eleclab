@@ -277,14 +277,15 @@ void main(void) {
     run_state = NextRunState();
     ControlDAC();
     
-    strcpy(s, "BAT= 0.000V");
+    lcd_cursor_at(0, 0);
+    lcd_puts(IO_MODE_PORT ? "CHRG" : "DISC");
+    strcpy(s, " BAT= 0.000V");
     int16_t bat_mv = BAT_MV;
     if (bat_mv < 0) {
-      s[4] = '-';
+      s[5] = '-';
       bat_mv = -bat_mv;
     }
-    format_dec(s + 5, bat_mv, 5, 1);
-    lcd_cursor_at(0, 0);
+    format_dec(s + 6, bat_mv, 5, 1);
     lcd_puts(s);
 
     switch (run_state) {
