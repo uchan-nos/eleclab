@@ -1,5 +1,8 @@
 #include "mcc_generated_files/mcc.h"
 
+#include <string.h>
+#include "sc1602.h"
+
 #define CHARGE_CURRENT_MA 200
 #define TARGET_VOLTAGE_MV 4350
 #define DISCHARGE_CURRENT_MA 1000
@@ -143,9 +146,11 @@ enum RunState CheckAnomary() {
   }
 
   int16_t bat_mv = BAT_MV;
-  if ((IO_MODE_PORT && bat_mv > 4900) || (!IO_MODE_PORT && bat_mv < 100)) {
+  int16_t bat_mv_abs = abs(bat_mv);
+  if ((IO_MODE_PORT && bat_mv > 4900) ||
+      (!IO_MODE_PORT && bat_mv_abs < 100)) {
     return NO_BATTERY;
-  } else if (bat_mv < BAT_TOO_LOW_MV) {
+  } else if (bat_mv_abs < BAT_TOO_LOW_MV) {
     return BAT_TOO_LOW;
   }
 
@@ -249,6 +254,10 @@ void main(void) {
   INTERRUPT_GlobalInterruptEnable();
   TMR2_StartTimer();
   
+  IO_LCD_RW_LAT = 0;
+  lcd_init();
+  char s[17];
+
   /*
   int nobat = 0;
    */
@@ -267,6 +276,16 @@ void main(void) {
   while (1) {
     run_state = NextRunState();
     ControlDAC();
+    
+    strcpy(s, "BAT= 0.000V");
+    int16_t bat_mv = BAT_MV;
+    if (bat_mv < 0) {
+      s[4] = '-';
+      bat_mv = -bat_mv;
+    }
+    format_dec(s + 5, bat_mv, 5, 1);
+    lcd_cursor_at(0, 0);
+    lcd_puts(s);
 
     switch (run_state) {
     case NO_BATTERY:
