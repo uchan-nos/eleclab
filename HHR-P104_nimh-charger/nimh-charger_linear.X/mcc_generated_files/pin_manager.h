@@ -82,6 +82,23 @@
 #define channel_HIVOLT_SetAnalogMode()      do { ANSELAbits.ANSA0 = 1; } while(0)
 #define channel_HIVOLT_SetDigitalMode()     do { ANSELAbits.ANSA0 = 0; } while(0)
 
+// get/set channel_BAT aliases
+#define channel_BAT_TRIS                 TRISAbits.TRISA1
+#define channel_BAT_LAT                  LATAbits.LATA1
+#define channel_BAT_PORT                 PORTAbits.RA1
+#define channel_BAT_WPU                  WPUAbits.WPUA1
+#define channel_BAT_ANS                  ANSELAbits.ANSA1
+#define channel_BAT_SetHigh()            do { LATAbits.LATA1 = 1; } while(0)
+#define channel_BAT_SetLow()             do { LATAbits.LATA1 = 0; } while(0)
+#define channel_BAT_Toggle()             do { LATAbits.LATA1 = ~LATAbits.LATA1; } while(0)
+#define channel_BAT_GetValue()           PORTAbits.RA1
+#define channel_BAT_SetDigitalInput()    do { TRISAbits.TRISA1 = 1; } while(0)
+#define channel_BAT_SetDigitalOutput()   do { TRISAbits.TRISA1 = 0; } while(0)
+#define channel_BAT_SetPullup()          do { WPUAbits.WPUA1 = 1; } while(0)
+#define channel_BAT_ResetPullup()        do { WPUAbits.WPUA1 = 0; } while(0)
+#define channel_BAT_SetAnalogMode()      do { ANSELAbits.ANSA1 = 1; } while(0)
+#define channel_BAT_SetDigitalMode()     do { ANSELAbits.ANSA1 = 0; } while(0)
+
 // get/set RA2 procedures
 #define RA2_SetHigh()            do { LATAbits.LATA2 = 1; } while(0)
 #define RA2_SetLow()             do { LATAbits.LATA2 = 0; } while(0)

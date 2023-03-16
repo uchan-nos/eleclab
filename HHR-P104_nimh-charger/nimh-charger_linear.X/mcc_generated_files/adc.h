@@ -89,7 +89,7 @@ typedef enum
     channel_DAC1 =  0x1E,
     channel_FVR =  0x1F,
     channel_BATN =  0x4,
-    channel_TEMP =  0xd
+    channel_BAT =  0x1
 } adc_channel_t;
 
 /**

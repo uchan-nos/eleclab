@@ -45,9 +45,11 @@ volatile uint8_t sin_step_index = 0;
 volatile uint8_t pwmtmr_count = 0;
 volatile uint8_t sin_speed = 0; // 設定範囲 0 - 3、 255: PWM で LED を制御しない
 
+#define SIN_DISABLE 255
+
 // 緩やかに LED を点滅させる
 void pwmtmr_isr() {
-  if (sin_speed == 255) {
+  if (sin_speed == SIN_DISABLE) {
     return;
   }
   IO_LED_LAT = pwmtmr_count <= sin_table[sin_step_index];
@@ -136,9 +138,8 @@ enum RunState CheckAnomary() {
     return HIGHVOLT;
   }
 
-  // 電池が接続されているか、劣化していないか
   int16_t bat_mv = BAT_MV;
-  if (bat_mv > 4900) {
+  if ((IO_MODE_PORT && bat_mv > 4900) || (!IO_MODE_PORT && bat_mv < 100)) {
     return NO_BATTERY;
   } else if (bat_mv < BAT_TOO_LOW_MV) {
     return BAT_TOO_LOW;
@@ -197,7 +198,7 @@ void tmr_isr() {
   // interrupt period = 10ms
   tick++;
 
-  ADC_StartConversion(channel_TEMP);
+  ADC_StartConversion(channel_BAT);
   
   if (sin_speed <= 3 && (tick & (7u >> sin_speed)) == 0) {
     sin_step_index++;
@@ -249,7 +250,7 @@ void main(void) {
   LATBbits.LATB1 = 0;
   OPA2CONbits.OPA2EN = 0;
 
-  bat_mv2_q4 = (int16_t)ADC_GetConversion(channel_TEMP) << 4;
+  bat_mv2_q4 = (int16_t)ADC_GetConversion(channel_BAT) << 4;
 
   while (1) {
     run_state = NextRunState();
@@ -257,30 +258,35 @@ void main(void) {
 
     switch (run_state) {
     case NO_BATTERY:
+      sin_speed = SIN_DISABLE;
       IO_LED_LAT = 1;
       sleep_tick(5);
       IO_LED_LAT = 0;
       sleep_tick(95);
       break;
     case CHARGE_CC:
+      sin_speed = SIN_DISABLE;
       IO_LED_LAT = 1;
       sleep_tick(50);
       IO_LED_LAT = 0;
       sleep_tick(200);
       break;
     case CHARGE_CV:
+      sin_speed = SIN_DISABLE;
       IO_LED_LAT = 1;
       sleep_tick(50);
       IO_LED_LAT = 0;
       sleep_tick(50);
       break;
     case CHARGED:
+      sin_speed = SIN_DISABLE;
       IO_LED_LAT = 1;
       sleep_tick(20);
       IO_LED_LAT = 0;
       sleep_tick(20);
       break;
     case HIGHVOLT:
+      sin_speed = SIN_DISABLE;
       IO_LED_LAT = 1;
       sleep_tick(45);
       IO_LED_LAT = 0;
@@ -293,6 +299,7 @@ void main(void) {
       sin_speed = 1;
       break;
     case BAT_TOO_LOW:
+      sin_speed = SIN_DISABLE;
       IO_LED_LAT = 1;
       sleep_tick(95);
       IO_LED_LAT = 0;
