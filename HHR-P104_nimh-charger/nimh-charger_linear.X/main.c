@@ -22,14 +22,16 @@
 #define MA_TO_DAC(cur_ma)   ((uint8_t)((cur_ma) >> (10 - DAC_PRECISION_BITS)))
 
 enum RunState {
-  NO_BATTERY, // 充放電対象の電池が接続されていない
+  NO_BATTERY,  // 充放電対象の電池が接続されていない
+  HIGHVOLT,    // MOSFET に規定以上の電圧が加わっている
+  MISCONNECT,  // 電池が逆接続（モードと端子のミスマッチ）
+  BAT_TOO_LOW, // 電池が過放電の状態
+  OPERATABLE,  // 異常が無く、動作可能である
   CHARGE_CC,
   CHARGE_CV,
   CHARGED,
   DISCHARGE_CC,
   DISCHARGED,
-  HIGHVOLT,   // MOSFET に規定以上の電圧が加わっている
-  BAT_TOO_LOW, // 電池が過放電の状態
 };
 volatile enum RunState run_state = NO_BATTERY;
 
@@ -61,6 +63,39 @@ void pwmtmr_isr() {
   }
   IO_LED_LAT = pwmtmr_count <= sin_table[sin_step_index];
   pwmtmr_count += 2;
+}
+
+volatile uint8_t tick = 0;
+void tmr_isr() {
+  // interrupt period = 10ms
+  tick++;
+
+  ADC_StartConversion(channel_BAT);
+  
+  if (led_mode <= 3 && (tick & ((1u << led_mode) - 1)) == 0) {
+    if (sin_step_index < SIN_NUM_STEPS - 1) {
+      sin_step_index++;
+    } else {
+      sin_step_index = 0;
+    }
+  } else if (5 <= led_mode && led_mode <= 250) {
+    if (sin_step_index < led_mode) {
+      sin_step_index++;
+    } else {
+      sin_step_index = 0;
+    }
+    IO_LED_LAT = sin_step_index <= led_on_width;
+  }
+}
+
+// 指定した時間が経過したら真を返す
+bool TickElapsed(uint8_t start_tick, uint8_t duration_tick) {
+  uint8_t end_tick = start_tick + duration_tick;
+  if (end_tick < start_tick) { // overflow
+    return end_tick <= tick && tick < start_tick;
+  } else {
+    return end_tick <= tick || tick < start_tick;
+  }
 }
 
 // bat_mv2_q4: 電池電圧/2 [mV] を表す変数
@@ -107,6 +142,7 @@ void ControlDAC() {
   case NO_BATTERY:
   case HIGHVOLT:
   case BAT_TOO_LOW:
+  case OPERATABLE:
   case CHARGED:
   case DISCHARGED:
     StopCurrent();
@@ -150,23 +186,32 @@ enum RunState CheckAnomary() {
   if ((IO_MODE_PORT && bat_mv > 4900) ||
       (!IO_MODE_PORT && bat_mv_abs < 100)) {
     return NO_BATTERY;
+  } else if (IO_MODE_PORT && bat_mv < 0 || !IO_MODE_PORT && bat_mv > 0) {
+    return MISCONNECT;
   } else if (bat_mv_abs < BAT_TOO_LOW_MV) {
     return BAT_TOO_LOW;
   }
 
-  return run_state;
+  return OPERATABLE;
 }
 
 enum RunState NextRunState() {
+  static uint8_t operatable_tick = 0; // run_state が OPERATABLE になった時刻
+  
   // 異常を最初にチェック
   enum RunState anomary = CheckAnomary();
+  if (anomary != OPERATABLE) {
+    return anomary;
+  }
+  if (run_state < OPERATABLE) { // 今までの動作状態が anomary のいずれかだった
+    operatable_tick = tick;
+    return OPERATABLE;
+  }
 
   if (IO_MODE_PORT) { // 充電モード
-    switch (anomary) {
-    case NO_BATTERY:
-    case HIGHVOLT:
-    case BAT_TOO_LOW:
-      return anomary;
+    switch (run_state) {
+    case OPERATABLE:
+      return TickElapsed(operatable_tick, 100) ? CHARGE_CC : OPERATABLE;
     case CHARGE_CC:
       return BAT_MV < TARGET_VOLTAGE_MV ? CHARGE_CC : CHARGE_CV;
     case CHARGE_CV:
@@ -178,12 +223,10 @@ enum RunState NextRunState() {
     }
   } else { // 放電モード
     switch (run_state) {
-    case NO_BATTERY:
-    case HIGHVOLT:
-    case BAT_TOO_LOW:
-      return anomary;
+    case OPERATABLE:
+      return TickElapsed(operatable_tick, 100) ? DISCHARGE_CC : OPERATABLE;
     case DISCHARGE_CC:
-      return BAT_MV > discharge_stop_mv ? DISCHARGE_CC : DISCHARGED;
+      return -BAT_MV > discharge_stop_mv ? DISCHARGE_CC : DISCHARGED;
     case DISCHARGED:
       return DISCHARGED;
     default:
@@ -200,29 +243,6 @@ void adc_isr() {
 
   // bat_mv = (15.0/16) * bat_mv + (1.0/16) * bat_adc; を固定小数点数で計算
   bat_mv2_q4 = FilterADCValueQ4(bat_mv2_q4, bat_mv2_latest);
-}
-
-volatile uint8_t tick = 0;
-void tmr_isr() {
-  // interrupt period = 10ms
-  tick++;
-
-  ADC_StartConversion(channel_BAT);
-  
-  if (led_mode <= 3 && (tick & ((1u << led_mode) - 1)) == 0) {
-    if (sin_step_index < SIN_NUM_STEPS - 1) {
-      sin_step_index++;
-    } else {
-      sin_step_index = 0;
-    }
-  } else if (5 <= led_mode && led_mode <= 250) {
-    if (sin_step_index < led_mode) {
-      sin_step_index++;
-    } else {
-      sin_step_index = 0;
-    }
-    IO_LED_LAT = sin_step_index <= led_on_width;
-  }
 }
 
 void cmp_isr() {
@@ -274,7 +294,15 @@ void main(void) {
   bat_mv2_q4 = (int16_t)ADC_GetConversion(channel_BAT) << 4;
 
   while (1) {
+    enum RunState prev_state = run_state;
     run_state = NextRunState();
+    if (prev_state != run_state) {
+      lcd_cursor_at(15, 1);
+      lcd_putc('*');
+    } else {
+      lcd_cursor_at(15, 1);
+      lcd_putc(' ');
+    }
     ControlDAC();
     
     lcd_cursor_at(0, 0);
@@ -287,37 +315,59 @@ void main(void) {
     }
     format_dec(s + 6, bat_mv, 5, 1);
     lcd_puts(s);
+    strcpy(s, "I=0000mA 00 000");
+    format_dec(s + 2, DAC_TO_MA(DAC1_GetOutput()), 4, 4);
+    format_dec(s + 9, run_state, 2, 2);
+    format_dec(s + 12, led_mode, 3, 3);
+    lcd_cursor_at(0, 1);
+    lcd_puts(s);
 
     switch (run_state) {
     case NO_BATTERY:
       led_mode = 100;
       led_on_width = 5;
-      break;
-    case CHARGE_CC:
-      led_mode = 250;
-      led_on_width = 50;
-      break;
-    case CHARGE_CV:
-      led_mode = 100;
-      led_on_width = 50;
-      break;
-    case CHARGED:
-      led_mode = 40;
-      led_on_width = 20;
+      //lcd_puts("NO BAT ");
       break;
     case HIGHVOLT:
       led_mode = 50;
       led_on_width = 45;
+      //lcd_puts("TOO HI ");
       break;
-    case DISCHARGE_CC:
-      led_mode = 3;
-      break;
-    case DISCHARGED:
-      led_mode = 1;
+    case MISCONNECT:
+      led_mode = 10;
+      led_on_width = 5;
+      //lcd_puts("TOO HI ");
       break;
     case BAT_TOO_LOW:
       led_mode = 100;
       led_on_width = 95;
+      //lcd_puts("TOO LOW");
+      break;
+    case OPERATABLE:
+      led_mode = 0;
+      break;
+    case CHARGE_CC:
+      led_mode = 250;
+      led_on_width = 50;
+      //lcd_puts("CHRG CC");
+      break;
+    case CHARGE_CV:
+      led_mode = 100;
+      led_on_width = 50;
+      //lcd_puts("CHRG CV");
+      break;
+    case CHARGED:
+      led_mode = 40;
+      led_on_width = 20;
+      //lcd_puts("CHARGED");
+      break;
+    case DISCHARGE_CC:
+      led_mode = 1;
+      //lcd_puts("DISC CC");
+      break;
+    case DISCHARGED:
+      led_mode = 3;
+      //lcd_puts("DISCGED");
       break;
     }
   }
