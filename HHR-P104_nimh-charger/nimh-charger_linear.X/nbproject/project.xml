@@ -12,7 +12,10 @@
             <asminc-extensions/>
             <sourceEncoding>UTF-8</sourceEncoding>
             <make-dep-projects/>
-            <sourceRootList/>
+            <sourceRootList>
+                <sourceRootElem>../../led_tester/led_tester.X</sourceRootElem>
+                <sourceRootElem>.</sourceRootElem>
+            </sourceRootList>
             <confList>
                 <confElem>
                     <name>default</name>

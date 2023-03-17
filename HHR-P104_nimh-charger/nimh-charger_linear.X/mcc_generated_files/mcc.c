@@ -56,17 +56,17 @@ void SYSTEM_Initialize(void)
     FVR_Initialize();
     CMP1_Initialize();
     ADC_Initialize();
-    OPA1_Initialize();
     OPA2_Initialize();
     DAC1_Initialize();
     TMR2_Initialize();
+    TMR0_Initialize();
     EUSART_Initialize();
 }
 
 void OSCILLATOR_Initialize(void)
 {
-    // SCS FOSC; SPLLEN disabled; IRCF 1MHz_HF; 
-    OSCCON = 0x58;
+    // SCS FOSC; SPLLEN disabled; IRCF 8MHz_HF; 
+    OSCCON = 0x70;
     // LFIOFR disabled; HFIOFL not stable; OSTS intosc; PLLR disabled; HFIOFS not stable; HFIOFR disabled; MFIOFR disabled; T1OSCR disabled; 
     OSCSTAT = 0x00;
     // TUN 0; 

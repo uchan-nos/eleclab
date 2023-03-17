@@ -71,11 +71,11 @@ void ADC_Initialize(void)
     // ADRMD 12_bit_mode; GO_nDONE stop; ADON enabled; CHS AN0; 
     ADCON0 = 0x01;
     
-    // ADFM 2s_complement; ADNREF VSS; ADPREF FVR; ADCS FOSC/2; 
-    ADCON1 = 0x83;
+    // ADFM 2s_complement; ADNREF VSS; ADPREF FVR; ADCS FOSC/8; 
+    ADCON1 = 0x93;
     
-    // TRIGSEL disabled; CHSN AN0; 
-    ADCON2 = 0x00;
+    // TRIGSEL disabled; CHSN AN4; 
+    ADCON2 = 0x04;
     
     // ADRESH 0; 
     ADRESH = 0x00;

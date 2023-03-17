@@ -12,14 +12,15 @@
         <itemPath>mcc_generated_files/device_config.h</itemPath>
         <itemPath>mcc_generated_files/dac1.h</itemPath>
         <itemPath>mcc_generated_files/pin_manager.h</itemPath>
-        <itemPath>mcc_generated_files/opa1.h</itemPath>
         <itemPath>mcc_generated_files/adc.h</itemPath>
         <itemPath>mcc_generated_files/cmp1.h</itemPath>
         <itemPath>mcc_generated_files/opa2.h</itemPath>
         <itemPath>mcc_generated_files/eusart.h</itemPath>
         <itemPath>mcc_generated_files/tmr2.h</itemPath>
         <itemPath>mcc_generated_files/interrupt_manager.h</itemPath>
+        <itemPath>mcc_generated_files/tmr0.h</itemPath>
       </logicalFolder>
+      <itemPath>sc1602.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -36,15 +37,16 @@
         <itemPath>mcc_generated_files/fvr.c</itemPath>
         <itemPath>mcc_generated_files/mcc.c</itemPath>
         <itemPath>mcc_generated_files/device_config.c</itemPath>
-        <itemPath>mcc_generated_files/opa1.c</itemPath>
         <itemPath>mcc_generated_files/adc.c</itemPath>
         <itemPath>mcc_generated_files/cmp1.c</itemPath>
         <itemPath>mcc_generated_files/opa2.c</itemPath>
         <itemPath>mcc_generated_files/eusart.c</itemPath>
         <itemPath>mcc_generated_files/interrupt_manager.c</itemPath>
         <itemPath>mcc_generated_files/tmr2.c</itemPath>
+        <itemPath>mcc_generated_files/tmr0.c</itemPath>
       </logicalFolder>
       <itemPath>main.c</itemPath>
+      <itemPath>sc1602.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -53,6 +55,10 @@
       <itemPath>nimh-charger_linear.mc3</itemPath>
     </logicalFolder>
   </logicalFolder>
+  <sourceRootList>
+    <Elem>../../led_tester/led_tester.X</Elem>
+    <Elem>.</Elem>
+  </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
     <conf name="default" type="2">
@@ -80,7 +86,7 @@
         </archiverTool>
         <loading>
           <useAlternateLoadableFile>false</useAlternateLoadableFile>
-          <parseOnProdLoad>false</parseOnProdLoad>
+          <parseOnProdLoad>true</parseOnProdLoad>
           <alternateLoadableFile></alternateLoadableFile>
         </loading>
         <subordinates>
@@ -183,7 +189,7 @@
         <property key="ToolFirmwareFilePath"
                   value="Press to browse for a specific firmware version"/>
         <property key="ToolFirmwareOption.UseLatestFirmware" value="true"/>
-        <property key="debugoptions.useswbreakpoints" value="false"/>
+        <property key="debugoptions.useswbreakpoints" value="true"/>
         <property key="firmware.download.all" value="false"/>
         <property key="hwtoolclock.frcindebug" value="false"/>
         <property key="memories.aux" value="false"/>
