@@ -29,11 +29,7 @@ uint8_t led_data[3 * NUM_LED] = {
 
 void Tmr2TimeoutHandler() {
   if (led_index < 3 * NUM_LED) {
-    uint8_t i = led_index + led_index_off;
-    if (i >= 3 * NUM_LED) {
-      i -= 3 * NUM_LED;
-    }
-    uint8_t led_bit = (led_data[i] << led_bit_index) & 0x80u;
+    uint8_t led_bit = (led_data[led_index] << led_bit_index) & 0x80u;
     led_bit_index = (led_bit_index + 1) & 7;
     if (led_bit_index == 0) {
       led_index++;
@@ -43,6 +39,7 @@ void Tmr2TimeoutHandler() {
   } else {
     PWMDCL = 0;
     PWMDCH = 0;
+    TMR2_StopTimer();
   }
 }
 
@@ -62,11 +59,20 @@ void main(void) {
   
   while (1) {
     __delay_ms(300);
-    if (led_index_off < 3 * (NUM_LED - 1)) {
-      led_index_off += 3;
-    } else {
-      led_index_off = 0;
+    uint8_t tmp[3];
+    tmp[0] = led_data[3 * NUM_LED - 3];
+    tmp[1] = led_data[3 * NUM_LED - 2];
+    tmp[2] = led_data[3 * NUM_LED - 1];
+    for (int i = NUM_LED - 1; i > 0; i--) {
+      led_data[3 * i + 0] = led_data[3 * (i - 1) + 0];
+      led_data[3 * i + 1] = led_data[3 * (i - 1) + 1];
+      led_data[3 * i + 2] = led_data[3 * (i - 1) + 2];
     }
+    led_data[0] = tmp[0];
+    led_data[1] = tmp[1];
+    led_data[2] = tmp[2];
+
     led_index = 0;
+    TMR2_StartTimer();
   }
 }
