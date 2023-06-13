@@ -7,3 +7,4 @@
 **/*.X/nbproject/private
 **/*.X/build
 **/*.X/dist
+**/*.X/disassembly
