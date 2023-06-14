@@ -6,17 +6,12 @@
  */
 
 #include "mcc_generated_files/mcc.h"
+#include "common.h"
 
-#define NUM_LED 7
-#define PWMDCH PWM5DCH
-#define PWMDCL PWM5DCL
-#define T0H_DCH 2
-#define T1H_DCH 5
-#define PWMTRIS TRISA2
+extern void tmr2_handler_asm();
 
-uint8_t led_index = 0;
-uint8_t led_index_off = 0;
-uint8_t led_bit_index = 1;
+uint8_t led_index, led_bit_index, led_curdata;
+
 uint8_t led_data[3 * NUM_LED] = {
   0x3f, 0x00, 0x00, // RGB WS2851B
   0x00, 0x3f, 0x00, // RGB WS2851B
@@ -28,33 +23,65 @@ uint8_t led_data[3 * NUM_LED] = {
 };
 
 void Tmr2TimeoutHandler() {
+#ifdef SHOW_HANDLER_TIMING
+  IO_RA0_PORT = 1;
+#endif
   if (led_index < 3 * NUM_LED) {
-    uint8_t led_bit = (led_data[led_index] << led_bit_index) & 0x80u;
+    PWMDCH = (led_curdata & 0x80u) ? T1H_DCH : T0H_DCH;
+    led_curdata <<= 1;
     led_bit_index = (led_bit_index + 1) & 7;
     if (led_bit_index == 0) {
       led_index++;
+      led_curdata = led_data[led_index];
     }
-
-    PWMDCH = led_bit ? T1H_DCH : T0H_DCH;
   } else {
     PWMDCL = 0;
     PWMDCH = 0;
     TMR2_StopTimer();
   }
+#ifdef SHOW_HANDLER_TIMING
+  IO_RA0_PORT = 0;
+#endif
 }
+
+void LEDLoadInitData() {
+  led_index = 0;
+  led_bit_index = 0x80 >> 1;
+  led_curdata = led_data[0];
+  PWMDCL = 2 << 6;
+  PWMDCH = (led_curdata & 0x80) ? T1H_DCH : T0H_DCH;
+  led_curdata <<= 1;
+}
+
+#ifndef USE_MCC_GENERATED_ISR
+void __interrupt() MyISR() {
+  if (TMR2IF) {
+    TMR2IF = 0;
+    //Tmr2TimeoutHandler();
+    tmr2_handler_asm();
+  } else if (PIE1bits.RCIE == 1 && PIR1bits.RCIF == 1) {
+    EUSART_RxDefaultInterruptHandler();
+  } else if (PIE1bits.TXIE == 1 && PIR1bits.TXIF == 1) {
+    EUSART_TxDefaultInterruptHandler();
+  } else if (PIE1bits.BCL1IE == 1 && PIR1bits.BCL1IF == 1) {
+    MSSP1_InterruptHandler();
+  } else if (PIE1bits.SSP1IE == 1 && PIR1bits.SSP1IF == 1) {
+    MSSP1_InterruptHandler();
+  } else {
+    //Unhandled Interrupt
+  }
+}
+#endif
 
 void main(void) {
   SYSTEM_Initialize();
-  TMR2_StopTimer();
   TMR2_SetInterruptHandler(Tmr2TimeoutHandler);
 
   INTERRUPT_PeripheralInterruptEnable();
   INTERRUPT_GlobalInterruptEnable();
   
-  PWMDCL = 2 << 6;
-  PWMDCH = (led_data[0] & 0x80) ? T1H_DCH : T0H_DCH;
+  LEDLoadInitData();
   
-  __delay_ms(2);
   TMR2_StartTimer();
   
   while (1) {
@@ -72,7 +99,7 @@ void main(void) {
     led_data[1] = tmp[1];
     led_data[2] = tmp[2];
 
-    led_index = 0;
+    LEDLoadInitData();
     TMR2_StartTimer();
   }
 }

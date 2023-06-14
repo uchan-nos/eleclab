@@ -65,8 +65,8 @@ void TMR2_Initialize(void)
 {
     // Set TMR2 to the options selected in the User Interface
 
-    // PR2 119; 
-    PR2 = 0x77;
+    // PR2 39; 
+    PR2 = 0x27;
 
     // TMR2 0; 
     TMR2 = 0x00;
@@ -80,8 +80,8 @@ void TMR2_Initialize(void)
     // Set Default Interrupt Handler
     TMR2_SetInterruptHandler(TMR2_DefaultInterruptHandler);
 
-    // T2CKPS 1:1; T2OUTPS 1:1; TMR2ON on; 
-    T2CON = 0x04;
+    // T2CKPS 1:1; T2OUTPS 1:1; TMR2ON off; 
+    T2CON = 0x00;
 }
 
 void TMR2_StartTimer(void)

@@ -61,11 +61,11 @@
     // PWM5POL active_hi; PWM5EN enabled; 
     PWM5CON = 0x80;   
 
-    // PWM5DCH 8; 
-    PWM5DCH = 0x08;   
+    // PWM5DCH 2; 
+    PWM5DCH = 0x02;   
 
-    // PWM5DCL 0; 
-    PWM5DCL = 0x00;   
+    // PWM5DCL 2; 
+    PWM5DCL = 0x80;   
 
  }
 

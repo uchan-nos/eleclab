@@ -64,7 +64,7 @@
    Section: Macro Declarations
  */
 
- #define PWM5_INITIALIZE_DUTY_VALUE    32
+ #define PWM5_INITIALIZE_DUTY_VALUE    10
 
  /**
    Section: PWM Module APIs

@@ -48,7 +48,9 @@
 
 #include "interrupt_manager.h"
 #include "mcc.h"
+#include "../common.h"
 
+#ifdef USE_MCC_GENERATED_ISR
 void __interrupt() INTERRUPT_InterruptManager (void)
 {
     // interrupt handler
@@ -84,6 +86,7 @@ void __interrupt() INTERRUPT_InterruptManager (void)
         //Unhandled Interrupt
     }
 }
+#endif
 /**
  End of File
 */
