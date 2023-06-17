@@ -16,7 +16,7 @@
 psect   barfunc,local,class=CODE,delta=2 ; PIC10/12/16
 ; psect   barfunc,local,class=CODE,reloc=2 ; PIC18
 
-global _led_index, _led_bit_index, _led_curdata, _led_status, _led_data
+global _led_index, _led_bit_index, _led_curdata, _led_status, _led_data_bytes, _led_data
 global _TMR2_StopTimer
 
 global _tmr2_handler_asm ; extern of bar function goes in the C source file
@@ -52,8 +52,8 @@ _tmr2_handler_asm:
     ; led_index++;
     incf _led_index, f
 
-    ; if (led_index >= 3 * NUM_LED) led_finishing = 1;
-    movlw 3 * NUM_LED
+    ; if (led_index >= led_data_bytes) led_finishing = 1;
+    movf _led_data_bytes, w
     subwf _led_index, w   ; W = led_index - W
     btfsc STATUS, STATUS_C_POSN
     bsf _led_status, LED_STATUS_FINISHING_POSN

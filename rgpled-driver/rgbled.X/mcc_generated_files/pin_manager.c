@@ -101,6 +101,7 @@ void PIN_MANAGER_Initialize(void)
     RA4PPS = 0x18;   //RA4->MSSP1:SCL1;    
     RA5PPS = 0x19;   //RA5->MSSP1:SDA1;    
     RA2PPS = 0x02;   //RA2->PWM5:PWM5;    
+    RA0PPS = 0x14;   //RA0->EUSART:TX;    
     SSP1DATPPS = 0x05;   //RA5->MSSP1:SDA1;    
 }
   
