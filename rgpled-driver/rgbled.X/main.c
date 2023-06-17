@@ -12,6 +12,9 @@ extern void tmr2_handler_asm();
 
 uint8_t led_index, led_bit_index, led_curdata;
 
+// LED 信号の送信状態を示すフラグ集（各ビットの意味は common.h を参照）
+uint8_t led_status;
+
 uint8_t led_data[3 * NUM_LED] = {
   0x3f, 0x00, 0x00, // RGB WS2851B
   0x00, 0x3f, 0x00, // RGB WS2851B
@@ -44,21 +47,26 @@ void Tmr2TimeoutHandler() {
 #endif
 }
 
-void LEDLoadInitData() {
+void LEDSendData() {
   led_index = 0;
   led_bit_index = 0x80 >> 1;
   led_curdata = led_data[0];
   PWMDCL = 2 << 6;
   PWMDCH = (led_curdata & 0x80) ? T1H_DCH : T0H_DCH;
   led_curdata <<= 1;
+  led_status = 1;
+  TMR2_StartTimer();
 }
 
 #ifndef USE_MCC_GENERATED_ISR
 void __interrupt() MyISR() {
-  if (TMR2IF) {
-    TMR2IF = 0;
-    //Tmr2TimeoutHandler();
-    tmr2_handler_asm();
+  if (led_status & (1 << LED_STATUS_SENDING_POSN)) {
+    // LED 信号を送信中は TMR2 割り込みだけを受け付ける
+    if (TMR2IF) {
+      TMR2IF = 0;
+      //Tmr2TimeoutHandler();
+      tmr2_handler_asm();
+    }
   } else if (PIE1bits.RCIE == 1 && PIR1bits.RCIF == 1) {
     EUSART_RxDefaultInterruptHandler();
   } else if (PIE1bits.TXIE == 1 && PIR1bits.TXIF == 1) {
@@ -80,9 +88,7 @@ void main(void) {
   INTERRUPT_PeripheralInterruptEnable();
   INTERRUPT_GlobalInterruptEnable();
   
-  LEDLoadInitData();
-  
-  TMR2_StartTimer();
+  LEDSendData();
   
   while (1) {
     __delay_ms(300);
@@ -99,7 +105,6 @@ void main(void) {
     led_data[1] = tmp[1];
     led_data[2] = tmp[2];
 
-    LEDLoadInitData();
-    TMR2_StartTimer();
+    LEDSendData();
   }
 }

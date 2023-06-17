@@ -16,7 +16,7 @@
 psect   barfunc,local,class=CODE,delta=2 ; PIC10/12/16
 ; psect   barfunc,local,class=CODE,reloc=2 ; PIC18
 
-global _led_index, _led_bit_index, _led_curdata, _led_data
+global _led_index, _led_bit_index, _led_curdata, _led_status, _led_data
 global _TMR2_StopTimer
 
 global _tmr2_handler_asm ; extern of bar function goes in the C source file
@@ -24,11 +24,9 @@ _tmr2_handler_asm:
 #ifdef SHOW_HANDLER_TIMING
     bsf PORTA, 0
 #endif
-    ; if (led_index >= 3 * NUM_LED) goto finish_pwm;
-    movlw 3 * NUM_LED
-    subwf _led_index, w  ; W = led_index - W
-    btfsc STATUS, STATUS_C_POSN
-    goto finish_pwm      ; C=1 ならジャンプ
+    ; if (led_status & LED_STATUS_FINISHING_POSN) goto finish_pwm;
+    btfsc _led_status, LED_STATUS_FINISHING_POSN
+    goto finish_pwm
 
     ; PWMDCH = (led_curdata & 0x80) ? T1H_DCH : T0H_DCH
     movlw T0H_DCH
@@ -54,6 +52,12 @@ _tmr2_handler_asm:
     ; led_index++;
     incf _led_index, f
 
+    ; if (led_index >= 3 * NUM_LED) led_finishing = 1;
+    movlw 3 * NUM_LED
+    subwf _led_index, w   ; W = led_index - W
+    btfsc STATUS, STATUS_C_POSN
+    bsf _led_status, LED_STATUS_FINISHING_POSN
+
     ; led_curdata = led_data[led_index];
     movf _led_index, w
     addlw _led_data
@@ -68,6 +72,7 @@ finish_pwm:
     clrf PWMDCL
     clrf PWMDCH
     call _TMR2_StopTimer
+    bcf _led_status, LED_STATUS_SENDING_POSN
 
 tmr2_handler_end:
 #ifdef SHOW_HANDLER_TIMING
