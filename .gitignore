@@ -8,3 +8,4 @@
 **/*.X/build
 **/*.X/dist
 **/*.X/disassembly
+/.metadata
