@@ -62,8 +62,51 @@ void __interrupt() MyISR() {
 }
 #endif
 
+volatile bool i2c_rx_ready = false;
+volatile uint8_t i2c_rx_data;
+
+void I2C_RxHandler() {
+  i2c_rx_data = I2C1_Read();
+  i2c_rx_ready = true;
+}
+
+uint8_t I2C_Read() {
+  while (i2c_rx_ready == false);
+  i2c_rx_ready = false;
+  return i2c_rx_data;
+}
+
+extern volatile uint8_t i2c1WrData;
+void I2C_Write(uint8_t c) {
+  i2c1WrData = c;
+}
+
+void ReadLEDData(uint8_t (*read)(void), void (*write)(uint8_t)) {
+  uint8_t len = read();
+  if (len >= 0xf0) {
+    // コマンド
+    switch (len) {
+    case 0xf0:
+      LEDSendData();
+      break;
+    default:
+      write(0xff); // Unknown Command
+    }
+  } else if (len > LED_DATA_MAX) {
+    write(0xfe); // Too large length
+  } else {
+    led_data_bytes = len;
+    for (uint8_t i = 0; i < len; i++) {
+      led_data[i] = read();
+    }
+    write(len); // Successfully Received
+  }
+}
+
 void main(void) {
   SYSTEM_Initialize();
+  I2C1_Open();
+  I2C1_SlaveSetReadIntHandler(I2C_RxHandler);
 
   INTERRUPT_PeripheralInterruptEnable();
   INTERRUPT_GlobalInterruptEnable();
@@ -91,6 +134,8 @@ void main(void) {
         }
         EUSART_Write(len); // Successfully Received
       }
+    } else if (i2c_rx_ready) {
+      ReadLEDData(I2C_Read, I2C_Write);
     }
   }
 }
