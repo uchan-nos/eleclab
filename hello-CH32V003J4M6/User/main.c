@@ -37,7 +37,7 @@ void InitSigGen() {
     // Period=31 のとき、周期=31*1000/24≒1292ns
     .TIM_Period = 31,
 #else
-    .TIM_Period = 500,
+    .TIM_Period = 1000,
 #endif
     .TIM_ClockDivision = TIM_CKD_DIV1,
     .TIM_RepetitionCounter = 0,
@@ -66,6 +66,10 @@ void InitSigGen() {
     .TIM_OCNIdleState = TIM_OCIdleState_Reset,
   };
   TIM_OC4Init(TIM1, &tim_ocinit); // Ch4 を設定
+
+  // OC4PE をセットする
+  // 電源投入直後の LED 点灯パターンが 490ms, 250ms, 30ms, 100ms, ... となれば期待通り
+  TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Enable);
 }
 
 #define DMA_SIG_LEN 16
@@ -128,6 +132,7 @@ void main() {
 
   TIM_Cmd(TIM1, ENABLE);
   TIM_CtrlPWMOutputs(TIM1, ENABLE);
+  TIM1->CH4CVR = 250;
 
   while (1) {
   }
