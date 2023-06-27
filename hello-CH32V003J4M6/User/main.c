@@ -8,6 +8,8 @@
 
 #include "debug.h"
 
+//#define TIM_HIGH_SPEED
+
 void InitPeripheral() {
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC | RCC_APB2Periph_TIM1, ENABLE);
 
@@ -21,11 +23,20 @@ void InitPeripheral() {
   GPIO_Init(GPIOC, &gpio_init);
 
   // システムクロックはデフォルトの内蔵 24MHz RC クロック
-  // TIM1 を 1 秒の周期に設定
   TIM_TimeBaseInitTypeDef tim_tbinit = {
-    .TIM_Prescaler = 1000,
+#ifdef TIM_HIGH_SPEED
+    .TIM_Prescaler = 0,
+#else
+    .TIM_Prescaler = 24000 - 1,
+#endif
     .TIM_CounterMode = TIM_CounterMode_Up,
-    .TIM_Period = 24000,
+#ifdef TIM_HIGH_SPEED
+    // T0H=320ns, T1H=640ns, 周期=1300ns にしたい。
+    // Period=31 のとき、周期=31*1000/24≒1292ns
+    .TIM_Period = 31,
+#else
+    .TIM_Period = 500,
+#endif
     .TIM_ClockDivision = TIM_CKD_DIV1,
     .TIM_RepetitionCounter = 0,
   };
@@ -38,8 +49,13 @@ void InitPeripheral() {
     // 正出力を有効、相補出力は無効
     .TIM_OutputState = TIM_OutputState_Enable,
     .TIM_OutputNState = TIM_OutputState_Disable,
-    // CVR に周期の 1/3 を設定（デューティー比 33%）
-    .TIM_Pulse = 24000 / 3,
+#ifdef TIM_HIGH_SPEED
+    // CVR=8:  333.3ns
+    // CVR=15: 625.0ns
+    .TIM_Pulse = 8,
+#else
+    .TIM_Pulse = 100,
+#endif
     // 主力の論理をアクティブ High とする
     .TIM_OCPolarity = TIM_OCPolarity_High,
     .TIM_OCNPolarity = TIM_OCPolarity_High,
