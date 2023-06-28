@@ -9,8 +9,10 @@
 #include "debug.h"
 
 //#define TIM_HIGH_SPEED
+#define DMACH_SIGGEN DMA1_Channel5
 
-void InitPeripheral() {
+// NeoPixel 信号生成部（タイマと GPIO）を初期化
+void InitSigGen() {
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC | RCC_APB2Periph_TIM1, ENABLE);
 
   // PC4 (Pin 7) を  TIM1CH4 の出力として使うため、AF_PP モードに設定
@@ -54,7 +56,7 @@ void InitPeripheral() {
     // CVR=15: 625.0ns
     .TIM_Pulse = 8,
 #else
-    .TIM_Pulse = 100,
+    .TIM_Pulse = 490,
 #endif
     // 主力の論理をアクティブ High とする
     .TIM_OCPolarity = TIM_OCPolarity_High,
@@ -66,12 +68,84 @@ void InitPeripheral() {
   TIM_OC4Init(TIM1, &tim_ocinit); // Ch4 を設定
 }
 
+#define DMA_SIG_LEN 16
+uint8_t dma_sig_buf[DMA_SIG_LEN] = {
+  30, 100, 200, 255, 150, 50, 20, 10
+};
+
+// NeoPixel 信号生成部にデータを供給する DMA を初期化
+void InitSigDMA() {
+  RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
+  DMA_DeInit(DMACH_SIGGEN);
+
+  DMA_InitTypeDef dma_init = {
+    .DMA_BufferSize = 8,
+    .DMA_DIR = DMA_DIR_PeripheralDST,
+    .DMA_M2M = DMA_M2M_Disable,
+    .DMA_MemoryBaseAddr = (uint32_t)&dma_sig_buf,
+    .DMA_MemoryDataSize = DMA_MemoryDataSize_Byte,
+    .DMA_MemoryInc = DMA_MemoryInc_Enable,
+    //.DMA_Mode = DMA_Mode_Circular,
+    .DMA_Mode = DMA_Mode_Normal,
+    .DMA_PeripheralBaseAddr = (uint32_t)&TIM1->CH4CVR,
+    .DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord,
+    .DMA_PeripheralInc = DMA_PeripheralInc_Disable,
+    .DMA_Priority = DMA_Priority_High,
+  };
+  DMA_Init(DMACH_SIGGEN, &dma_init);
+  DMA_Cmd(DMACH_SIGGEN, ENABLE);
+}
+
+volatile uint32_t it_cnt = 0;
+
 void main() {
-  InitPeripheral();
+  InitSigGen();
+  InitSigDMA();
+
+  GPIO_InitTypeDef gpio_init = {
+    .GPIO_Pin = GPIO_Pin_1,
+    .GPIO_Mode = GPIO_Mode_Out_PP,
+    .GPIO_Speed = GPIO_Speed_50MHz,
+  };
+  GPIO_Init(GPIOC, &gpio_init);
+
+
+  NVIC_InitTypeDef nvic_init = {
+    .NVIC_IRQChannel = TIM1_UP_IRQn,
+    .NVIC_IRQChannelPreemptionPriority = 0,
+    .NVIC_IRQChannelSubPriority = 0,
+    .NVIC_IRQChannelCmd = ENABLE,
+  };
+  NVIC_Init(&nvic_init);
+
+  nvic_init.NVIC_IRQChannel = DMA1_Channel5_IRQn;
+  NVIC_Init(&nvic_init);
+
+  DMA_ITConfig(DMACH_SIGGEN, DMA_IT_TC, ENABLE);
+  //TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
+
+  TIM_DMACmd(TIM1,  TIM_DMA_Update, ENABLE);
 
   TIM_Cmd(TIM1, ENABLE);
   TIM_CtrlPWMOutputs(TIM1, ENABLE);
 
   while (1) {
   }
+}
+
+void DMA1_Channel5_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+
+void DMA1_Channel5_IRQHandler(void) {
+  TIM_Cmd(TIM1, DISABLE);
+  DMA_ClearITPendingBit(DMA1_IT_TC5);
+}
+
+void TIM1_UP_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+
+void TIM1_UP_IRQHandler(void) {
+  static uint8_t pin_stat = 1;
+  GPIO_WriteBit(GPIOC, GPIO_Pin_1, pin_stat);
+  pin_stat = 1 - pin_stat;
+  it_cnt++;
+  TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
 }
