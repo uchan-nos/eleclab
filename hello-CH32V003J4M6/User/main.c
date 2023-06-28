@@ -9,6 +9,14 @@
 #include "debug.h"
 
 //#define TIM_HIGH_SPEED
+
+// 8  :  333.3ns
+// 15 :  625.0ns
+// 31 : 1292.7ns
+#define T0H_WIDTH 8
+#define T1H_WIDTH 15
+#define TIM_PERIOD 31
+
 #define DMACH_SIGGEN DMA1_Channel5
 
 // NeoPixel 信号生成部（タイマと GPIO）を初期化
@@ -35,7 +43,7 @@ void InitSigGen() {
 #ifdef TIM_HIGH_SPEED
     // T0H=320ns, T1H=640ns, 周期=1300ns にしたい。
     // Period=31 のとき、周期=31*1000/24≒1292ns
-    .TIM_Period = 31,
+    .TIM_Period = TIM_PERIOD,
 #else
     .TIM_Period = 1000,
 #endif
@@ -52,9 +60,7 @@ void InitSigGen() {
     .TIM_OutputState = TIM_OutputState_Enable,
     .TIM_OutputNState = TIM_OutputState_Disable,
 #ifdef TIM_HIGH_SPEED
-    // CVR=8:  333.3ns
-    // CVR=15: 625.0ns
-    .TIM_Pulse = 8,
+    .TIM_Pulse = T1H_WIDTH,
 #else
     .TIM_Pulse = 490,
 #endif
@@ -74,7 +80,8 @@ void InitSigGen() {
 
 #define DMA_SIG_LEN 16
 uint8_t dma_sig_buf[DMA_SIG_LEN] = {
-  30, 100, 200, 255, 150, 50, 20, 10
+  T1H_WIDTH, T0H_WIDTH, T1H_WIDTH, T0H_WIDTH, T1H_WIDTH, T0H_WIDTH, T1H_WIDTH, T0H_WIDTH,
+  T1H_WIDTH, T0H_WIDTH, T1H_WIDTH, T0H_WIDTH, T1H_WIDTH, T0H_WIDTH, T1H_WIDTH, T0H_WIDTH,
 };
 
 // NeoPixel 信号生成部にデータを供給する DMA を初期化
@@ -83,14 +90,14 @@ void InitSigDMA() {
   DMA_DeInit(DMACH_SIGGEN);
 
   DMA_InitTypeDef dma_init = {
-    .DMA_BufferSize = 8,
+    .DMA_BufferSize = DMA_SIG_LEN,
     .DMA_DIR = DMA_DIR_PeripheralDST,
     .DMA_M2M = DMA_M2M_Disable,
     .DMA_MemoryBaseAddr = (uint32_t)&dma_sig_buf,
     .DMA_MemoryDataSize = DMA_MemoryDataSize_Byte,
     .DMA_MemoryInc = DMA_MemoryInc_Enable,
-    //.DMA_Mode = DMA_Mode_Circular,
-    .DMA_Mode = DMA_Mode_Normal,
+    .DMA_Mode = DMA_Mode_Circular,
+    //.DMA_Mode = DMA_Mode_Normal,
     .DMA_PeripheralBaseAddr = (uint32_t)&TIM1->CH4CVR,
     .DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord,
     .DMA_PeripheralInc = DMA_PeripheralInc_Disable,
@@ -130,9 +137,9 @@ void main() {
 
   TIM_DMACmd(TIM1,  TIM_DMA_Update, ENABLE);
 
-  TIM_Cmd(TIM1, ENABLE);
   TIM_CtrlPWMOutputs(TIM1, ENABLE);
-  TIM1->CH4CVR = 250;
+  TIM_Cmd(TIM1, ENABLE);
+  TIM1->CH4CVR = T0H_WIDTH;
 
   while (1) {
   }
@@ -141,7 +148,6 @@ void main() {
 void DMA1_Channel5_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 
 void DMA1_Channel5_IRQHandler(void) {
-  TIM_Cmd(TIM1, DISABLE);
   DMA_ClearITPendingBit(DMA1_IT_TC5);
 }
 
