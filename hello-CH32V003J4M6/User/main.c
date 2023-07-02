@@ -209,36 +209,26 @@ void DMA1_Channel5_IRQHandler(void) {
   GPIO_WriteBit(GPIOA, GPIO_Pin_2, Bit_SET);
 #endif
 
-  uint8_t data = 0;
-  if (send_index < send_data_len) {
-    data = CalcNextSendData();
-    send_index++;
-  } else {
-    stop_signal = true;
-  }
-
-  if (DMA_GetITStatus(DMA1_IT_HT5) == SET) {
-    // dma_sig_buf の前半部分が転送完了
-    DMA_ClearITPendingBit(DMA1_IT_HT5);
-    if (stop_signal) {
-      memset(dma_sig_buf, 0, 8);
-    } else {
-      ByteToPulsePeriodArray(dma_sig_buf, data);
-      if (send_index == send_data_len) {
-        dma_sig_buf[6] = dma_sig_buf[7] = 0;
-      }
-    }
-  } else if (DMA_GetITStatus(DMA1_IT_TC5) == SET) {
+  const bool second_half = DMA_GetITStatus(DMA1_IT_TC5) == SET;
+  if (second_half) {
     // dma_sig_buf の後半部分が転送完了
     DMA_ClearITPendingBit(DMA1_IT_TC5);
-    if (stop_signal) {
-      memset(dma_sig_buf + 8, 0, 8);
-    } else {
-      ByteToPulsePeriodArray(dma_sig_buf + 8, data);
-      if (send_index == send_data_len) {
-        dma_sig_buf[8 + 6] = dma_sig_buf[8 + 7] = 0;
-      }
+  } else {
+    // dma_sig_buf の前半部分が転送完了
+    DMA_ClearITPendingBit(DMA1_IT_HT5);
+  }
+  uint8_t *dma_buf = &dma_sig_buf[second_half ? 8 : 0];
+
+  uint8_t data = 0;
+  if (send_index < send_data_len) {
+    data = NextSendData();
+    ByteToPulsePeriodArray(dma_buf, data);
+    if (send_index == send_data_len) {
+        dma_buf[6] = dma_buf[7] = 0;
     }
+  } else {
+    stop_signal = true;
+    memset(dma_buf, 0, 8);
   }
 
 #ifdef SHOW_PROCESS_TIME
