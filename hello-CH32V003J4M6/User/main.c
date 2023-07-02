@@ -6,16 +6,36 @@
  * PC4: TIM1_CH4  NeoPixel signal output
  */
 
+#include <stdbool.h>
+#include <string.h>
 #include "debug.h"
 
-//#define TIM_HIGH_SPEED
+// デバッグ用にタイマをゆっくり動かすには、以下をコメントアウト
+#define TIM_HIGH_SPEED
 
-// 8  :  333.3ns
-// 15 :  625.0ns
-// 31 : 1292.7ns
-#define T0H_WIDTH 8
-#define T1H_WIDTH 15
-#define TIM_PERIOD 31
+// クロック定義
+#define TIM_CLOCK UINT64_C(48000000)
+#define SEC_IN_NS UINT64_C(1000000000)
+
+
+#ifdef TIM_HIGH_SPEED
+
+// ナノ秒でのパルス幅
+#define T0H_WIDTH_NS 333
+#define T1H_WIDTH_NS 625
+#define TIM_PERIOD_NS 1300
+
+// タイマ値に変換
+#define NS_TO_TIM(ns) (((ns) * TIM_CLOCK + SEC_IN_NS/2) / SEC_IN_NS)
+#define T0H_WIDTH  NS_TO_TIM(T0H_WIDTH_NS)
+#define T1H_WIDTH  NS_TO_TIM(T1H_WIDTH_NS)
+#define TIM_PERIOD NS_TO_TIM(TIM_PERIOD_NS)
+
+#else
+#define T0H_WIDTH 20
+#define T1H_WIDTH 250
+#define TIM_PERIOD 400
+#endif
 
 #define DMACH_SIGGEN DMA1_Channel5
 
@@ -37,16 +57,12 @@ void InitSigGen() {
 #ifdef TIM_HIGH_SPEED
     .TIM_Prescaler = 0,
 #else
-    .TIM_Prescaler = 24000 - 1,
+    .TIM_Prescaler = 0xffff,
 #endif
     .TIM_CounterMode = TIM_CounterMode_Up,
-#ifdef TIM_HIGH_SPEED
     // T0H=320ns, T1H=640ns, 周期=1300ns にしたい。
     // Period=31 のとき、周期=31*1000/24≒1292ns
     .TIM_Period = TIM_PERIOD,
-#else
-    .TIM_Period = 1000,
-#endif
     .TIM_ClockDivision = TIM_CKD_DIV1,
     .TIM_RepetitionCounter = 0,
   };
@@ -59,11 +75,7 @@ void InitSigGen() {
     // 正出力を有効、相補出力は無効
     .TIM_OutputState = TIM_OutputState_Enable,
     .TIM_OutputNState = TIM_OutputState_Disable,
-#ifdef TIM_HIGH_SPEED
     .TIM_Pulse = T1H_WIDTH,
-#else
-    .TIM_Pulse = 490,
-#endif
     // 主力の論理をアクティブ High とする
     .TIM_OCPolarity = TIM_OCPolarity_High,
     .TIM_OCNPolarity = TIM_OCPolarity_High,
@@ -72,17 +84,11 @@ void InitSigGen() {
     .TIM_OCNIdleState = TIM_OCIdleState_Reset,
   };
   TIM_OC4Init(TIM1, &tim_ocinit); // Ch4 を設定
-
-  // OC4PE をセットする
-  // 電源投入直後の LED 点灯パターンが 490ms, 250ms, 30ms, 100ms, ... となれば期待通り
-  TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Enable);
+  TIM_CtrlPWMOutputs(TIM1, ENABLE);
 }
 
-#define DMA_SIG_LEN 16
-uint8_t dma_sig_buf[DMA_SIG_LEN] = {
-  T1H_WIDTH, T0H_WIDTH, T1H_WIDTH, T0H_WIDTH, T1H_WIDTH, T0H_WIDTH, T1H_WIDTH, T0H_WIDTH,
-  T1H_WIDTH, T0H_WIDTH, T1H_WIDTH, T0H_WIDTH, T1H_WIDTH, T0H_WIDTH, T1H_WIDTH, T0H_WIDTH,
-};
+// DMA のバッファは 2 バイト = 16 ビット分
+uint8_t dma_sig_buf[16];
 
 // NeoPixel 信号生成部にデータを供給する DMA を初期化
 void InitSigDMA() {
@@ -90,7 +96,7 @@ void InitSigDMA() {
   DMA_DeInit(DMACH_SIGGEN);
 
   DMA_InitTypeDef dma_init = {
-    .DMA_BufferSize = DMA_SIG_LEN,
+    .DMA_BufferSize = 16,
     .DMA_DIR = DMA_DIR_PeripheralDST,
     .DMA_M2M = DMA_M2M_Disable,
     .DMA_MemoryBaseAddr = (uint32_t)&dma_sig_buf,
@@ -104,42 +110,90 @@ void InitSigDMA() {
     .DMA_Priority = DMA_Priority_High,
   };
   DMA_Init(DMACH_SIGGEN, &dma_init);
+  // 転送完了（TC）と半転送完了（HT）で割り込みをかける
+  DMA_ITConfig(DMACH_SIGGEN, DMA_IT_TC | DMA_IT_HT, ENABLE);
   DMA_Cmd(DMACH_SIGGEN, ENABLE);
-}
 
-volatile uint32_t it_cnt = 0;
-
-void main() {
-  InitSigGen();
-  InitSigDMA();
-
-  GPIO_InitTypeDef gpio_init = {
-    .GPIO_Pin = GPIO_Pin_1,
-    .GPIO_Mode = GPIO_Mode_Out_PP,
-    .GPIO_Speed = GPIO_Speed_50MHz,
-  };
-  GPIO_Init(GPIOC, &gpio_init);
-
+  TIM_DMACmd(TIM1, TIM_DMA_Update, ENABLE);
 
   NVIC_InitTypeDef nvic_init = {
-    .NVIC_IRQChannel = TIM1_UP_IRQn,
+    .NVIC_IRQChannel = DMA1_Channel5_IRQn,
     .NVIC_IRQChannelPreemptionPriority = 0,
     .NVIC_IRQChannelSubPriority = 0,
     .NVIC_IRQChannelCmd = ENABLE,
   };
   NVIC_Init(&nvic_init);
+}
 
-  nvic_init.NVIC_IRQChannel = DMA1_Channel5_IRQn;
-  NVIC_Init(&nvic_init);
+void InitPA2() {
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 
-  DMA_ITConfig(DMACH_SIGGEN, DMA_IT_TC, ENABLE);
-  //TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
+  // PA2 (Pin 3) を出力に設定
+  GPIO_InitTypeDef gpio_init = {
+    .GPIO_Pin = GPIO_Pin_2,
+    .GPIO_Mode = GPIO_Mode_Out_PP,
+    .GPIO_Speed = GPIO_Speed_50MHz,
+  };
+  GPIO_Init(GPIOA, &gpio_init);
 
-  TIM_DMACmd(TIM1,  TIM_DMA_Update, ENABLE);
+  /*
+  GPIO_Init(GPIOC, &gpio_init);
 
-  TIM_CtrlPWMOutputs(TIM1, ENABLE);
+  gpio_init.GPIO_Pin = GPIO_Pin_6;
+  GPIO_Init(GPIOD, &gpio_init);
+  */
+}
+
+#define NUM_LED_MAX 512
+uint8_t send_data[3 * NUM_LED_MAX + 1];
+size_t send_data_len;
+size_t send_index = 0;
+
+uint8_t CalcNextSendData() {
+  return ((uint16_t)send_data[send_index] << 2) |
+         ((uint16_t)send_data[send_index + 1] >> 6);
+}
+
+void ByteToPulsePeriodArray(uint8_t *pulse_array, uint8_t data) {
+  for (size_t i = 0; i < 8; i++) {
+    pulse_array[i] = data & 0x80 ? T1H_WIDTH : T0H_WIDTH;
+    data <<= 1;
+  }
+}
+
+volatile uint32_t it_cnt = 0;
+bool stop_signal = false;
+
+#define SHOW_PROCESS_TIME
+
+void main() {
+  InitSigGen();
+  InitSigDMA();
+
+#ifdef SHOW_PROCESS_TIME
+  InitPA2();
+#endif
+
+  memset(send_data, 0, sizeof(send_data));
+  send_data_len = 6;
+  for (size_t i = 0; i < send_data_len; i++) {
+    send_data[i] = 16 * (i + 1) + i + 1;
+  }
+
+  for (size_t i = 0; i < 2; i++) {
+    ByteToPulsePeriodArray(dma_sig_buf + (i << 3), CalcNextSendData());
+    send_index++;
+  }
+
+  // タイマの初期値を設定するために、一旦プリロードを無効にする
+  TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Disable);
+  TIM1->CH4CVR = send_data[0] & 0x80 ? T1H_WIDTH : T0H_WIDTH;
+
+  // 波形安定化のためにプリロードを有効にする
+  TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Enable);
+  TIM1->CH4CVR = send_data[0] & 0x40 ? T1H_WIDTH : T0H_WIDTH;
+
   TIM_Cmd(TIM1, ENABLE);
-  TIM1->CH4CVR = T0H_WIDTH;
 
   while (1) {
   }
@@ -148,15 +202,43 @@ void main() {
 void DMA1_Channel5_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 
 void DMA1_Channel5_IRQHandler(void) {
-  DMA_ClearITPendingBit(DMA1_IT_TC5);
-}
+#ifdef SHOW_PROCESS_TIME
+  GPIO_WriteBit(GPIOA, GPIO_Pin_2, Bit_SET);
+#endif
 
-void TIM1_UP_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+  uint8_t data = 0;
+  if (send_index < send_data_len) {
+    data = CalcNextSendData();
+    send_index++;
+  } else {
+    stop_signal = true;
+  }
 
-void TIM1_UP_IRQHandler(void) {
-  static uint8_t pin_stat = 1;
-  GPIO_WriteBit(GPIOC, GPIO_Pin_1, pin_stat);
-  pin_stat = 1 - pin_stat;
-  it_cnt++;
-  TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
+  if (DMA_GetITStatus(DMA1_IT_HT5) == SET) {
+    // dma_sig_buf の前半部分が転送完了
+    DMA_ClearITPendingBit(DMA1_IT_HT5);
+    if (stop_signal) {
+      memset(dma_sig_buf, 0, 8);
+    } else {
+      ByteToPulsePeriodArray(dma_sig_buf, data);
+      if (send_index == send_data_len) {
+        dma_sig_buf[6] = dma_sig_buf[7] = 0;
+      }
+    }
+  } else if (DMA_GetITStatus(DMA1_IT_TC5) == SET) {
+    // dma_sig_buf の後半部分が転送完了
+    DMA_ClearITPendingBit(DMA1_IT_TC5);
+    if (stop_signal) {
+      memset(dma_sig_buf + 8, 0, 8);
+    } else {
+      ByteToPulsePeriodArray(dma_sig_buf + 8, data);
+      if (send_index == send_data_len) {
+        dma_sig_buf[8 + 6] = dma_sig_buf[8 + 7] = 0;
+      }
+    }
+  }
+
+#ifdef SHOW_PROCESS_TIME
+  GPIO_WriteBit(GPIOA, GPIO_Pin_2, Bit_RESET);
+#endif
 }
