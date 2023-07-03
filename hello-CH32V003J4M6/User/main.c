@@ -22,7 +22,8 @@
 
 // ナノ秒でのパルス幅
 #define T0H_WIDTH_NS 333
-#define T1H_WIDTH_NS 625
+//#define T1H_WIDTH_NS 625
+#define T1H_WIDTH_NS 900
 #define TIM_PERIOD_NS 1300
 
 // タイマ値に変換
@@ -170,8 +171,10 @@ void ByteToPulsePeriodArray(uint8_t *pulse_array, uint8_t data) {
 }
 
 #define SHOW_PROCESS_TIME
+volatile bool stop_tim1_next = false;
 
 void main() {
+  Delay_Init();
   InitSigGen();
   InitSigDMA();
 
@@ -189,6 +192,29 @@ void main() {
   }
 
   uint8_t first_2bits = NextSendData();
+  ByteToPulsePeriodArray(dma_sig_buf + 0, NextSendData());
+  ByteToPulsePeriodArray(dma_sig_buf + 8, NextSendData());
+
+  // タイマの初期値を設定するために、一旦プリロードを無効にする
+  TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Disable);
+  TIM1->CH4CVR = first_2bits & 2 ? T1H_WIDTH : T0H_WIDTH;
+
+  // 波形安定化のためにプリロードを有効にする
+  TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Enable);
+  TIM1->CH4CVR = first_2bits & 1 ? T1H_WIDTH : T0H_WIDTH;
+
+  TIM_Cmd(TIM1, ENABLE);
+
+  while (TIM1->CTLR1 & TIM_CEN);
+  Delay_Us(400);
+
+  TIM1->CNT = 0;
+  InitSigDMA();
+
+  send_index = 0;
+  stop_tim1_next = false;
+
+  first_2bits = NextSendData();
   ByteToPulsePeriodArray(dma_sig_buf + 0, NextSendData());
   ByteToPulsePeriodArray(dma_sig_buf + 8, NextSendData());
 
@@ -229,8 +255,11 @@ void DMA1_Channel5_IRQHandler(void) {
     if (send_index > send_data_len) {
       dma_buf[6] = dma_buf[7] = 0;
     }
-  } else {
+  } else if (!stop_tim1_next) {
     memset(dma_buf, 0, 8);
+    stop_tim1_next = true;
+  } else {
+    TIM_Cmd(TIM1, DISABLE);
   }
 
 #ifdef SHOW_PROCESS_TIME
