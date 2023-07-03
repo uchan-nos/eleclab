@@ -145,15 +145,21 @@ void InitPA2() {
 }
 
 #define NUM_LED_MAX 512
+
+/* LED 色データを 6 ビット右シフトした値を格納した配列
+ *
+ * RGB の順で格納する例：
+ *            7    2 1  0   7    2 1  0   7    2 1  0
+ * send_data [ 無効 |R7:6] [ R5:0 |G7:6] [ G5:0 |B7:6] ...
+ *     index       0             1             2       ...
+ */
+
 uint8_t send_data[3 * NUM_LED_MAX + 1];
 size_t send_data_len;
 size_t send_index = 0;
 
-uint16_t NextSendData() {
-  static uint16_t buf = 0;
-  buf = (buf << 8) | send_data[send_index];
-  send_index++;
-  return buf >> 6;
+uint8_t NextSendData() {
+  return send_data[send_index++];
 }
 
 void ByteToPulsePeriodArray(uint8_t *pulse_array, uint8_t data) {
@@ -162,9 +168,6 @@ void ByteToPulsePeriodArray(uint8_t *pulse_array, uint8_t data) {
     data <<= 1;
   }
 }
-
-volatile uint32_t it_cnt = 0;
-bool stop_signal = false;
 
 #define SHOW_PROCESS_TIME
 
@@ -178,23 +181,24 @@ void main() {
 
   memset(send_data, 0, sizeof(send_data));
   send_data_len = 6;
+  uint8_t data = 0;
   for (size_t i = 0; i < send_data_len; i++) {
-    send_data[i] = 16 * (i + 1) + i + 1;
+    data = 16 * (i + 1) + i + 1;
+    send_data[i] |= (data >> 6) & 0x03;
+    send_data[i + 1] = (data << 2) & 0xfc;
   }
 
-  NextSendData();
-  uint16_t first = NextSendData();
-  uint16_t second = NextSendData();
-  ByteToPulsePeriodArray(dma_sig_buf + 0, first);
-  ByteToPulsePeriodArray(dma_sig_buf + 8, second);
+  uint8_t first_2bits = NextSendData();
+  ByteToPulsePeriodArray(dma_sig_buf + 0, NextSendData());
+  ByteToPulsePeriodArray(dma_sig_buf + 8, NextSendData());
 
   // タイマの初期値を設定するために、一旦プリロードを無効にする
   TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Disable);
-  TIM1->CH4CVR = first & 0x200 ? T1H_WIDTH : T0H_WIDTH;
+  TIM1->CH4CVR = first_2bits & 2 ? T1H_WIDTH : T0H_WIDTH;
 
   // 波形安定化のためにプリロードを有効にする
   TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Enable);
-  TIM1->CH4CVR = first & 0x100 ? T1H_WIDTH : T0H_WIDTH;
+  TIM1->CH4CVR = first_2bits & 1 ? T1H_WIDTH : T0H_WIDTH;
 
   TIM_Cmd(TIM1, ENABLE);
 
@@ -209,25 +213,23 @@ void DMA1_Channel5_IRQHandler(void) {
   GPIO_WriteBit(GPIOA, GPIO_Pin_2, Bit_SET);
 #endif
 
-  const bool second_half = DMA_GetITStatus(DMA1_IT_TC5) == SET;
-  if (second_half) {
-    // dma_sig_buf の後半部分が転送完了
-    DMA_ClearITPendingBit(DMA1_IT_TC5);
-  } else {
+  uint8_t *dma_buf = dma_sig_buf;
+  if (DMA_GetITStatus(DMA1_IT_HT5) == SET) {
     // dma_sig_buf の前半部分が転送完了
     DMA_ClearITPendingBit(DMA1_IT_HT5);
+  } else {
+    // dma_sig_buf の後半部分が転送完了
+    DMA_ClearITPendingBit(DMA1_IT_TC5);
+    dma_buf += 8;
   }
-  uint8_t *dma_buf = &dma_sig_buf[second_half ? 8 : 0];
 
-  uint8_t data = 0;
-  if (send_index < send_data_len) {
-    data = NextSendData();
+  if (send_index <= send_data_len) {
+    uint8_t data = NextSendData();
     ByteToPulsePeriodArray(dma_buf, data);
-    if (send_index == send_data_len) {
-        dma_buf[6] = dma_buf[7] = 0;
+    if (send_index > send_data_len) {
+      dma_buf[6] = dma_buf[7] = 0;
     }
   } else {
-    stop_signal = true;
     memset(dma_buf, 0, 8);
   }
 
@@ -235,3 +237,15 @@ void DMA1_Channel5_IRQHandler(void) {
   GPIO_WriteBit(GPIOA, GPIO_Pin_2, Bit_RESET);
 #endif
 }
+
+/*
+ * DMA 割り込みの処理時間
+ * 1: 6.7375us
+ * 2: 6.49us
+ * 3: 6.655us
+ *
+ * 1: 6.5275us
+ * 2: 6.235us
+ * 3: 6.4875us
+ * 4: 6.2375us
+ */
