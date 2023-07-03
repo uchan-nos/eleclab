@@ -149,9 +149,11 @@ uint8_t send_data[3 * NUM_LED_MAX + 1];
 size_t send_data_len;
 size_t send_index = 0;
 
-uint8_t CalcNextSendData() {
-  return ((uint16_t)send_data[send_index] << 2) |
-         ((uint16_t)send_data[send_index + 1] >> 6);
+uint16_t NextSendData() {
+  static uint16_t buf = 0;
+  buf = (buf << 8) | send_data[send_index];
+  send_index++;
+  return buf >> 6;
 }
 
 void ByteToPulsePeriodArray(uint8_t *pulse_array, uint8_t data) {
@@ -180,18 +182,19 @@ void main() {
     send_data[i] = 16 * (i + 1) + i + 1;
   }
 
-  for (size_t i = 0; i < 2; i++) {
-    ByteToPulsePeriodArray(dma_sig_buf + (i << 3), CalcNextSendData());
-    send_index++;
-  }
+  NextSendData();
+  uint16_t first = NextSendData();
+  uint16_t second = NextSendData();
+  ByteToPulsePeriodArray(dma_sig_buf + 0, first);
+  ByteToPulsePeriodArray(dma_sig_buf + 8, second);
 
   // タイマの初期値を設定するために、一旦プリロードを無効にする
   TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Disable);
-  TIM1->CH4CVR = send_data[0] & 0x80 ? T1H_WIDTH : T0H_WIDTH;
+  TIM1->CH4CVR = first & 0x200 ? T1H_WIDTH : T0H_WIDTH;
 
   // 波形安定化のためにプリロードを有効にする
   TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Enable);
-  TIM1->CH4CVR = send_data[0] & 0x40 ? T1H_WIDTH : T0H_WIDTH;
+  TIM1->CH4CVR = first & 0x100 ? T1H_WIDTH : T0H_WIDTH;
 
   TIM_Cmd(TIM1, ENABLE);
 
