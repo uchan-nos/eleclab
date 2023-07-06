@@ -88,8 +88,9 @@ void InitSigGen() {
   TIM_CtrlPWMOutputs(TIM1, ENABLE);
 }
 
-// DMA のバッファは 2 バイト = 16 ビット分
-uint8_t dma_sig_buf[16];
+// DMA のバッファは 4 バイト = 32 ビット分
+#define DMA_BUF_LEN (4 << 3)
+uint8_t dma_sig_buf[DMA_BUF_LEN];
 
 // NeoPixel 信号生成部にデータを供給する DMA を初期化
 void InitSigDMA() {
@@ -97,7 +98,7 @@ void InitSigDMA() {
   DMA_DeInit(DMACH_SIGGEN);
 
   DMA_InitTypeDef dma_init = {
-    .DMA_BufferSize = 16,
+    .DMA_BufferSize = DMA_BUF_LEN,
     .DMA_DIR = DMA_DIR_PeripheralDST,
     .DMA_M2M = DMA_M2M_Disable,
     .DMA_MemoryBaseAddr = (uint32_t)&dma_sig_buf,
@@ -183,7 +184,7 @@ void main() {
 #endif
 
   memset(send_data, 0, sizeof(send_data));
-  send_data_len = 6;
+  send_data_len = 9;
   uint8_t data = 0;
   for (size_t i = 0; i < send_data_len; i++) {
     data = 16 * (i + 1) + i + 1;
@@ -192,8 +193,9 @@ void main() {
   }
 
   uint8_t first_2bits = NextSendData();
-  ByteToPulsePeriodArray(dma_sig_buf + 0, NextSendData());
-  ByteToPulsePeriodArray(dma_sig_buf + 8, NextSendData());
+  for (size_t i = 0; i < DMA_BUF_LEN; i += 8) {
+    ByteToPulsePeriodArray(dma_sig_buf + i, NextSendData());
+  }
 
   // タイマの初期値を設定するために、一旦プリロードを無効にする
   TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Disable);
@@ -215,8 +217,9 @@ void main() {
   stop_tim1_next = false;
 
   first_2bits = NextSendData();
-  ByteToPulsePeriodArray(dma_sig_buf + 0, NextSendData());
-  ByteToPulsePeriodArray(dma_sig_buf + 8, NextSendData());
+  for (size_t i = 0; i < DMA_BUF_LEN; i += 8) {
+    ByteToPulsePeriodArray(dma_sig_buf + i, NextSendData());
+  }
 
   // タイマの初期値を設定するために、一旦プリロードを無効にする
   TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Disable);
@@ -246,17 +249,21 @@ void DMA1_Channel5_IRQHandler(void) {
   } else {
     // dma_sig_buf の後半部分が転送完了
     DMA_ClearITPendingBit(DMA1_IT_TC5);
-    dma_buf += 8;
+    dma_buf += DMA_BUF_LEN/2;
   }
 
-  if (send_index <= send_data_len) {
-    uint8_t data = NextSendData();
-    ByteToPulsePeriodArray(dma_buf, data);
-    if (send_index > send_data_len) {
-      dma_buf[6] = dma_buf[7] = 0;
-    }
+  if (send_index < send_data_len - 1) {
+    ByteToPulsePeriodArray(dma_buf + 0, NextSendData());
+    ByteToPulsePeriodArray(dma_buf + 8, NextSendData());
+  } else if (send_index == send_data_len - 1) {
+    ByteToPulsePeriodArray(dma_buf + 0, NextSendData());
+    ByteToPulsePeriodArray(dma_buf + 8, NextSendData());
+    memset(dma_buf + 8 + 6, 0, DMA_BUF_LEN/2 - 8 - 6);
+  } else if (send_index == send_data_len) {
+    ByteToPulsePeriodArray(dma_buf + 0, NextSendData());
+    memset(dma_buf + 6, 0, DMA_BUF_LEN/2 - 6);
   } else if (!stop_tim1_next) {
-    memset(dma_buf, 0, 8);
+    memset(dma_buf, 0, DMA_BUF_LEN/2);
     stop_tim1_next = true;
   } else {
     TIM_Cmd(TIM1, DISABLE);
