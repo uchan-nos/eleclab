@@ -1,0 +1,26 @@
+{
+    // IntelliSense を使用して利用可能な属性を学べます。
+    // 既存の属性の説明をホバーして表示します。
+    // 詳細情報は次を確認してください: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "gdb",
+            "gdbpath": "C:/MounRiver/MounRiver_Studio/toolchain/RISC-V Embedded GCC/bin/riscv-none-embed-gdb.exe",
+            "request": "attach",
+            "name": "Debug CH32V003",
+            "target": ":3333",
+            "remote": true,
+            "executable": "./obj/CH32V003J4M6_intnest.elf",
+            "cwd": "${workspaceRoot}",
+            "autorun": [
+                "set mem inaccessible-by-default off",
+                "set architecture riscv:rv32",
+                "set remotetimeout unlimited",
+            ],
+            "printCalls": true,
+            "showDevDebugOutput": false,
+            "preLaunchTask": "Launch OpenOCD",
+        }
+    ]
+}

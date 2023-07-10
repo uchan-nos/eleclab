@@ -1,0 +1,17 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Launch OpenOCD",
+            "type": "shell",
+            "isBackground": true,
+            "command": "C:/MounRiver/MounRiver_Studio/toolchain/OpenOCD/bin/openocd.exe",
+            "args": [
+                "-f",
+                "C:/MounRiver/MounRiver_Studio/toolchain/OpenOCD/bin/wch-riscv.cfg"
+            ]
+        }
+    ]
+}
