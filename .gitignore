@@ -9,3 +9,10 @@
 **/*.X/dist
 **/*.X/disassembly
 /.metadata
+/ch32v003fun_projects/env.mk
+/ch32v003fun_projects/*/*.bin
+/ch32v003fun_projects/*/*.elf
+/ch32v003fun_projects/*/*.hex
+/ch32v003fun_projects/*/*.lst
+/ch32v003fun_projects/*/*.lst.*
+/ch32v003fun_projects/*/*.map
