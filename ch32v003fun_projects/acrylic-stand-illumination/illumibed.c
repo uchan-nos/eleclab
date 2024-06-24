@@ -111,17 +111,28 @@ void InitSwitch() {
   GPIOC->OUTDR |= 0x06; // pull-up
 }
 
-#define NUM_LED_MAX 8
-uint8_t send_data[3 * NUM_LED_MAX + 1] = {
-    // Green, Red, Blue
-    5, 0x16, 0x17,
+#define NUM_COLOR 12
+uint8_t color_data[NUM_COLOR][3] = {
+  // Green, Red, Blue
+  {243, 228, 255},
+  {9,   24,  164},
+  {255, 246, 16},
+  {124, 255, 252},
+  {123, 24,  96},
+  {0,   255, 0},
+  {54,  218, 233},
+  {255, 0,   242},
+  {133, 107, 232},
+  {181, 255, 0},
+  {167, 193, 255},
+  {39,  142, 200},
 };
-size_t send_data_len = 1 * 3;
+size_t color_index = 0;
 size_t send_index = 0;
 
 uint8_t CalcNextSendData() {
-  return ((uint16_t)send_data[send_index] << 2) |
-         ((uint16_t)send_data[send_index + 1] >> 6);
+  return ((uint16_t)color_data[color_index][send_index] << 2) |
+         ((uint16_t)color_data[color_index][send_index + 1] >> 6);
 }
 
 void ByteToPulsePeriodArray(uint8_t *pulse_array, uint8_t data) {
@@ -157,11 +168,11 @@ int SendLEDData() {
 
   // タイマの初期値を設定するために、一旦プリロードを無効にする
   TIM1->CHCTLR2 &= ~(TIM_OCPreload_Enable << 8);
-  TIM1->CH4CVR = send_data[0] & 0x80 ? T1H_WIDTH : T0H_WIDTH;
+  TIM1->CH4CVR = color_data[color_index][0] & 0x80 ? T1H_WIDTH : T0H_WIDTH;
 
   // 波形安定化のためにプリロードを有効にする
   TIM1->CHCTLR2 |= (TIM_OCPreload_Enable << 8);
-  TIM1->CH4CVR = send_data[0] & 0x40 ? T1H_WIDTH : T0H_WIDTH;
+  TIM1->CH4CVR = color_data[color_index][0] & 0x40 ? T1H_WIDTH : T0H_WIDTH;
 
   // ビット列の送出を開始する
   TIM1->CTLR1 |= TIM_CEN;
@@ -212,9 +223,9 @@ int main() {
     int sw2 = (GPIOC->INDR & GPIO_Pin_2) == 0;
 
     if (!prev_sw1 && sw1) {
-      send_data[0] += 16;
+      color_index = (color_index + 1) % NUM_COLOR;
     } else if (!prev_sw2 && sw2) {
-      send_data[0] -= 16;
+      color_index = (color_index + NUM_COLOR - 1) % NUM_COLOR;
     }
 
     prev_sw1 = sw1;
@@ -238,7 +249,7 @@ void DMA1_Channel5_IRQHandler(void) {
   uint32_t intfr = DMA1->INTFR;
 
   if (stop_signal == 0) {
-    if (send_index < send_data_len) {
+    if (send_index < 3) {
       data = CalcNextSendData();
       send_index++;
     } else {
@@ -262,7 +273,7 @@ void DMA1_Channel5_IRQHandler(void) {
       }
     } else {
       ByteToPulsePeriodArray(dma_sig_buf, data);
-      if (send_index == send_data_len) {
+      if (send_index == 3) {
         dma_sig_buf[6] = dma_sig_buf[7] = 0;
       }
     }
@@ -275,7 +286,7 @@ void DMA1_Channel5_IRQHandler(void) {
       }
     } else {
       ByteToPulsePeriodArray(dma_sig_buf + 8, data);
-      if (send_index == send_data_len) {
+      if (send_index == 3) {
         dma_sig_buf[8 + 6] = dma_sig_buf[8 + 7] = 0;
       }
     }
