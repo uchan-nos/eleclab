@@ -216,6 +216,7 @@ int main() {
   printf("timer is enabled.\n");
 
   int prev_sw1 = 0, prev_sw2 = 0;
+  uint32_t sw1_pushed_tick = 0; // SW1 が押された時刻
 
   int loop_cnt = 0;
   while (1) {
@@ -229,6 +230,19 @@ int main() {
 
     if (!prev_sw1 && sw1) {
       color_index = (color_index + 1) % NUM_COLOR;
+      sw1_pushed_tick = SysTick->CNT;
+    } else if (sw1 && color_index != 0) {
+      uint32_t one_second_after = sw1_pushed_tick + Ticks_from_Ms(1000);
+      uint32_t cur_tick = SysTick->CNT;
+      int sw1_long_push = one_second_after <= cur_tick;
+      if (sw1_pushed_tick < one_second_after) {
+        sw1_long_push = sw1_long_push || cur_tick < sw1_pushed_tick;
+      } else { // overflow
+        sw1_long_push = sw1_long_push && cur_tick < sw1_pushed_tick;
+      }
+      if (sw1_long_push) {
+        color_index = 0;
+      }
     } else if (!prev_sw2 && sw2) {
       brightness = (brightness + 1) % 4;
     }
