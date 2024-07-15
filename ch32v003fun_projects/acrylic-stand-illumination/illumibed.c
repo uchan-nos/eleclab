@@ -129,10 +129,15 @@ uint8_t color_data[NUM_COLOR][3] = {
 };
 size_t color_index = 0;
 size_t send_index = 0;
+int brightness = 2; // 0 - 3
+
+uint8_t GetColorData(size_t color_index, size_t send_index) {
+  return (color_data[color_index][send_index] << ((brightness << 1) + 1)) >> 8;
+}
 
 uint8_t CalcNextSendData() {
-  return ((uint16_t)color_data[color_index][send_index] << 2) |
-         ((uint16_t)color_data[color_index][send_index + 1] >> 6);
+  return ((uint16_t)GetColorData(color_index, send_index) << 2) |
+         ((uint16_t)GetColorData(color_index, send_index + 1) >> 6);
 }
 
 void ByteToPulsePeriodArray(uint8_t *pulse_array, uint8_t data) {
@@ -168,11 +173,11 @@ int SendLEDData() {
 
   // タイマの初期値を設定するために、一旦プリロードを無効にする
   TIM1->CHCTLR2 &= ~(TIM_OCPreload_Enable << 8);
-  TIM1->CH4CVR = color_data[color_index][0] & 0x80 ? T1H_WIDTH : T0H_WIDTH;
+  TIM1->CH4CVR = GetColorData(color_index, 0) & 0x80 ? T1H_WIDTH : T0H_WIDTH;
 
   // 波形安定化のためにプリロードを有効にする
   TIM1->CHCTLR2 |= (TIM_OCPreload_Enable << 8);
-  TIM1->CH4CVR = color_data[color_index][0] & 0x40 ? T1H_WIDTH : T0H_WIDTH;
+  TIM1->CH4CVR = GetColorData(color_index, 0) & 0x40 ? T1H_WIDTH : T0H_WIDTH;
 
   // ビット列の送出を開始する
   TIM1->CTLR1 |= TIM_CEN;
@@ -225,7 +230,7 @@ int main() {
     if (!prev_sw1 && sw1) {
       color_index = (color_index + 1) % NUM_COLOR;
     } else if (!prev_sw2 && sw2) {
-      color_index = (color_index + NUM_COLOR - 1) % NUM_COLOR;
+      brightness = (brightness + 1) % 4;
     }
 
     prev_sw1 = sw1;
