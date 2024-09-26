@@ -7827,15 +7827,15 @@
 				)
 			)
 		)
-		(property "Value" ""
-			(at 0 0 0)
+		(property "Value" "OLED"
+			(at -2.286 -8.382 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "uchan:OLED_Display_I2C"
 			(at 0 0 0)
 			(effects
 				(font
@@ -7853,8 +7853,8 @@
 				(hide yes)
 			)
 		)
-		(property "Description" ""
-			(at 0 0 0)
+		(property "Description" "OLED Display 128x64px, I2C, 3.3V or 5V VDD, SSD1306 controller"
+			(at -0.254 -16.256 0)
 			(effects
 				(font
 					(size 1.27 1.27)
