@@ -362,4 +362,15 @@
 		(remove_unused_layers no)
 		(uuid "452e5926-9aa5-4a9f-b5b5-fc25c9d1c244")
 	)
+	(model "${UCHAN_3DMODEL_DIR}/OLED_Display_I2C.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
 )

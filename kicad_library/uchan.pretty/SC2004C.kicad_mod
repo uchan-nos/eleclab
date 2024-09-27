@@ -310,9 +310,9 @@
 		(remove_unused_layers no)
 		(uuid "f924e613-f66e-440f-a13f-2c6c839db72b")
 	)
-	(model "${KISYS3DMOD}/Display.3dshapes/WC1602A.wrl"
+	(model "${UCHAN_3DMODEL_DIR}/SC2004C.step"
 		(offset
-			(xyz 6 23 0)
+			(xyz 0 0 0)
 		)
 		(scale
 			(xyz 1 1 1)
