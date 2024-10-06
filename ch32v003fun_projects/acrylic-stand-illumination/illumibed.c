@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "switch_mgr.h"
+
 // クロック定義
 #define TIM_CLOCK_MH (FUNCONF_SYSTEM_CORE_CLOCK/1000000)
 
@@ -116,14 +118,14 @@ uint8_t color_data[NUM_COLOR][3] = {
   // Green, Red, Blue
   {243, 228, 255},
   {9,   24,  164},
-  {255, 246, 16},
-  {124, 255, 252},
-  {123, 24,  96},
+  {180, 255, 0},
+  {100, 255, 180},
+  {255, 24,  40},
   {0,   255, 0},
   {54,  218, 233},
-  {255, 0,   242},
+  {255, 0,   180},
   {133, 107, 232},
-  {181, 255, 0},
+  {130, 255, 0},
   {167, 193, 255},
   {39,  142, 200},
 };
@@ -215,9 +217,6 @@ int main() {
 
   printf("timer is enabled.\n");
 
-  int prev_sw1 = 0, prev_sw2 = 0;
-  uint32_t sw1_pushed_tick = 0; // SW1 が押された時刻
-
   int loop_cnt = 0;
   while (1) {
     loop_cnt++;
@@ -225,30 +224,17 @@ int main() {
 
     GPIOA->BSHR = GPIO_Pin_1;
 
-    int sw1 = (GPIOC->INDR & GPIO_Pin_1) == 0;
-    int sw2 = (GPIOC->INDR & GPIO_Pin_2) == 0;
+    uint32_t swst = UpdateSwitchState();
+    unsigned sw1 = SW_GET_STATE(swst, SW1_PIN);
+    unsigned sw2 = SW_GET_STATE(swst, SW2_PIN);
 
-    if (!prev_sw1 && sw1) {
+    if (sw1 == SW_PUSH_NOW) {
       color_index = (color_index + 1) % NUM_COLOR;
-      sw1_pushed_tick = SysTick->CNT;
-    } else if (sw1 && color_index != 0) {
-      uint32_t one_second_after = sw1_pushed_tick + Ticks_from_Ms(1000);
-      uint32_t cur_tick = SysTick->CNT;
-      int sw1_long_push = one_second_after <= cur_tick;
-      if (sw1_pushed_tick < one_second_after) {
-        sw1_long_push = sw1_long_push || cur_tick < sw1_pushed_tick;
-      } else { // overflow
-        sw1_long_push = sw1_long_push && cur_tick < sw1_pushed_tick;
-      }
-      if (sw1_long_push) {
-        color_index = 0;
-      }
-    } else if (!prev_sw2 && sw2) {
+    } else if (IsSwitchPushedLongerThan(1000) && color_index != 0) {
+      color_index = 0;
+    } else if (sw2 == SW_RELEASE_NOW) {
       brightness = (brightness + 1) % 4;
     }
-
-    prev_sw1 = sw1;
-    prev_sw2 = sw2;
 
     SendLEDData();
 
