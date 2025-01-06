@@ -358,4 +358,15 @@
 		(thermal_bridge_angle 90)
 		(uuid "a73b2cb4-6157-428c-9e4d-4c68c2a68372")
 	)
+	(model "${UCHAN_LIBDIR}/3dmodels/SSR21H.step"
+		(offset
+			(xyz 5 -9.25 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
 )
