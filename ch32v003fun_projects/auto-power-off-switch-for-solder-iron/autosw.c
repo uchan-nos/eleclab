@@ -15,9 +15,9 @@
 #define TICK_MS 100
 
 // センサの反応がない場合に通知ランプを光らせるまでの時間（tick 単位）
-#define NOTIFY_TIME 500
+#define NOTIFY_TIME 1000
 // センサの反応がない場合に電源を落とすまでの時間（tick 単位）
-#define OFF_TIME 600
+#define OFF_TIME 1200
 
 // センサが反応したら割り込みハンドラの中で 1 が書かれる
 volatile int sensor_detect;
@@ -34,6 +34,14 @@ void EXTI7_0_IRQHandler(void) {
   TIM1->CTLR1 |= TIM_CEN;
 }
 
+void EnableSensorInterrupt() {
+  EXTI->INTENR = EXTI_Line1;
+}
+
+void DisableSensorInterrupt() {
+  EXTI->INTENR = 0;
+}
+
 void InitGpio() {
   funGpioInitAll();
   funPinMode(PIN_LED_SWITCH, GPIO_CFGLR_OUT_10Mhz_PP);
@@ -43,7 +51,7 @@ void InitGpio() {
   funPinMode(PIN_SENSE,      GPIO_CFGLR_IN_FLOAT);
 
   NVIC_EnableIRQ(EXTI7_0_IRQn);
-  EXTI->INTENR = EXTI_Line1;
+  EnableSensorInterrupt();
   EXTI->RTENR = EXTI_Line1;
 }
 
@@ -105,6 +113,11 @@ int main() {
       // 通知ランプを点滅
       funDigitalWrite(PIN_LED_NOTIFY, (tick >> 1) & 1);
     } else if (tick == OFF_TIME) {
+      // 通知音やリレー作動の振動で誤動作しないように割り込みを無効化
+      // EXTI_INTENR を 0 にすれば EXTI_INTFR のフラグは立たなくなる
+      DisableSensorInterrupt();
+      sensor_detect = 0;
+
       // 遮断通知音
       for (int i = 0; i < 200; i++) {
         funDigitalWrite(PIN_SPEAKER, FUN_HIGH);
@@ -116,6 +129,8 @@ int main() {
       // 通電ランプと通知ランプを消灯
       funDigitalWrite(PIN_LED_SWITCH, FUN_LOW);
       funDigitalWrite(PIN_LED_NOTIFY, FUN_LOW);
+    } else if (tick == OFF_TIME + 1) {
+      EnableSensorInterrupt();
     }
 
     Delay_Ms(100);
