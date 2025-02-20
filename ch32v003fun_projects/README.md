@@ -12,9 +12,9 @@
 
 - CH32V003FUN
   - ch32v003fun へのパスを指定します。
-  - $(CH32V003FUN)/ch32v003fun.mk が存在すれば正しいパスになっているはずです。
+  - $(CH32V003FUN)/ch32fun/ch32fun.mk が存在すれば正しいパスになっているはずです。
 
 ## {proj}/Makefile
 
 プロジェクト固有の Makefile です。
-典型的には $(CH32V003FUN)/ch32v003fun.mk を include するようになっています。
+典型的には $(CH32V003FUN)/ch32fun/ch32fun.mk を include するようになっています。

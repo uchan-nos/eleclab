@@ -3,7 +3,7 @@
  *
  * はんだこて切り忘れ防止装置のファームウェア
  */
-#include "ch32v003fun.h"
+#include "ch32fun.h"
 
 #define PIN_LED_SWITCH PC1
 #define PIN_LED_SENSOR PC2
