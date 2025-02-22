@@ -18,3 +18,10 @@
 
 プロジェクト固有の Makefile です。
 典型的には $(CH32V003FUN)/ch32fun/ch32fun.mk を include するようになっています。
+
+## 99-minichlink.rules
+
+WCH-LinkE を一般ユーザーで使えるようにする Udev ルールです。
+/etc/udev/rules.d にリンクします。
+
+    $ sudo ln -s $PWD/99-minichlink.rules /etc/udev/rules.d/
