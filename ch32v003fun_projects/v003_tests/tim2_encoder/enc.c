@@ -7,10 +7,7 @@
 #include <stdio.h>
 
 /*
- * @param psc  プリスケーラの設定値（0 => 1:1）
- * @param period  タイマ周期
- * @param channels  有効化するチャンネル（ビットマップ）
- * @param default_high  1 なら無信号時の出力を 1 にする
+ * TIM2 をエンコーダ計数モードに設定
  */
 void TIM2_InitForEncoder() {
   // TIM2 を有効化
