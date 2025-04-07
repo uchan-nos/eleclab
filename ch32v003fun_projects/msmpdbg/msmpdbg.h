@@ -59,37 +59,61 @@
 typedef uint32_t tick_t;
 
 struct Message {
-    tick_t start_tick; // スタートビットを受信したときの時刻
-    union {
-        struct {
-            uint8_t addr;
-            uint8_t len;
-            uint8_t body[63];
-        };
-        uint8_t raw_msg[65];
-    } __attribute__((packed));
+  tick_t start_tick; // スタートビットを受信したときの時刻
+  union {
+    struct {
+      uint8_t addr;
+      uint8_t len;
+      uint8_t body[63];
+    };
+    uint8_t raw_msg[65];
+  } __attribute__((packed));
 };
 
+enum MSMPState {
+  MSTATE_IDLE, // 先頭バイトを待っている状態
+  MSTATE_ADDR, // 先頭バイトを受信中
+  MSTATE_LEN,  // メッセージ長を受信中
+  MSTATE_BODY, // メッセージボディを受信中
+};
+
+/*************
+ * msmpdbg.c *
+ *************/
+// 送受信同時デバッグモード
 extern volatile tick_t tick;
-extern volatile struct Message msg[MSG_BUF_LEN];
+extern volatile bool transmit_on_receive_mode;
+
+/*******************
+ * msmp_recorder.c *
+ *******************/
+volatile enum MSMPState msmp_state;
+extern volatile struct Message msg_buf[MSG_BUF_LEN];
 extern volatile size_t msg_wpos; // msg の書き込み位置
 extern volatile size_t raw_msg_wpos; // msg.raw_msg の書き込み位置
-
 // 受信信号の 0/1 が切り替わった時刻のリスト
 // sig[0] はスタートビットの受信時刻、sig[1] はその次に信号が 1 になった時刻
 extern volatile tick_t sig_buf[SIG_BUF_LEN];
 extern volatile size_t sig_wpos;
 extern volatile bool sig_record_mode; // 真なら信号を記録する
-extern volatile uint32_t sig_record_period_ticks;
+extern volatile uint32_t sig_record_period_ticks; // 信号を記録する期間
 
-// 送受信同時デバッグモード
-extern bool transmit_when_receive_mode;
 
 // MSMP 送信データバッファ
 extern uint8_t msmp_transmit_queue[TX_BUF_LEN];
 extern size_t msmp_transmit_queue_len;
 extern volatile size_t msmp_transmit_rpos;
 
-// RX ピンの状態を入力する
-void SenseSignal(tick_t tick, bool sig);
+/* RX ピンの状態を入力
+ *
+ * @param tick  現在時刻
+ * @param sig   RX ピンの状態
+ * @return MSMP メッセージの先頭バイトのスタートビットを受信したら真
+ */
+bool SenseSignal(tick_t tick, bool sig);
+
+/* 記録された信号をグラフ化して表示 */
 void PlotSignal();
+
+/* 受信された 1 バイトを処理 */
+void ProcByte(uint8_t c);
