@@ -5,6 +5,8 @@
 
 // 8MHz * 6 = 48MHz
 #define FUNCONF_PLL_MULTIPLIER 6
+#define FUNCONF_USE_DEBUGPRINTF 0
+#define FUNCONF_USE_UARTPRINTF  0
 
 #endif
 

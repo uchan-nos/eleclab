@@ -1,0 +1,71 @@
+#include "ch32fun.h"
+
+#include <stdbool.h>
+#include <stdint.h>
+#include "msmpdbg.h"
+
+volatile tick_t sig_buf[SIG_BUF_LEN];
+volatile size_t sig_wpos;
+volatile bool sig_record_mode;
+volatile uint32_t sig_record_period_ticks = 2 * SIG_RECORD_RATE;
+
+void SenseSignal(tick_t tick, bool sig) {
+  if (!sig_record_mode || sig_wpos >= SIG_BUF_LEN) {
+    return;
+  }
+
+  // sig_wpos == 0: sig == 0
+  // sig_wpos == 1: sig == 1
+  // sig_wpos == 2: sig == 0
+  // つまり sig_wpos が偶数 => sig == 0
+
+  if (sig_wpos == 0 && sig == 0) {
+    // スタートビットを受信した
+    sig_buf[sig_wpos++] = tick;
+  } else if (sig_buf[0] + sig_record_period_ticks <= tick) {
+    // 記録開始後ある程度時間が経過したので記録を終わる
+    sig_record_mode = false;
+  } else if (sig_wpos > 0 && sig == (sig_wpos & 1)) {
+    // 前回の信号と切り替わった
+    sig_buf[sig_wpos++] = tick;
+  }
+}
+
+void PlotSignal(int tick_step) {
+  size_t sig_len = sig_wpos;
+  if (sig_len == 0) {
+    return;
+  }
+  putchar('~');
+  size_t sig_i = 0;
+  tick_t t = sig_buf[0];
+  tick_t end_tick = sig_buf[sig_len - 1];
+  bool sig = 0;
+  for (tick_t t = sig_buf[0]; t < end_tick; t += tick_step) {
+    // 1 ステップ内の信号変化を数える
+    size_t sig_change_count = 0;
+    for (size_t j = sig_i + 1; j < sig_len && sig_buf[j] < t + tick_step; ++j) {
+      ++sig_change_count;
+      ++sig_i;
+    }
+
+    if (sig_change_count == 0) {
+      // 1 ステップの間に信号の変化が無い
+      putchar(sig ? '~' : '_');
+    } else if (sig_change_count == 1) {
+      // 1 ステップの間に 1 回信号が変化
+      const bool change_in_early = (sig_buf[sig_i] - t) < (tick_step / 4);
+      if (change_in_early) {
+        // 1 ステップの前半 1/4 で信号が変化
+        putchar(sig ? '_' : '~');
+      } else {
+        // 1 ステップの途中で信号が変化
+        putchar(sig ? '\\' : '/');
+      }
+    } else {
+      // 1 ステップの間に 2 回以上信号が変化
+      putchar('X');
+    }
+    sig ^= sig_change_count & 1;
+  }
+}
