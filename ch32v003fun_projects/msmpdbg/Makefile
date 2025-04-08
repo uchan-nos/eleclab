@@ -1,7 +1,7 @@
 all : flash
 
 TARGET:=msmpdbg
-ADDITIONAL_C_FILES:=msmp_receiver.c
+ADDITIONAL_C_FILES:=msmp_recorder.c
 TARGET_MCU:=CH32V203K8T6
 TARGET_MCU_PACKAGE:=CH32V203K8T6
 

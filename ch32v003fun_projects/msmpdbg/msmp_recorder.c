@@ -83,18 +83,17 @@ void ProcByte(uint8_t c) {
     while (1);
     break;
   case MSTATE_ADDR:
-    raw_msg_wpos = 1;
-    msg[msg_wpos].addr = c;
+    msg_body_wpos = 0;
+    msg_buf[msg_wpos].addr = c;
     msmp_state = MSTATE_LEN;
     break;
   case MSTATE_LEN:
-    raw_msg_wpos = 2;
-    msg[msg_wpos].len = c;
+    msg_buf[msg_wpos].len = c;
     msmp_state = MSTATE_BODY;
     break;
   case MSTATE_BODY:
-    msg[msg_wpos].raw_msg[raw_msg_wpos++] = c;
-    if (raw_msg_wpos == msg[msg_wpos].len) {
+    msg_buf[msg_wpos].body[msg_body_wpos++] = c;
+    if (msg_body_wpos == msg_buf[msg_wpos].len) {
       // メッセージ受信完了
       msmp_state = MSTATE_IDLE;
       ++msg_wpos;
@@ -103,5 +102,31 @@ void ProcByte(uint8_t c) {
       }
     }
     break;
+  }
+}
+
+void DumpMessages(size_t msg_num) {
+  printf("state=%s\r\n",
+         msmp_state == MSTATE_IDLE ? "IDLE: Waiting addr byte" :
+         msmp_state == MSTATE_ADDR ? "ADDR: Receiving addr byte" :
+         msmp_state == MSTATE_LEN ?  "LEN: Receiving len byte" :
+         msmp_state == MSTATE_BODY ? "BODY: Receiving body" : "Unknown");
+  size_t last_msg_i = msg_wpos;
+  if (msmp_state == MSTATE_IDLE) {
+    last_msg_i = (last_msg_i - 1) % MSG_BUF_LEN;
+  }
+  for (size_t i = 0; i < msg_num; ++i) {
+    size_t msg_i = last_msg_i - i;
+    if (msg_i >= MSG_BUF_LEN) {
+      // 0 を超えたらオーバーフローする。そしたら補正。
+      msg_i += MSG_BUF_LEN;
+    }
+    printf("[%d] addr: %02x, len: %02x, body: ",
+           i, msg_buf[msg_i].addr, msg_buf[msg_i].len);
+    for (size_t j = 0; j < msg_buf[msg_i].len; ++j) {
+      putchar(msg_buf[msg_i].body[j]);
+    }
+    putchar('\r');
+    putchar('\n');
   }
 }

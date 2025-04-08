@@ -112,7 +112,7 @@ CH32V203 の内蔵オシレータ HSI は 8MHz で、PLL を使って 2, 3, ...,
 | msmp_state      | MSMP 受信ステート（先頭バイト受信待ち、メッセージ受信中） |
 | msg_buf         | 受信した MSMP メッセージの列                              |
 | msg_wpos        | `msg_buf` の書き込み位置                                  |
-| raw_msg_wpos    | `msg_buf[msg_wpos].raw_msg` の書き込み位置                |
+| msg_body_wpos   | `msg_buf[msg_wpos].body` の書き込み位置                   |
 | sig_buf         | 受信信号が反転したときの時刻の列                          |
 | sig_wpos        | `sig_buf` の書き込み位置                                  |
 | sig_record_mode | 真なら受信信号を記録する                                  |

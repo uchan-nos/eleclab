@@ -107,17 +107,10 @@ void MSMP_USART_Init() {
  */
 void MSMP_USART_IRQHandler(void) __attribute__((interrupt));
 void MSMP_USART_IRQHandler(void) {
-  // メッセージの先頭バイトを待っているかどうか
-  const bool waiting_msg = raw_msg_wpos == 0;
-
   uint8_t recv_data = MSMP_USART->DATAR;
-  GPIOA->OUTDR = recv_data << 4;
   MSMP_USART->STATR &= ~USART_FLAG_RXNE; // 受信割り込みフラグをクリア
 
-  //if (transmit_when_receive_mode && waiting_msg) {
-  //  // 即座に送信を開始
-  //  MSMP_USART->DATAR = msmp_transmit_queue[msmp_transmit_rpos++];
-  //}
+  ProcByte(recv_data);
 }
 
 /*
@@ -162,6 +155,8 @@ void ProcCommand(char *cmd) {
     sig_record_mode = true;
   } else if (strcmp(cmd, "dump rec") == 0) {
     PlotSignal(10);
+  } else if (strcmp(cmd, "dump msg") == 0) {
+    DumpMessages(3);
   } else {
     printf("Unknown command: '%s'\r\n", cmd);
   }

@@ -88,9 +88,9 @@ extern volatile bool transmit_on_receive_mode;
  * msmp_recorder.c *
  *******************/
 volatile enum MSMPState msmp_state;
-extern volatile struct Message msg_buf[MSG_BUF_LEN];
-extern volatile size_t msg_wpos; // msg の書き込み位置
-extern volatile size_t raw_msg_wpos; // msg.raw_msg の書き込み位置
+volatile struct Message msg_buf[MSG_BUF_LEN];
+volatile size_t msg_wpos; // msg の書き込み位置
+volatile size_t msg_body_wpos; // msg.body の書き込み位置
 // 受信信号の 0/1 が切り替わった時刻のリスト
 // sig[0] はスタートビットの受信時刻、sig[1] はその次に信号が 1 になった時刻
 extern volatile tick_t sig_buf[SIG_BUF_LEN];
@@ -117,3 +117,6 @@ void PlotSignal();
 
 /* 受信された 1 バイトを処理 */
 void ProcByte(uint8_t c);
+
+/* 記録されたメッセージを表示 */
+void DumpMessages(size_t msg_num);
