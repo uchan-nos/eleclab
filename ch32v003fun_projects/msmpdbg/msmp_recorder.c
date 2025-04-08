@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include "msmpdbg.h"
 
 volatile tick_t sig_buf[SIG_BUF_LEN];
@@ -43,7 +44,6 @@ void PlotSignal(int tick_step) {
   }
   putchar('~');
   size_t sig_i = 0;
-  tick_t t = sig_buf[0];
   tick_t end_tick = sig_buf[sig_len - 1];
   bool sig = 0;
   for (tick_t t = sig_buf[0]; t < end_tick; t += tick_step) {
@@ -86,10 +86,15 @@ void ProcByte(uint8_t c) {
     msg_body_wpos = 0;
     msg_buf[msg_wpos].addr = c;
     msmp_state = MSTATE_LEN;
+    if ((c >> 4) == msmp_my_addr) {
+      printf("A msg to me is being received.\r\n");
+    } else {
+      printf("A msg to forward is being received.\r\n");
+    }
     break;
   case MSTATE_LEN:
     msg_buf[msg_wpos].len = c;
-    msmp_state = MSTATE_BODY;
+    msmp_state = c > 0 ? MSTATE_BODY : MSTATE_IDLE;
     break;
   case MSTATE_BODY:
     msg_buf[msg_wpos].body[msg_body_wpos++] = c;

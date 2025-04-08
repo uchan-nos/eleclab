@@ -83,6 +83,7 @@ enum MSMPState {
 // 送受信同時デバッグモード
 extern volatile tick_t tick;
 extern volatile bool transmit_on_receive_mode;
+uint8_t msmp_my_addr;
 
 /*******************
  * msmp_recorder.c *

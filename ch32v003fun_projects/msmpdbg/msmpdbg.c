@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "msmpdbg.h"
 
 /********************
@@ -13,6 +15,7 @@ volatile tick_t tick;
 volatile struct Message msg[MSG_BUF_LEN];
 volatile size_t msg_wpos; // msg の書き込み位置
 volatile size_t raw_msg_wpos; // msg.raw_msg の書き込み位置
+uint8_t msmp_my_addr = 14;
 
 // 送受信同時デバッグモード
 bool transmit_when_receive_mode;
@@ -157,6 +160,9 @@ void ProcCommand(char *cmd) {
     PlotSignal(10);
   } else if (strcmp(cmd, "dump msg") == 0) {
     DumpMessages(3);
+  } else if (strncmp(cmd, "set addr ", 9) == 0) {
+    msmp_my_addr = strtol(cmd + 9, NULL, 0);
+    printf("New address: %d\r\n", msmp_my_addr);
   } else {
     printf("Unknown command: '%s'\r\n", cmd);
   }
