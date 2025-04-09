@@ -262,6 +262,16 @@ void ProcCommand(char *cmd) {
     char *body = cmd + 11;
     transmit_msg.len = strlen(body);
     memcpy(transmit_msg.body, body, transmit_msg.len);
+  } else if (strcmp(cmd, "help") == 0) {
+    printf("Commands:\r\n"
+           "start rec: Start recording RX signal.\r\n"
+           "dump rec: Dump the recorded signal.\r\n"
+           "dump msg: Dump the received messages.\r\n"
+           "set addr <addr>: Set the address of this node.\r\n"
+           "enable txonrx: Enable transmit on receive mode.\r\n"
+           "disable txonrx: Disable transmit on receive mode.\r\n"
+           "set txaddr <addr>: Set the dst address of a message to be sent.\r\n"
+           "set txbody <body>: Set the body of a message to be sent.\r\n");
   } else {
     printf("Unknown command: '%s'\r\n", cmd);
   }
