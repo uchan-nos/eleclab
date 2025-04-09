@@ -77,6 +77,7 @@ void PlotSignal(int tick_step) {
 }
 
 void ProcByte(uint8_t c) {
+  // この関数は割り込みハンドラから呼ばれるので、長時間の処理はしない
   switch (msmp_state) {
   case MSTATE_IDLE:
     // ここには来ないはず。IDLE のときにスタートビットを検知した直後に ADDR に進むはずだから。
@@ -88,9 +89,9 @@ void ProcByte(uint8_t c) {
     msg_buf[msg_wpos].addr = c;
     msmp_state = MSTATE_LEN;
     if ((c >> 4) == msmp_my_addr) {
-      printf("A msg to me is being received.\r\n");
+      msmp_flags |= MFLAG_MSG_TO_ME;
     } else {
-      printf("A msg to forward is being received.\r\n");
+      msmp_flags |= MFLAG_MSG_TO_FORWARD;
     }
     break;
   case MSTATE_LEN:

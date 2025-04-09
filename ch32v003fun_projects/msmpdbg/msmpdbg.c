@@ -311,27 +311,33 @@ int main() {
   size_t cmd_i = 0;
 
   while (1) {
-    while ((CMD_USART->STATR & USART_FLAG_RXNE) == 0) {
-      __WFI();
-    }
-    uint8_t c = CMD_USART->DATAR;
-
-    if (c == '\r' || c == '\n') {
-      putchar('\r');
-      putchar('\n');
-      if (cmd_i > 0) {
-        cmd[cmd_i] = '\0';
-        cmd_i = 0;
-        ProcCommand(cmd);
+    if (CMD_USART->STATR & USART_FLAG_RXNE) {
+      uint8_t c = CMD_USART->DATAR;
+      if (c == '\r' || c == '\n') {
+        putchar('\r');
+        putchar('\n');
+        if (cmd_i > 0) {
+          cmd[cmd_i] = '\0';
+          cmd_i = 0;
+          ProcCommand(cmd);
+        }
+      } else if (c == '\b' || c == 0x7f) {
+        if (cmd_i > 0) {
+          --cmd_i;
+          putchar('\b');
+        }
+      } else {
+        cmd[cmd_i++] = c;
+        putchar(c);
       }
-    } else if (c == '\b' || c == 0x7f) {
-      if (cmd_i > 0) {
-        --cmd_i;
-        putchar('\b');
-      }
+    } else if (msmp_flags & MFLAG_MSG_TO_ME) {
+      msmp_flags &= ~MFLAG_MSG_TO_ME;
+      printf("A msg to me is being received.\r\n");
+    } else if (msmp_flags & MFLAG_MSG_TO_FORWARD) {
+      msmp_flags &= ~MFLAG_MSG_TO_FORWARD;
+      printf("A msg to forward is being received.\r\n");
     } else {
-      cmd[cmd_i++] = c;
-      putchar(c);
+      __WFI();
     }
   }
 }

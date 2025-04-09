@@ -110,6 +110,10 @@ extern uint8_t msmp_transmit_queue[TX_BUF_LEN];
 extern size_t msmp_transmit_queue_len;
 extern volatile size_t msmp_transmit_rpos;
 
+uint16_t msmp_flags;
+#define MFLAG_MSG_TO_ME      0x0001
+#define MFLAG_MSG_TO_FORWARD 0x0002
+
 /* RX ピンの状態を入力
  *
  * @param tick  現在時刻
