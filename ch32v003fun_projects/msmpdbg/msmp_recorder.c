@@ -15,6 +15,7 @@ bool SenseSignal(tick_t tick, bool sig) {
   const bool msg_start = msmp_state == MSTATE_IDLE && !sig;
   if (msg_start) {
     msmp_state = MSTATE_ADDR;
+    MsgStarted();
   }
   if (sig_record_mode && sig_wpos < SIG_BUF_LEN) {
     // sig_wpos == 0: sig == 0

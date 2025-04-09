@@ -12,13 +12,18 @@
  ********************/
 // 96KHz でタイマ割り込みでカウントアップする変数
 volatile tick_t tick;
+volatile bool transmit_on_receive_mode = true;
 volatile struct Message msg[MSG_BUF_LEN];
 volatile size_t msg_wpos; // msg の書き込み位置
 volatile size_t raw_msg_wpos; // msg.raw_msg の書き込み位置
-uint8_t msmp_my_addr = 14;
-
-// 送受信同時デバッグモード
-bool transmit_when_receive_mode;
+uint8_t msmp_my_addr = 0x0E;
+struct Message transmit_msg = {
+  .start_tick = 0, // 送信時は raw_msg の添え字として使用
+  .addr = 0xFE,
+  .len = 8,
+  .body = "MSMP-DBG",
+};
+uint16_t transmit_period_ms = 20;
 
 uint8_t msmp_transmit_queue[TX_BUF_LEN];
 size_t msmp_transmit_queue_len;
@@ -69,6 +74,79 @@ void TIM2_IRQHandler(void) {
   SenseSignal(tick, funDigitalRead(MSMP_RX_PIN));
 }
 
+/* 
+ * TIM3 の周期を現在の transmit_period_ms に更新
+ */
+void TIM3_UpdatePeriod(void) {
+  // TIM3 の周期
+#if (FUNCONF_SYSTEM_CORE_CLOCK / 1000) < UINT16_MAX
+  TIM3->PSC = FUNCONF_SYSTEM_CORE_CLOCK / 1000; // 1ms
+  TIM3->ATRLR = transmit_period_ms - 1;
+#else
+  TIM3->PSC = FUNCONF_SYSTEM_CORE_CLOCK / 5000; // 0.2ms
+  TIM3->ATRLR = transmit_period_ms * 5 - 1;
+#endif
+
+  // アップデートイベント（UG）を発生させ、プリロードを行う
+  TIM3->SWEVGR = TIM_PSCReloadMode_Immediate;
+}
+
+/*
+ * TIM3 を MSMP 送信間隔タイマとして設定
+ */
+void TIM3_InitForMSMPTimer() {
+  // TIM3 を有効化
+  RCC->APB1PCENR |= RCC_APB1Periph_TIM3;
+
+  // TIM3 をリセット
+  RCC->APB1PRSTR |= RCC_APB1Periph_TIM3;
+  RCC->APB1PRSTR &= ~RCC_APB1Periph_TIM3;
+
+  // 周期を設定
+  TIM3_UpdatePeriod();
+
+  // 割り込み有効化
+  NVIC_EnableIRQ(TIM3_IRQn);
+  TIM3->DMAINTENR |= TIM_IT_Update;
+}
+
+void TIM3_Start(void) {
+  // カウンタをリセット
+  TIM3->CNT = 0;
+
+  // 周期を更新
+  TIM3_UpdatePeriod();
+
+  // カウンタを有効化
+  TIM3->CTLR1 |= TIM_CEN;
+}
+
+void TIM3_Stop(void) {
+  // カウンタを無効化
+  TIM3->CTLR1 &= ~TIM_CEN;
+}
+
+/*
+ * TIM3 割り込みハンドラ
+ */
+void TIM3_IRQHandler(void) __attribute__((interrupt));
+void TIM3_IRQHandler(void) {
+  // 割り込みフラグをクリア
+  TIM3->INTFR &= ~TIM_FLAG_Update;
+  if (transmit_on_receive_mode && (MSMP_USART->STATR & USART_FLAG_TXE)) {
+    /*
+    TIM3 割り込みの初回が、なぜか TIM3 スタートの直後に発生し、
+    先頭バイトの送信が次のバイトで上書きされてしまう。
+    USART TXE フラグを確認することで、先頭バイトの上書きを阻止する。
+    */
+    MSMP_USART->DATAR = transmit_msg.raw_msg[transmit_msg.start_tick++];
+    if (transmit_msg.start_tick == transmit_msg.len + 2) {
+      transmit_msg.start_tick = 0;
+      TIM3_Stop();
+    }
+  }
+}
+
 /*
  * USART を MSMP 用に初期化
  */
@@ -110,10 +188,11 @@ void MSMP_USART_Init() {
  */
 void MSMP_USART_IRQHandler(void) __attribute__((interrupt));
 void MSMP_USART_IRQHandler(void) {
-  uint8_t recv_data = MSMP_USART->DATAR;
-  MSMP_USART->STATR &= ~USART_FLAG_RXNE; // 受信割り込みフラグをクリア
-
-  ProcByte(recv_data);
+  if (MSMP_USART->STATR & USART_FLAG_RXNE) {
+    uint8_t recv_data = MSMP_USART->DATAR;
+    MSMP_USART->STATR &= ~USART_FLAG_RXNE; // 受信割り込みフラグをクリア
+    ProcByte(recv_data);
+  }
 }
 
 /*
@@ -152,6 +231,14 @@ void CMD_USART_Init() {
 	CMD_USART->CTLR1 |= CTLR1_UE_Set;
 }
 
+void MsgStarted(void) {
+  if (transmit_on_receive_mode) {
+    transmit_msg.start_tick = 0;
+    MSMP_USART->DATAR = transmit_msg.raw_msg[transmit_msg.start_tick++];
+    TIM3_Start();
+  }
+}
+
 void ProcCommand(char *cmd) {
   if (strcmp(cmd, "start rec") == 0) {
     sig_wpos = 0;
@@ -162,7 +249,19 @@ void ProcCommand(char *cmd) {
     DumpMessages(3);
   } else if (strncmp(cmd, "set addr ", 9) == 0) {
     msmp_my_addr = strtol(cmd + 9, NULL, 0);
+    transmit_msg.addr = (transmit_msg.addr & 0xF0) | msmp_my_addr;
     printf("New address: %d\r\n", msmp_my_addr);
+  } else if (strcmp(cmd, "enable txonrx") == 0) {
+    transmit_on_receive_mode = true;
+  } else if (strcmp(cmd, "disable txonrx") == 0) {
+    transmit_on_receive_mode = false;
+  } else if (strncmp(cmd, "set txaddr ", 11) == 0) {
+    uint8_t txaddr = strtol(cmd + 11, NULL, 0) & 15;
+    transmit_msg.addr = (txaddr << 4) | msmp_my_addr;
+  } else if (strncmp(cmd, "set txbody ", 11) == 0) {
+    char *body = cmd + 11;
+    transmit_msg.len = strlen(body);
+    memcpy(transmit_msg.body, body, transmit_msg.len);
   } else {
     printf("Unknown command: '%s'\r\n", cmd);
   }
@@ -206,12 +305,12 @@ int main() {
   MSMP_USART_Init();
 
   TIM2_InitForPeriodicTimer(0, SIG_RECORD_TIM_PERIOD - 1); // 48MHz / 96KHz = 500
-  
+  TIM3_InitForMSMPTimer();
+
   char cmd[64];
   size_t cmd_i = 0;
 
   while (1) {
-    GPIOA->OUTDR = cmd_i << 4;
     while ((CMD_USART->STATR & USART_FLAG_RXNE) == 0) {
       __WFI();
     }
