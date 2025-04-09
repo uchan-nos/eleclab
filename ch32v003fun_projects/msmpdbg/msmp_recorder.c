@@ -17,6 +17,7 @@ bool SenseSignal(tick_t tick, bool sig) {
     msmp_state = MSTATE_ADDR;
     MsgStarted();
   }
+
   if (sig_record_mode && sig_wpos < SIG_BUF_LEN) {
     // sig_wpos == 0: sig == 0
     // sig_wpos == 1: sig == 1
@@ -26,7 +27,7 @@ bool SenseSignal(tick_t tick, bool sig) {
     if (sig_wpos == 0 && sig == 0) {
       // スタートビットを受信した
       sig_buf[sig_wpos++] = tick;
-    } else if (sig_buf[0] + sig_record_period_ticks <= tick) {
+    } else if (sig_wpos > 0 && sig_buf[0] + sig_record_period_ticks <= tick) {
       // 記録開始後ある程度時間が経過したので記録を終わる
       sig_record_mode = false;
     } else if (sig_wpos > 0 && sig == (sig_wpos & 1)) {
@@ -74,6 +75,30 @@ void PlotSignal(int tick_step) {
     }
     sig ^= sig_change_count & 1;
   }
+  printf("\r\n");
+
+  putchar(' ');
+  size_t msg_bytes = (end_tick - sig_buf[0] + tick_step - 1) / tick_step / 10;
+  for (size_t i = 0; i < msg_bytes; ++i) {
+    printf("S01234567P");
+  }
+  printf("\r\n");
+
+  putchar(' ');
+  for (size_t i = 0; i < msg_bytes; ++i) {
+    switch (i) {
+    case 0: // addr
+      printf("  src dst ");
+      break;
+    case 1: // len
+      printf("   length ");
+      break;
+    default: // body
+      printf("   body   ");
+      break;
+    }
+  }
+  printf("\r\n");
 }
 
 void ProcByte(uint8_t c) {
