@@ -81,14 +81,15 @@ enum MSMPState {
  * msmpdbg.c *
  *************/
 // 送受信同時デバッグモード
-extern volatile tick_t tick;
+volatile tick_t tick;
 volatile bool transmit_on_receive_mode;
 uint8_t msmp_my_addr;
-struct Message transmit_msg;
+struct Message *transmit_msg;
 uint16_t transmit_period_ms;
 
-/* メッセージ先頭バイトのスタートビットを検出したときのイベントハンドラ */
-void MsgStarted(void);
+/* MSMP ターゲットにメッセージ送信開始 */
+void StartTransmit(void);
+bool IsTransmitting(void);
 
 /*******************
  * msmp_recorder.c *

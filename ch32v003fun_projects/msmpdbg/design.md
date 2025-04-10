@@ -99,7 +99,6 @@ CH32V203 の内蔵オシレータ HSI は 8MHz で、PLL を使って 2, 3, ...,
 | ProcCommand   | コマンド実行                                  |
 | X_Init        | 周辺機能の初期化                              |
 | X_IRQHandler  | 周辺機能の割り込み処理                        |
-| MsgStarted    | メッセージ先頭バイトの受信が始まった          |
 | StartTransmit | MSMP ターゲットにメッセージ送信開始           |
 
 | 変数名                   | 責務                         |

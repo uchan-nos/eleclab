@@ -11,18 +11,17 @@
  重要なグローバル変数
  ********************/
 // 96KHz でタイマ割り込みでカウントアップする変数
-volatile tick_t tick;
 volatile bool transmit_on_receive_mode = true;
-volatile struct Message msg[MSG_BUF_LEN];
-volatile size_t msg_wpos; // msg の書き込み位置
-volatile size_t raw_msg_wpos; // msg.raw_msg の書き込み位置
 uint8_t msmp_my_addr = 0x0E;
-struct Message transmit_msg = {
+struct Message transmit_msg_default = {
   .start_tick = 0, // 送信時は raw_msg の添え字として使用
   .addr = 0xFE,
   .len = 8,
   .body = "MSMP-DBG",
 };
+struct Message transmit_msg_alternative;
+struct Message *transmit_msg = &transmit_msg_default;
+
 uint16_t transmit_period_ms = 20;
 
 uint8_t msmp_transmit_queue[TX_BUF_LEN];
@@ -71,7 +70,13 @@ void TIM2_IRQHandler(void) {
   // 割り込みフラグをクリア
   TIM2->INTFR &= ~TIM_FLAG_Update;
   ++tick;
-  SenseSignal(tick, funDigitalRead(MSMP_RX_PIN));
+  if (SenseSignal(tick, funDigitalRead(MSMP_RX_PIN))) {
+    // メッセージ先頭のスタートビットを検出
+    if (!IsTransmitting() && transmit_on_receive_mode) {
+      transmit_msg = &transmit_msg_default;
+      StartTransmit();
+    }
+  }
 }
 
 /* 
@@ -139,9 +144,11 @@ void TIM3_IRQHandler(void) {
     先頭バイトの送信が次のバイトで上書きされてしまう。
     USART TXE フラグを確認することで、先頭バイトの上書きを阻止する。
     */
-    MSMP_USART->DATAR = transmit_msg.raw_msg[transmit_msg.start_tick++];
-    if (transmit_msg.start_tick == transmit_msg.len + 2) {
-      transmit_msg.start_tick = 0;
+    if (transmit_msg->start_tick < transmit_msg->len + 2) {
+      MSMP_USART->DATAR = transmit_msg->raw_msg[transmit_msg->start_tick++];
+    } else {
+      // 最終バイト送信後に 1 周期待つことで、連続送信時にも適切な間隔を確保
+      transmit_msg->start_tick = 0;
       TIM3_Stop();
     }
   }
@@ -231,12 +238,14 @@ void CMD_USART_Init() {
 	CMD_USART->CTLR1 |= CTLR1_UE_Set;
 }
 
-void MsgStarted(void) {
-  if (transmit_on_receive_mode) {
-    transmit_msg.start_tick = 0;
-    MSMP_USART->DATAR = transmit_msg.raw_msg[transmit_msg.start_tick++];
-    TIM3_Start();
-  }
+void StartTransmit(void) {
+  transmit_msg->start_tick = 0;
+  MSMP_USART->DATAR = transmit_msg->raw_msg[transmit_msg->start_tick++];
+  TIM3_Start();
+}
+
+bool IsTransmitting(void) {
+  return (TIM3->CTLR1 & TIM_CEN) != 0;
 }
 
 void ProcCommand(char *cmd) {
@@ -249,7 +258,7 @@ void ProcCommand(char *cmd) {
     DumpMessages(3);
   } else if (strncmp(cmd, "set addr ", 9) == 0) {
     msmp_my_addr = strtol(cmd + 9, NULL, 0);
-    transmit_msg.addr = (transmit_msg.addr & 0xF0) | msmp_my_addr;
+    transmit_msg_default.addr = (transmit_msg_default.addr & 0xF0) | msmp_my_addr;
     printf("New address: %d\r\n", msmp_my_addr);
   } else if (strcmp(cmd, "enable txonrx") == 0) {
     transmit_on_receive_mode = true;
@@ -257,11 +266,37 @@ void ProcCommand(char *cmd) {
     transmit_on_receive_mode = false;
   } else if (strncmp(cmd, "set txaddr ", 11) == 0) {
     uint8_t txaddr = strtol(cmd + 11, NULL, 0) & 15;
-    transmit_msg.addr = (txaddr << 4) | msmp_my_addr;
+    transmit_msg_default.addr = (txaddr << 4) | msmp_my_addr;
   } else if (strncmp(cmd, "set txbody ", 11) == 0) {
     char *body = cmd + 11;
-    transmit_msg.len = strlen(body);
-    memcpy(transmit_msg.body, body, transmit_msg.len);
+    transmit_msg_default.len = strlen(body);
+    memcpy(transmit_msg_default.body, body, transmit_msg_default.len);
+  } else if (strcmp(cmd, "send") == 0) {
+    while (IsTransmitting()) {
+      // 前のメッセージの送信が終わるまで待つ
+      __WFI();
+    }
+    transmit_msg = &transmit_msg_default;
+    StartTransmit();
+  } else if (strncmp(cmd, "send ", 5) == 0) {
+    // 送信先アドレスとメッセージボディを指定して送信
+    char *endp = NULL;
+    uint8_t addr = strtol(cmd + 5, &endp, 0);
+    char *body = NULL;
+    if (endp && *endp == ' ') {
+      body = endp + 1;
+    } else {
+      body = (char*)transmit_msg_default.body;
+    }
+    transmit_msg_alternative.addr = (addr << 4) | msmp_my_addr;
+    transmit_msg_alternative.len = strlen(body);
+    memcpy(transmit_msg_alternative.body, body, transmit_msg_alternative.len);
+    while (IsTransmitting()) {
+      // 前のメッセージの送信が終わるまで待つ
+      __WFI();
+    }
+    transmit_msg = &transmit_msg_alternative;
+    StartTransmit();
   } else if (strcmp(cmd, "help") == 0) {
     printf("Commands:\r\n"
            "start rec: Start recording RX signal.\r\n"
@@ -271,7 +306,9 @@ void ProcCommand(char *cmd) {
            "enable txonrx: Enable transmit on receive mode.\r\n"
            "disable txonrx: Disable transmit on receive mode.\r\n"
            "set txaddr <addr>: Set the dst address of a message to be sent.\r\n"
-           "set txbody <body>: Set the body of a message to be sent.\r\n");
+           "set txbody <body>: Set the body of a message to be sent.\r\n"
+           "send: Send the default message to node set by 'set txaddr'.\r\n"
+           "send <addr> <body>: Send the given message.\r\n");
   } else {
     printf("Unknown command: '%s'\r\n", cmd);
   }
