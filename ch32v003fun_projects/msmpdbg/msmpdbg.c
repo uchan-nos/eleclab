@@ -295,6 +295,7 @@ void ProcCommand(char *cmd) {
     StartTransmit();
   } else if (strcmp(cmd, "help") == 0) {
     printf("Commands:\r\n"
+           "!!: Re-run the last command.\r\n"
            "start rec: Start recording RX signal.\r\n"
            "dump rec: Dump the recorded signal.\r\n"
            "dump msg: Dump the received messages.\r\n"
@@ -350,7 +351,7 @@ int main() {
   TIM2_InitForPeriodicTimer(0, SIG_RECORD_TIM_PERIOD - 1); // 48MHz / 96KHz = 500
   TIM3_InitForMSMPTimer();
 
-  char cmd[64];
+  char cmd[64], cmd_prev[2];
   size_t cmd_i = 0;
 
   while (1) {
@@ -360,9 +361,20 @@ int main() {
         putchar('\r');
         putchar('\n');
         if (cmd_i > 0) {
-          cmd[cmd_i] = '\0';
-          cmd_i = 0;
-          ProcCommand(cmd);
+          if (cmd_i == 2 && strncmp(cmd, "!!", 2) == 0) {
+            cmd[0] = cmd_prev[0];
+            cmd[1] = cmd_prev[1];
+            cmd_i = 0;
+            ProcCommand(cmd);
+          } else {
+            cmd[cmd_i] = '\0';
+            cmd_i = 0;
+            // "!!" での再実行に備え、cmd の先頭 2 文字だけ保存しておく
+            cmd_prev[0] = cmd[0];
+            cmd_prev[1] = cmd[1];
+
+            ProcCommand(cmd);
+          }
         }
       } else if (c == '\b' || c == 0x7f) {
         if (cmd_i > 0) {
@@ -371,8 +383,7 @@ int main() {
         }
       } else {
         cmd[cmd_i++] = c;
-        //putchar(c);
-        printf("%02X", c);
+        putchar(c);
       }
     } else if (msmp_flags & MFLAG_MSG_TO_ME) {
       msmp_flags &= ~MFLAG_MSG_TO_ME;
