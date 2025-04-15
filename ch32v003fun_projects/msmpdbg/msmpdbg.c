@@ -11,8 +11,10 @@
  重要なグローバル変数
  ********************/
 // 96KHz でタイマ割り込みでカウントアップする変数
+volatile tick_t tick;
 volatile bool transmit_on_receive_mode = true;
 uint8_t msmp_my_addr = 0x0E;
+uint16_t transmit_period_ms = 20;
 struct Message transmit_msg_default = {
   .start_tick = 0, // 送信時は raw_msg の添え字として使用
   .addr = 0xFE,
@@ -21,12 +23,6 @@ struct Message transmit_msg_default = {
 };
 struct Message transmit_msg_alternative;
 struct Message *transmit_msg = &transmit_msg_default;
-
-uint16_t transmit_period_ms = 20;
-
-uint8_t msmp_transmit_queue[TX_BUF_LEN];
-size_t msmp_transmit_queue_len;
-volatile size_t msmp_transmit_rpos;
 
 /*
  * TIM1: 16 bit ADTM
@@ -375,7 +371,8 @@ int main() {
         }
       } else {
         cmd[cmd_i++] = c;
-        putchar(c);
+        //putchar(c);
+        printf("%02X", c);
       }
     } else if (msmp_flags & MFLAG_MSG_TO_ME) {
       msmp_flags &= ~MFLAG_MSG_TO_ME;

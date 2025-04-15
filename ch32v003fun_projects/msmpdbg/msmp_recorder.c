@@ -5,10 +5,15 @@
 #include <stdio.h>
 #include "msmpdbg.h"
 
+volatile enum MSMPState msmp_state;
+volatile struct Message msg_buf[MSG_BUF_LEN];
+volatile size_t msg_wpos; // msg の書き込み位置
+volatile size_t msg_body_wpos; // msg.body の書き込み位置
 volatile tick_t sig_buf[SIG_BUF_LEN];
 volatile size_t sig_wpos;
 volatile bool sig_record_mode;
 volatile uint32_t sig_record_period_ticks = 2 * SIG_RECORD_RATE;
+uint16_t msmp_flags;
 
 bool SenseSignal(tick_t tick, bool sig) {
   // メッセージ先頭バイトのスタートビットを検出

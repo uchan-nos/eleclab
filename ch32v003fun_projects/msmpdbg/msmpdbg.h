@@ -81,11 +81,11 @@ enum MSMPState {
  * msmpdbg.c *
  *************/
 // 送受信同時デバッグモード
-volatile tick_t tick;
-volatile bool transmit_on_receive_mode;
-uint8_t msmp_my_addr;
-struct Message *transmit_msg;
-uint16_t transmit_period_ms;
+extern volatile tick_t tick;
+extern volatile bool transmit_on_receive_mode;
+extern uint8_t msmp_my_addr;
+extern struct Message *transmit_msg;
+extern uint16_t transmit_period_ms;
 
 /* MSMP ターゲットにメッセージ送信開始 */
 void StartTransmit(void);
@@ -94,10 +94,10 @@ bool IsTransmitting(void);
 /*******************
  * msmp_recorder.c *
  *******************/
-volatile enum MSMPState msmp_state;
-volatile struct Message msg_buf[MSG_BUF_LEN];
-volatile size_t msg_wpos; // msg の書き込み位置
-volatile size_t msg_body_wpos; // msg.body の書き込み位置
+extern volatile enum MSMPState msmp_state;
+extern volatile struct Message msg_buf[MSG_BUF_LEN];
+extern volatile size_t msg_wpos; // msg の書き込み位置
+extern volatile size_t msg_body_wpos; // msg.body の書き込み位置
 // 受信信号の 0/1 が切り替わった時刻のリスト
 // sig[0] はスタートビットの受信時刻、sig[1] はその次に信号が 1 になった時刻
 extern volatile tick_t sig_buf[SIG_BUF_LEN];
@@ -105,13 +105,7 @@ extern volatile size_t sig_wpos;
 extern volatile bool sig_record_mode; // 真なら信号を記録する
 extern volatile uint32_t sig_record_period_ticks; // 信号を記録する期間
 
-
-// MSMP 送信データバッファ
-extern uint8_t msmp_transmit_queue[TX_BUF_LEN];
-extern size_t msmp_transmit_queue_len;
-extern volatile size_t msmp_transmit_rpos;
-
-uint16_t msmp_flags;
+extern uint16_t msmp_flags;
 #define MFLAG_MSG_TO_ME      0x0001
 #define MFLAG_MSG_TO_FORWARD 0x0002
 
