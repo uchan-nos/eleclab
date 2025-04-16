@@ -12,7 +12,7 @@
  ********************/
 // 96KHz でタイマ割り込みでカウントアップする変数
 volatile tick_t tick;
-volatile bool transmit_on_receive_mode = true;
+volatile bool transmit_on_receive_mode = false;
 uint8_t msmp_my_addr = 0x0E;
 uint16_t transmit_period_ms = 20;
 struct Message transmit_msg_default = {
@@ -134,19 +134,21 @@ void TIM3_IRQHandler(void) __attribute__((interrupt));
 void TIM3_IRQHandler(void) {
   // 割り込みフラグをクリア
   TIM3->INTFR &= ~TIM_FLAG_Update;
-  if (transmit_on_receive_mode && (MSMP_USART->STATR & USART_FLAG_TXE)) {
+  if ((MSMP_USART->STATR & USART_FLAG_TXE) == 0) {
+    return;
     /*
     TIM3 割り込みの初回が、なぜか TIM3 スタートの直後に発生し、
     先頭バイトの送信が次のバイトで上書きされてしまう。
     USART TXE フラグを確認することで、先頭バイトの上書きを阻止する。
     */
-    if (transmit_msg->start_tick < transmit_msg->len + 2) {
-      MSMP_USART->DATAR = transmit_msg->raw_msg[transmit_msg->start_tick++];
-    } else {
-      // 最終バイト送信後に 1 周期待つことで、連続送信時にも適切な間隔を確保
-      transmit_msg->start_tick = 0;
-      TIM3_Stop();
-    }
+  }
+
+  if (transmit_msg->start_tick < transmit_msg->len + 2) {
+    MSMP_USART->DATAR = transmit_msg->raw_msg[transmit_msg->start_tick++];
+  } else {
+    // 最終バイト送信後に 1 周期待つことで、連続送信時にも適切な間隔を確保
+    transmit_msg->start_tick = 0;
+    TIM3_Stop();
   }
 }
 
@@ -276,17 +278,22 @@ void ProcCommand(char *cmd) {
     StartTransmit();
   } else if (strncmp(cmd, "send ", 5) == 0) {
     // 送信先アドレスとメッセージボディを指定して送信
-    char *endp = NULL;
-    uint8_t addr = strtol(cmd + 5, &endp, 0);
-    char *body = NULL;
-    if (endp && *endp == ' ') {
-      body = endp + 1;
+    if (strcmp(cmd + 5, "tsm") == 0) {
+      transmit_msg_alternative.addr = 0xF0 | msmp_my_addr;
+      transmit_msg_alternative.len = 0;
     } else {
-      body = (char*)transmit_msg_default.body;
+      char *endp = NULL;
+      uint8_t addr = strtol(cmd + 5, &endp, 0);
+      char *body = NULL;
+      if (endp && *endp == ' ') {
+        body = endp + 1;
+      } else {
+        body = (char*)transmit_msg_default.body;
+      }
+      transmit_msg_alternative.addr = (addr << 4) | msmp_my_addr;
+      transmit_msg_alternative.len = strlen(body);
+      memcpy(transmit_msg_alternative.body, body, transmit_msg_alternative.len);
     }
-    transmit_msg_alternative.addr = (addr << 4) | msmp_my_addr;
-    transmit_msg_alternative.len = strlen(body);
-    memcpy(transmit_msg_alternative.body, body, transmit_msg_alternative.len);
     while (IsTransmitting()) {
       // 前のメッセージの送信が終わるまで待つ
       __WFI();
@@ -305,7 +312,8 @@ void ProcCommand(char *cmd) {
            "set txaddr <addr>: Set the dst address of a message to be sent.\r\n"
            "set txbody <body>: Set the body of a message to be sent.\r\n"
            "send: Send the default message to node set by 'set txaddr'.\r\n"
-           "send <addr> <body>: Send the given message.\r\n");
+           "send <addr> <body>: Send the given message.\r\n"
+           "send tsm: Send a TSM message.\r\n");
   } else {
     printf("Unknown command: '%s'\r\n", cmd);
   }
@@ -391,6 +399,9 @@ int main() {
     } else if (msmp_flags & MFLAG_MSG_TO_FORWARD) {
       msmp_flags &= ~MFLAG_MSG_TO_FORWARD;
       printf("A msg to forward is being received.\r\n");
+    } else if (msmp_flags & MFLAG_TSM_RESET) {
+      msmp_flags &= ~MFLAG_TSM_RESET;
+      printf("Forced reset by a TSM.\r\n");
     } else {
       __WFI();
     }

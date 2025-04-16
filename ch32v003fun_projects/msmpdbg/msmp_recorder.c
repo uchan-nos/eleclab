@@ -15,6 +15,14 @@ volatile bool sig_record_mode;
 volatile uint32_t sig_record_period_ticks = 2 * SIG_RECORD_RATE;
 uint16_t msmp_flags;
 
+void PrepareNextMessage(void) {
+  msmp_state = MSTATE_IDLE;
+  ++msg_wpos;
+  if (msg_wpos >= MSG_BUF_LEN) {
+    msg_wpos = 0;
+  }
+}
+
 bool SenseSignal(tick_t tick, bool sig) {
   // メッセージ先頭バイトのスタートビットを検出
   const bool msg_start = msmp_state == MSTATE_IDLE && !sig;
@@ -107,6 +115,14 @@ void PlotSignal(int tick_step) {
 
 void ProcByte(uint8_t c) {
   // この関数は割り込みハンドラから呼ばれるので、長時間の処理はしない
+  if (c == 0 && msmp_state != MSTATE_LEN) {
+    // 整合性が失われているので、強制復旧
+    msmp_flags |= MFLAG_TSM_RESET;
+    PrepareNextMessage();
+    return;
+  }
+  // 整合性は保たれているので、通常の処理を続ける
+
   switch (msmp_state) {
   case MSTATE_IDLE:
     // ここには来ないはず。IDLE のときにスタートビットを検知した直後に ADDR に進むはずだから。
@@ -125,17 +141,17 @@ void ProcByte(uint8_t c) {
     break;
   case MSTATE_LEN:
     msg_buf[msg_wpos].len = c;
-    msmp_state = c > 0 ? MSTATE_BODY : MSTATE_IDLE;
+    if (c > 0) {
+      msmp_state = MSTATE_BODY;
+    } else {
+      PrepareNextMessage();
+    }
     break;
   case MSTATE_BODY:
     msg_buf[msg_wpos].body[msg_body_wpos++] = c;
     if (msg_body_wpos == msg_buf[msg_wpos].len) {
       // メッセージ受信完了
-      msmp_state = MSTATE_IDLE;
-      ++msg_wpos;
-      if (msg_wpos >= MSG_BUF_LEN) {
-        msg_wpos = 0;
-      }
+      PrepareNextMessage();
     }
     break;
   }
@@ -160,7 +176,14 @@ void DumpMessages(size_t msg_num) {
     printf("[%d] addr: %02x, len: %02x, body: ",
            i, msg_buf[msg_i].addr, msg_buf[msg_i].len);
     for (size_t j = 0; j < msg_buf[msg_i].len; ++j) {
-      putchar(msg_buf[msg_i].body[j]);
+      char c = msg_buf[msg_i].body[j];
+      if (c == 0) {
+        break;
+      } else if (c < 0x20 || 0x7E < c) {
+        printf("\\x%02X", c);
+      } else {
+        putchar(c);
+      }
     }
     putchar('\r');
     putchar('\n');

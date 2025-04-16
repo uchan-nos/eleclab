@@ -108,6 +108,7 @@ extern volatile uint32_t sig_record_period_ticks; // 信号を記録する期間
 extern uint16_t msmp_flags;
 #define MFLAG_MSG_TO_ME      0x0001
 #define MFLAG_MSG_TO_FORWARD 0x0002
+#define MFLAG_TSM_RESET      0x0004
 
 /* RX ピンの状態を入力
  *
