@@ -25,6 +25,23 @@ struct Message transmit_msg_alternative;
 struct Message *transmit_msg = &transmit_msg_default;
 volatile enum MSMPState msmp_state;
 uint16_t msmp_flags;
+enum NodeMode node_mode = NMODE_DEBUG;
+bool enable_auto_forward = false;
+bool forwarding = false;
+
+/* 転送すべきメッセージに対して真を返す */
+bool IsToForward(uint8_t addr) {
+  uint8_t dst = addr >> 4;
+  uint8_t src = addr & 15;
+
+  if (dst == 15) { // ブロードキャスト
+    // 送信者が自分ではないブロードキャストメッセージは転送する
+    return src != msmp_my_addr;
+  }
+
+  // 宛先が自分ではないユニキャストメッセージは転送する
+  return dst != msmp_my_addr;
+}
 
 void ProcByte(uint8_t c) {
   // この関数は割り込みハンドラから呼ばれるので、長時間の処理はしない
@@ -32,6 +49,9 @@ void ProcByte(uint8_t c) {
     // 整合性が失われているので、強制復旧
     msmp_flags |= MFLAG_TSM_RESET;
     msmp_state = MSTATE_IDLE;
+    if (forwarding) {
+      MSMP_USART->DATAR = c;
+    }
     return;
   }
   // 整合性は保たれているので、通常の処理を続ける
@@ -45,10 +65,33 @@ void ProcByte(uint8_t c) {
   case MSTATE_ADDR:
     RecordAddr(c);
     msmp_state = MSTATE_LEN;
-    if ((c >> 4) == msmp_my_addr) {
-      msmp_flags |= MFLAG_MSG_TO_ME;
-    } else {
+    {
+      uint8_t dst = c >> 4;
+      uint8_t src = c & 15;
+      switch (dst) {
+      case 0x00: // 未使用アドレス
+        msmp_flags |= MFLAG_DST_ZERO;
+        break;
+      case 0x0F: // ブロードキャスト
+        if (src == msmp_my_addr) {
+          // 自分が送信したブロードキャストメッセージ
+          msmp_flags |= MFLAG_MY_BRDCAST;
+        }
+        break;
+      default: // ユニキャスト
+        if (dst == msmp_my_addr) {
+          msmp_flags |= MFLAG_MSG_TO_ME;
+        }
+        break;
+      }
+    }
+
+    if (IsToForward(c)) {
       msmp_flags |= MFLAG_MSG_TO_FORWARD;
+      // 自動転送モードが有効であれば、受信したメッセージをそのまま転送
+      forwarding = enable_auto_forward;
+    } else {
+      forwarding = false;
     }
     break;
   case MSTATE_LEN:
@@ -65,6 +108,10 @@ void ProcByte(uint8_t c) {
       msmp_state = MSTATE_IDLE;
     }
     break;
+  }
+
+  if (forwarding) {
+    MSMP_USART->DATAR = c;
   }
 }
 
@@ -290,6 +337,10 @@ bool IsTransmitting(void) {
   return (TIM3->CTLR1 & TIM_CEN) != 0;
 }
 
+void ConfigureNode(void) {
+  enable_auto_forward = node_mode == NMODE_NORMAL;
+}
+
 void ProcCommand(char *cmd) {
   if (strcmp(cmd, "start rec") == 0) {
     sig_wpos = 0;
@@ -320,6 +371,19 @@ void ProcCommand(char *cmd) {
     }
     transmit_msg = &transmit_msg_default;
     StartTransmit();
+  } else if (strncmp(cmd, "set mode ", 9) == 0) {
+    const char *mode = cmd + 9;
+    if (strcmp(mode, "debug") == 0) {
+      node_mode = NMODE_DEBUG;
+      printf("Node mode: debug\r\n");
+    } else if (strcmp(mode, "normal") == 0) {
+      node_mode = NMODE_NORMAL;
+      printf("Node mode: normal\r\n");
+    } else {
+      printf("Unknown mode: '%s'\r\n", mode);
+    }
+    // node_mode の変更を反映する
+    ConfigureNode();
   } else if (strncmp(cmd, "send ", 5) == 0) {
     // 送信先アドレスとメッセージボディを指定して送信
     if (strcmp(cmd + 5, "tsm") == 0) {
@@ -355,6 +419,7 @@ void ProcCommand(char *cmd) {
            "disable txonrx: Disable transmit on receive mode.\r\n"
            "set txaddr <addr>: Set the dst address of a message to be sent.\r\n"
            "set txbody <body>: Set the body of a message to be sent.\r\n"
+           "set mode <mode>: Set mode. mode = debug | normal\r\n"
            "send: Send the default message to node set by 'set txaddr'.\r\n"
            "send <addr> <body>: Send the given message.\r\n"
            "send tsm: Send a TSM message.\r\n");
@@ -402,6 +467,8 @@ int main() {
 
   TIM2_InitForPeriodicTimer(0, SIG_RECORD_TIM_PERIOD - 1); // 48MHz / 96KHz = 500
   TIM3_InitForMSMPTimer();
+
+  ConfigureNode();
 
   char cmd[64], cmd_prev[2];
   size_t cmd_i = 0;

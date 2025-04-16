@@ -123,6 +123,14 @@ CH32V203 の内蔵オシレータ HSI は 8MHz で、PLL を使って 2, 3, ...,
 | transmit_period_ms       | MSMP 送信間隔（初期値 20ms）                              |
 | msmp_state               | MSMP 受信ステート（先頭バイト受信待ち、メッセージ受信中） |
 | msmp_flags               | MSMP 受信に関連する各種フラグ                             |
+| node_mode                | ノードの動作モード                                        |
+
+#### node_mode
+
+| モード名     | 動作                                       |
+| ------------ | ------------------------------------------ |
+| NMODE_DEBUG  | コマンドで送信指示が無い限り転送等しない   |
+| NMODE_NORMAL | 通常の MSMP ノードとして転送等を処理       |
 
 ## msmp_recorder.c: MSMP 通信の記録
 
