@@ -23,6 +23,50 @@ struct Message transmit_msg_default = {
 };
 struct Message transmit_msg_alternative;
 struct Message *transmit_msg = &transmit_msg_default;
+volatile enum MSMPState msmp_state;
+uint16_t msmp_flags;
+
+void ProcByte(uint8_t c) {
+  // この関数は割り込みハンドラから呼ばれるので、長時間の処理はしない
+  if (c == 0 && msmp_state != MSTATE_LEN) {
+    // 整合性が失われているので、強制復旧
+    msmp_flags |= MFLAG_TSM_RESET;
+    msmp_state = MSTATE_IDLE;
+    return;
+  }
+  // 整合性は保たれているので、通常の処理を続ける
+
+  switch (msmp_state) {
+  case MSTATE_IDLE:
+    // ここには来ないはず。IDLE のときにスタートビットを検知した直後に ADDR に進むはずだから。
+    printf("Error: must not happen\r\n");
+    while (1);
+    break;
+  case MSTATE_ADDR:
+    RecordAddr(c);
+    msmp_state = MSTATE_LEN;
+    if ((c >> 4) == msmp_my_addr) {
+      msmp_flags |= MFLAG_MSG_TO_ME;
+    } else {
+      msmp_flags |= MFLAG_MSG_TO_FORWARD;
+    }
+    break;
+  case MSTATE_LEN:
+    RecordLen(c);
+    if (c > 0) {
+      msmp_state = MSTATE_BODY;
+    } else {
+      msmp_state = MSTATE_IDLE;
+    }
+    break;
+  case MSTATE_BODY:
+    if (RecordBody(c)) {
+      // メッセージ受信完了
+      msmp_state = MSTATE_IDLE;
+    }
+    break;
+  }
+}
 
 /*
  * TIM1: 16 bit ADTM

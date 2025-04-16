@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include "msmpdbg.h"
 
-volatile enum MSMPState msmp_state;
 volatile struct Message msg_buf[MSG_BUF_LEN];
 volatile size_t msg_wpos; // msg の書き込み位置
 volatile size_t msg_body_wpos; // msg.body の書き込み位置
@@ -13,15 +12,6 @@ volatile tick_t sig_buf[SIG_BUF_LEN];
 volatile size_t sig_wpos;
 volatile bool sig_record_mode;
 volatile uint32_t sig_record_period_ticks = 2 * SIG_RECORD_RATE;
-uint16_t msmp_flags;
-
-void PrepareNextMessage(void) {
-  msmp_state = MSTATE_IDLE;
-  ++msg_wpos;
-  if (msg_wpos >= MSG_BUF_LEN) {
-    msg_wpos = 0;
-  }
-}
 
 bool SenseSignal(tick_t tick, bool sig) {
   // メッセージ先頭バイトのスタートビットを検出
@@ -113,50 +103,6 @@ void PlotSignal(int tick_step) {
   printf("\r\n");
 }
 
-void ProcByte(uint8_t c) {
-  // この関数は割り込みハンドラから呼ばれるので、長時間の処理はしない
-  if (c == 0 && msmp_state != MSTATE_LEN) {
-    // 整合性が失われているので、強制復旧
-    msmp_flags |= MFLAG_TSM_RESET;
-    PrepareNextMessage();
-    return;
-  }
-  // 整合性は保たれているので、通常の処理を続ける
-
-  switch (msmp_state) {
-  case MSTATE_IDLE:
-    // ここには来ないはず。IDLE のときにスタートビットを検知した直後に ADDR に進むはずだから。
-    printf("Error: must not happen\r\n");
-    while (1);
-    break;
-  case MSTATE_ADDR:
-    msg_body_wpos = 0;
-    msg_buf[msg_wpos].addr = c;
-    msmp_state = MSTATE_LEN;
-    if ((c >> 4) == msmp_my_addr) {
-      msmp_flags |= MFLAG_MSG_TO_ME;
-    } else {
-      msmp_flags |= MFLAG_MSG_TO_FORWARD;
-    }
-    break;
-  case MSTATE_LEN:
-    msg_buf[msg_wpos].len = c;
-    if (c > 0) {
-      msmp_state = MSTATE_BODY;
-    } else {
-      PrepareNextMessage();
-    }
-    break;
-  case MSTATE_BODY:
-    msg_buf[msg_wpos].body[msg_body_wpos++] = c;
-    if (msg_body_wpos == msg_buf[msg_wpos].len) {
-      // メッセージ受信完了
-      PrepareNextMessage();
-    }
-    break;
-  }
-}
-
 void DumpMessages(size_t msg_num) {
   printf("state=%s\r\n",
          msmp_state == MSTATE_IDLE ? "IDLE: Waiting addr byte" :
@@ -164,9 +110,9 @@ void DumpMessages(size_t msg_num) {
          msmp_state == MSTATE_LEN ?  "LEN: Receiving len byte" :
          msmp_state == MSTATE_BODY ? "BODY: Receiving body" : "Unknown");
   size_t last_msg_i = msg_wpos;
-  if (msmp_state == MSTATE_IDLE) {
-    last_msg_i = (last_msg_i - 1) % MSG_BUF_LEN;
-  }
+  //if (msmp_state == MSTATE_IDLE) {
+  //  last_msg_i = (last_msg_i - 1) % MSG_BUF_LEN;
+  //}
   for (size_t i = 0; i < msg_num; ++i) {
     size_t msg_i = last_msg_i - i;
     if (msg_i >= MSG_BUF_LEN) {
@@ -188,4 +134,22 @@ void DumpMessages(size_t msg_num) {
     putchar('\r');
     putchar('\n');
   }
+}
+
+void RecordAddr(uint8_t addr) {
+  ++msg_wpos;
+  if (msg_wpos >= MSG_BUF_LEN) {
+    msg_wpos = 0;
+  }
+  msg_body_wpos = 0;
+  msg_buf[msg_wpos].addr = addr;
+}
+
+void RecordLen(uint8_t len) {
+  msg_buf[msg_wpos].len = len;
+}
+
+bool RecordBody(uint8_t c) {
+  msg_buf[msg_wpos].body[msg_body_wpos++] = c;
+  return msg_body_wpos == msg_buf[msg_wpos].len;
 }
