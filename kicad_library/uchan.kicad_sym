@@ -16266,7 +16266,7 @@
 			)
 		)
 		(property "Description" "15-Mbps inverting photocouple, 3750 Vrms, 2.7 - 5.5 Vdd, push-pull output, SO6"
-			(at 0 0 0)
+			(at 0 -18.288 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -16294,8 +16294,8 @@
 		)
 		(symbol "TLP2361_0_1"
 			(rectangle
-				(start -7.62 7.62)
-				(end 7.62 -7.62)
+				(start -7.62 5.08)
+				(end 7.62 -5.08)
 				(stroke
 					(width 0.254)
 					(type default)
@@ -16426,7 +16426,7 @@
 			)
 			(polyline
 				(pts
-					(xy -0.0508 -7.6962) (xy -0.0508 -1.7272)
+					(xy 0 -5.08) (xy 0 -1.905)
 				)
 				(stroke
 					(width 0.254)
@@ -16438,7 +16438,7 @@
 			)
 			(polyline
 				(pts
-					(xy 0 7.6454) (xy 0 1.8034)
+					(xy 0 5.08) (xy 0 1.905)
 				)
 				(stroke
 					(width 0.254)
@@ -16462,7 +16462,7 @@
 			)
 			(polyline
 				(pts
-					(xy 7.747 0) (xy 4.064 0)
+					(xy 7.62 0) (xy 3.556 0)
 				)
 				(stroke
 					(width 0.254)
@@ -16474,7 +16474,7 @@
 			)
 			(polyline
 				(pts
-					(xy -7.62 -5.08) (xy -5.08 -5.08) (xy -5.08 -1.27)
+					(xy -7.62 -2.54) (xy -5.08 -2.54) (xy -5.08 -1.27)
 				)
 				(stroke
 					(width 0.254)
@@ -16486,7 +16486,7 @@
 			)
 			(polyline
 				(pts
-					(xy -5.08 1.27) (xy -5.08 5.08) (xy -7.62 5.08)
+					(xy -5.08 1.27) (xy -5.08 2.54) (xy -7.62 2.54)
 				)
 				(stroke
 					(width 0.254)
@@ -16558,7 +16558,7 @@
 			)
 			(polyline
 				(pts
-					(xy 1.3716 1.7018) (xy -1.6764 1.7018) (xy -1.6764 -1.6002) (xy 1.3716 -1.6002)
+					(xy 1.27 1.778) (xy -1.651 1.778) (xy -1.651 -1.778) (xy 1.27 -1.778)
 				)
 				(stroke
 					(width 0.254)
@@ -16569,9 +16569,9 @@
 				)
 			)
 			(arc
-				(start 1.397 -1.6002)
-				(mid 2.6016 -1.2064)
-				(end 3.175 -0.0762)
+				(start 1.27 -1.778)
+				(mid 2.5271 -1.2571)
+				(end 3.048 0)
 				(stroke
 					(width 0.254)
 					(type default)
@@ -16581,9 +16581,9 @@
 				)
 			)
 			(arc
-				(start 3.1496 -0.0508)
-				(mid 2.6235 1.2011)
-				(end 1.3716 1.7272)
+				(start 3.048 0)
+				(mid 2.5219 1.2519)
+				(end 1.27 1.778)
 				(stroke
 					(width 0.254)
 					(type default)
@@ -16593,7 +16593,7 @@
 				)
 			)
 			(circle
-				(center 3.7084 0)
+				(center 3.556 0)
 				(radius 0.4572)
 				(stroke
 					(width 0)
@@ -16606,7 +16606,7 @@
 		)
 		(symbol "TLP2361_1_1"
 			(pin passive line
-				(at -10.16 5.08 0)
+				(at -10.16 2.54 0)
 				(length 2.54)
 				(name "A"
 					(effects
@@ -16624,7 +16624,7 @@
 				)
 			)
 			(pin passive line
-				(at -10.16 -5.08 0)
+				(at -10.16 -2.54 0)
 				(length 2.54)
 				(name "K"
 					(effects
@@ -16642,7 +16642,7 @@
 				)
 			)
 			(pin power_in line
-				(at 0 -10.16 90)
+				(at 0 -7.62 90)
 				(length 2.54)
 				(name "GND"
 					(effects
@@ -16678,7 +16678,7 @@
 				)
 			)
 			(pin power_in line
-				(at 0 10.16 270)
+				(at 0 7.62 270)
 				(length 2.54)
 				(name "VDD"
 					(effects
@@ -19379,7 +19379,7 @@
 			)
 		)
 		(symbol "Terminal_1_1"
-			(pin bidirectional line
+			(pin passive line
 				(at -3.81 0 0)
 				(length 2.54)
 				(name "1"
@@ -19488,7 +19488,7 @@
 			)
 		)
 		(symbol "Terminal-Both_1_1"
-			(pin bidirectional line
+			(pin passive line
 				(at -3.81 0 0)
 				(length 2.54)
 				(name "1"
@@ -19506,10 +19506,112 @@
 					)
 				)
 			)
-			(pin bidirectional line
+			(pin passive line
 				(at 3.81 0 180)
 				(length 2.54)
 				(name "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+	)
+	(symbol "Terminal-Both_JISC0617"
+		(pin_numbers hide)
+		(pin_names hide)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(property "Reference" "J"
+			(at 0 2.54 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "Terminal-Both_JISC0617"
+			(at 0 -2.54 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Footprint" ""
+			(at 0 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 0 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(symbol "Terminal-Both_JISC0617_1_1"
+			(circle
+				(center 0 0)
+				(radius 0.381)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type color)
+					(color 255 255 255 1)
+				)
+			)
+			(pin passive line
+				(at -2.54 0 0)
+				(length 2.159)
+				(name "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 2.54 0 180)
+				(length 2.159)
+				(name "1"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -19591,7 +19693,7 @@
 			)
 		)
 		(symbol "Terminal_JISC0617_1_1"
-			(pin bidirectional line
+			(pin passive line
 				(at -2.54 0 0)
 				(length 2.159)
 				(name "1"
@@ -19619,7 +19721,7 @@
 		(in_bom yes)
 		(on_board yes)
 		(property "Reference" "V"
-			(at -3.81 1.27 0)
+			(at -3.81 -6.35 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -19628,7 +19730,7 @@
 			)
 		)
 		(property "Value" "VSOURCE"
-			(at -3.81 3.81 0)
+			(at -5.334 -4.064 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -19636,7 +19738,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 0 0 0)
+			(at 0 -3.81 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -19645,7 +19747,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 0 0 0)
+			(at 0 -3.81 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -19654,7 +19756,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"AC\""
-			(at 0 0 0)
+			(at 0 -7.366 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -19673,9 +19775,9 @@
 		)
 		(symbol "VSOURCE_0_1"
 			(arc
-				(start 0 3.175)
-				(mid -0.635 3.8073)
-				(end -1.27 3.175)
+				(start 0 -3.81)
+				(mid -0.635 -3.1777)
+				(end -1.27 -3.81)
 				(stroke
 					(width 0.254)
 					(type default)
@@ -19685,9 +19787,9 @@
 				)
 			)
 			(arc
-				(start 0 3.175)
-				(mid 0.635 2.5427)
-				(end 1.27 3.175)
+				(start 0 -3.81)
+				(mid 0.635 -4.4423)
+				(end 1.27 -3.81)
 				(stroke
 					(width 0.254)
 					(type default)
@@ -19697,7 +19799,7 @@
 				)
 			)
 			(circle
-				(center 0 3.175)
+				(center 0 -3.81)
 				(radius 1.905)
 				(stroke
 					(width 0.254)
@@ -19710,8 +19812,8 @@
 		)
 		(symbol "VSOURCE_1_1"
 			(pin passive line
-				(at 0 6.35 270)
-				(length 1.27)
+				(at 0 0 270)
+				(length 1.905)
 				(name "V+"
 					(effects
 						(font
@@ -19728,8 +19830,8 @@
 				)
 			)
 			(pin passive line
-				(at 0 0 90)
-				(length 1.27)
+				(at 0 -7.62 90)
+				(length 1.905)
 				(name "V-"
 					(effects
 						(font
