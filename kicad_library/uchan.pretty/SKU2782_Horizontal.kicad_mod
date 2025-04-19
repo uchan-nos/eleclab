@@ -1,7 +1,7 @@
 (footprint "SKU2782_Horizontal"
-	(version 20240108)
+	(version 20241229)
 	(generator "pcbnew")
-	(generator_version "8.0")
+	(generator_version "9.0")
 	(layer "F.Cu")
 	(descr "Through hole angled pin header, 1x06, 2.54mm pitch, 6mm pin length, single row")
 	(tags "Through hole angled pin header THT 1x06 2.54mm single row")
@@ -23,19 +23,6 @@
 		(effects
 			(font
 				(size 1 1)
-				(thickness 0.15)
-			)
-		)
-	)
-	(property "Footprint" ""
-		(at 0 0 0)
-		(unlocked yes)
-		(layer "F.Fab")
-		(hide yes)
-		(uuid "4a5be619-dd68-4c9b-9e45-3d1fe0f9b126")
-		(effects
-			(font
-				(size 1.27 1.27)
 				(thickness 0.15)
 			)
 		)
@@ -1124,15 +1111,16 @@
 		(remove_unused_layers no)
 		(uuid "f28a28ec-5288-4bc7-bc00-0baf33c76c9e")
 	)
+	(embedded_fonts no)
 	(model "${KICAD8_3DMODEL_DIR}/Connector_PinHeader_2.54mm.3dshapes/PinHeader_1x06_P2.54mm_Horizontal.wrl"
 		(offset
-			(xyz 0 0 0)
+			(xyz 0 -12.7 0)
 		)
 		(scale
 			(xyz 1 1 1)
 		)
 		(rotate
-			(xyz 0 0 0)
+			(xyz -0 -0 -180)
 		)
 	)
 )
