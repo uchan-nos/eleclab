@@ -251,14 +251,14 @@ void MSMP_USART_Init() {
   funPinMode(MSMP_TX_PIN, GPIO_CFGLR_OUT_10Mhz_AF_OD);
   funPinMode(MSMP_RX_PIN, GPIO_CFGLR_IN_FLOAT);
 
-	// USART を有効化 & リセット
+  // USART を有効化 & リセット
 #if MSMP_USART_NUM == 1
-	RCC->APB2PCENR |= RCC_APB2Periph_USART1;
+  RCC->APB2PCENR |= RCC_APB2Periph_USART1;
   RCC->APB2PRSTR |= RCC_APB2Periph_USART1;
   RCC->APB2PRSTR &= ~RCC_APB2Periph_USART1;
   #define MSMP_PCLOCK FUNCONF_SYSTEM_CORE_CLOCK
 #else
-	RCC->APB1PCENR |= RCC_APB1Periph_USART2;
+  RCC->APB1PCENR |= RCC_APB1Periph_USART2;
   RCC->APB1PRSTR |= RCC_APB1Periph_USART2;
   RCC->APB1PRSTR &= ~RCC_APB1Periph_USART2;
   #define MSMP_PCLOCK (FUNCONF_SYSTEM_CORE_CLOCK/2)
@@ -267,16 +267,16 @@ void MSMP_USART_Init() {
   // 割り込み許可
   NVIC_EnableIRQ(MSMP_USART_IRQn);
 
-	// USART1 を 8n1 に設定、割り込みを有効化
-	MSMP_USART->CTLR1 = USART_WordLength_8b | USART_Parity_No | USART_Mode_Tx
+  // USART1 を 8n1 に設定、割り込みを有効化
+  MSMP_USART->CTLR1 = USART_WordLength_8b | USART_Parity_No | USART_Mode_Tx
                     | USART_Mode_Rx | USART_CTLR1_RXNEIE;
-	MSMP_USART->CTLR2 = USART_StopBits_1;
+  MSMP_USART->CTLR2 = USART_StopBits_1;
 
-	// ボーレートを設定
-	MSMP_USART->BRR = (MSMP_PCLOCK + MSMP_BAUDRATE/2) / MSMP_BAUDRATE;
+  // ボーレートを設定
+  MSMP_USART->BRR = (MSMP_PCLOCK + MSMP_BAUDRATE/2) / MSMP_BAUDRATE;
 
   // USART1 を有効化
-	MSMP_USART->CTLR1 |= CTLR1_UE_Set;
+  MSMP_USART->CTLR1 |= CTLR1_UE_Set;
 }
 
 /*
@@ -299,14 +299,14 @@ void CMD_USART_Init() {
   funPinMode(CMD_TX_PIN, GPIO_CFGLR_OUT_10Mhz_AF_PP);
   funPinMode(CMD_RX_PIN, GPIO_CFGLR_IN_FLOAT);
 
-	// USART を有効化 & リセット
+  // USART を有効化 & リセット
 #if CMD_USART_NUM == 1
-	RCC->APB2PCENR |= RCC_APB2Periph_USART1;
+  RCC->APB2PCENR |= RCC_APB2Periph_USART1;
   RCC->APB2PRSTR |= RCC_APB2Periph_USART1;
   RCC->APB2PRSTR &= ~RCC_APB2Periph_USART1;
   #define CMD_PCLOCK FUNCONF_SYSTEM_CORE_CLOCK
 #else
-	RCC->APB1PCENR |= RCC_APB1Periph_USART2;
+  RCC->APB1PCENR |= RCC_APB1Periph_USART2;
   RCC->APB1PRSTR |= RCC_APB1Periph_USART2;
   RCC->APB1PRSTR &= ~RCC_APB1Periph_USART2;
   #define CMD_PCLOCK (FUNCONF_SYSTEM_CORE_CLOCK/2)
@@ -315,16 +315,16 @@ void CMD_USART_Init() {
   // 割り込み許可
   //NVIC_EnableIRQ(CMD_USART_IRQn);
 
-	// USART1 を 8n1 に設定、割り込みを有効化
-	CMD_USART->CTLR1 = USART_WordLength_8b | USART_Parity_No | USART_Mode_Tx
+  // USART1 を 8n1 に設定、割り込みを有効化
+  CMD_USART->CTLR1 = USART_WordLength_8b | USART_Parity_No | USART_Mode_Tx
                    | USART_Mode_Rx;
-	CMD_USART->CTLR2 = USART_StopBits_1;
+  CMD_USART->CTLR2 = USART_StopBits_1;
 
-	// ボーレートを設定
-	CMD_USART->BRR = (CMD_PCLOCK + 115200/2) / 115200;
+  // ボーレートを設定
+  CMD_USART->BRR = (CMD_PCLOCK + 115200/2) / 115200;
 
   // USART1 を有効化
-	CMD_USART->CTLR1 |= CTLR1_UE_Set;
+  CMD_USART->CTLR1 |= CTLR1_UE_Set;
 }
 
 void StartTransmit(void) {
@@ -442,18 +442,18 @@ void ProcCommand(char *cmd) {
 
 // For debug writing to the UART.
 int _write(int fd, const char *buf, int size) {
-	for(int i = 0; i < size; i++){
-	    while( !(CMD_USART->STATR & USART_FLAG_TC));
-	    CMD_USART->DATAR = *buf++;
-	}
-	return size;
+  for(int i = 0; i < size; i++){
+    while( !(CMD_USART->STATR & USART_FLAG_TC));
+    CMD_USART->DATAR = *buf++;
+  }
+  return size;
 }
 
 // single char to UART
 int putchar(int c) {
-	while( !(CMD_USART->STATR & USART_FLAG_TC));
-	CMD_USART->DATAR = c;
-	return 1;
+  while( !(CMD_USART->STATR & USART_FLAG_TC));
+  CMD_USART->DATAR = c;
+  return 1;
 }
 
 /*
