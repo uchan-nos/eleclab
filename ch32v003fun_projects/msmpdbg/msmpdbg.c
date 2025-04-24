@@ -342,7 +342,17 @@ void ConfigureNode(void) {
 }
 
 void ProcCommand(char *cmd) {
-  if (strcmp(cmd, "start rec") == 0) {
+  if (strcmp(cmd, "status") == 0) {
+    printf("Node address : %d\r\n", msmp_my_addr);
+    printf("Tx address   : %d\r\n", transmit_msg_default.addr >> 4);
+    printf("Tx body      : ");
+    PrintMsgBody(&transmit_msg_default);
+    printf("\r\n");
+    printf("Tx on rx mode: %d\r\n", transmit_on_receive_mode);
+    printf("Node mode    : %s\r\n", node_mode == NMODE_NORMAL ? "normal" : "debug");
+    printf("Receive state: ");
+    PrintRecState();
+  } else if (strcmp(cmd, "start rec") == 0) {
     sig_wpos = 0;
     sig_record_mode = true;
   } else if (strcmp(cmd, "dump rec") == 0) {
@@ -410,7 +420,9 @@ void ProcCommand(char *cmd) {
     StartTransmit();
   } else if (strcmp(cmd, "help") == 0) {
     printf("Commands:\r\n"
+           "help: Show this help.\r\n"
            "!!: Re-run the last command.\r\n"
+           "status: Show current settings and status.\r\n"
            "start rec: Start recording RX signal.\r\n"
            "dump rec: Dump the recorded signal.\r\n"
            "dump msg: Dump the received messages.\r\n"

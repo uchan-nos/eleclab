@@ -139,6 +139,10 @@ void RecordLen(uint8_t len);
  * @return  真ならメッセージ受信完了
  */
 bool RecordBody(uint8_t c);
+/* 現在の msmp_state の名前と説明を表示 */
+void PrintRecState();
+/* メッセージの本文を表示 */
+void PrintMsgBody(struct Message *msg);
 
 /* 記録されたメッセージを表示 */
 void DumpMessages(size_t msg_num);

@@ -103,12 +103,29 @@ void PlotSignal(int tick_step) {
   printf("\r\n");
 }
 
-void DumpMessages(size_t msg_num) {
+void PrintRecState() {
   printf("state=%s\r\n",
          msmp_state == MSTATE_IDLE ? "IDLE: Waiting addr byte" :
          msmp_state == MSTATE_ADDR ? "ADDR: Receiving addr byte" :
          msmp_state == MSTATE_LEN ?  "LEN: Receiving len byte" :
          msmp_state == MSTATE_BODY ? "BODY: Receiving body" : "Unknown");
+}
+
+void PrintMsgBody(struct Message *msg) {
+  for (size_t j = 0; j < msg->len; ++j) {
+    char c = msg->body[j];
+    if (c == 0) {
+      break;
+    } else if (c < 0x20 || 0x7E < c) {
+      printf("\\x%02X", c);
+    } else {
+      putchar(c);
+    }
+  }
+}
+
+void DumpMessages(size_t msg_num) {
+  PrintRecState();
   size_t last_msg_i = msg_wpos;
   //if (msmp_state == MSTATE_IDLE) {
   //  last_msg_i = (last_msg_i - 1) % MSG_BUF_LEN;
@@ -121,16 +138,7 @@ void DumpMessages(size_t msg_num) {
     }
     printf("[%d] addr: %02x, len: %02x, body: ",
            i, msg_buf[msg_i].addr, msg_buf[msg_i].len);
-    for (size_t j = 0; j < msg_buf[msg_i].len; ++j) {
-      char c = msg_buf[msg_i].body[j];
-      if (c == 0) {
-        break;
-      } else if (c < 0x20 || 0x7E < c) {
-        printf("\\x%02X", c);
-      } else {
-        putchar(c);
-      }
-    }
+    PrintMsgBody((struct Message*)msg_buf + msg_i);
     putchar('\r');
     putchar('\n');
   }
