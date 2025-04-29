@@ -6,6 +6,7 @@
 #include "ch32fun.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 /*
  * @param psc  プリスケーラの設定値（0 => 1:1）
@@ -165,17 +166,33 @@ int main() {
 
   SelectCh(3);
 
-  uint16_t prev_cnt = 0;
-  uint32_t goal_ua = 0;
+  // 出力 0 のときの ADC 値を下限とする
+  uint16_t adc_min = 0;
+  TIM1->CH4CVR = 0;
+  Delay_Ms(100);
+  for (int i = 0; i < 16; ++i) {
+    Delay_Ms(5);
+    adc_min += funAnalogRead(AMPx49_AN);
+  }
+  adc_min >>= 4;
+
+  printf("adc_min=%u\n", adc_min);
+
+  uint16_t prev_cnt = TIM2->CNT;
+  uint32_t goal_ua = prev_cnt * 10;
+  TIM1->CH4CVR = LEDIfToPWM(goal_ua);
+
+  int settled = 0; // 定常状態になったら 1
+
 
   while (1) {
-    Delay_Ms(200);
+    Delay_Ms(20);
     uint16_t cnt = TIM2->CNT;
     if (prev_cnt != cnt) {
       prev_cnt = cnt;
       goal_ua = cnt * 10;
-      TIM1->CH4CVR = LEDIfToPWM(goal_ua);
-      printf("T2CNT=%3d goal_ua=%4d CVR=%5d\n", cnt, goal_ua, TIM1->CH4CVR);
+      settled = 0;
+    } else if (settled) {
       continue;
     }
 
@@ -186,6 +203,12 @@ int main() {
     //    = (adc * Vcc) / (4096 * 49 * 50)
     uint32_t if_ua = (adc * 5) * 100000 / (4096 * 49 * 5);
     int diff = goal_ua - if_ua;
+
+    if (diff < 0 && adc <= adc_min) {
+      printf("adc=%u adc_min=%d\n", adc, adc_min);
+      continue; // これ以上下がらない
+    }
+
     uint16_t cvr = TIM1->CH4CVR;
     if (diff < 0 && cvr < -diff) {
       cvr = 0;
@@ -195,7 +218,11 @@ int main() {
       cvr += diff;
     }
     TIM1->CH4CVR = cvr;
-    printf("adc=%d diff=%d cvr=%u\n", adc, diff, cvr);
+
+    if (abs(diff) == 0 && !settled) {
+      printf("settled. adc=%d diff=%d cvr=%u\n", adc, diff, cvr);
+      settled = 1;
+    }
     //printf("adc=%d\n", adc);
   }
 }
