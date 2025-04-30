@@ -162,7 +162,7 @@ int main() {
   TIM2_InitForEncoder();
   TIM2->CNT = 20;
 
-  SelectCh(3);
+  SelectCh(0);
 
   // 出力 0 のときの ADC 値を下限とする
   uint16_t adc_min = 0;
