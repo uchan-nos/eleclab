@@ -156,10 +156,7 @@ int main() {
   OPA1_Init(1, PD0, PA2);
 
   TIM1_InitForPWM(0, 65535, 15, 0);
-  TIM1->CH1CVR = 6000;
-  TIM1->CH2CVR = 9000;
-  TIM1->CH3CVR = 10000;
-  TIM1->CH4CVR = 0;
+  TIM1->CH1CVR = 0;
   TIM1_Start();
 
   TIM2_InitForEncoder();
@@ -169,7 +166,7 @@ int main() {
 
   // 出力 0 のときの ADC 値を下限とする
   uint16_t adc_min = 0;
-  TIM1->CH4CVR = 0;
+  TIM1->CH1CVR = 0;
   Delay_Ms(100);
   for (int i = 0; i < 16; ++i) {
     Delay_Ms(5);
@@ -192,7 +189,7 @@ int main() {
 
   uint16_t prev_cnt = TIM2->CNT;
   uint32_t goal_ua = prev_cnt * 10;
-  TIM1->CH4CVR = LEDIfToPWM(goal_ua);
+  TIM1->CH1CVR = LEDIfToPWM(goal_ua);
 
   int settled = 0; // 定常状態になったら 1
 
@@ -222,7 +219,7 @@ int main() {
       continue; // これ以上下がらない
     }
 
-    uint16_t cvr = TIM1->CH4CVR;
+    uint16_t cvr = TIM1->CH1CVR;
     if (diff < 0 && cvr < -diff) {
       cvr = 0;
     } else if (diff > 0 && cvr > 20000) {
@@ -230,7 +227,7 @@ int main() {
     } else {
       cvr += diff;
     }
-    TIM1->CH4CVR = cvr;
+    TIM1->CH1CVR = cvr;
 
     if (abs(diff) == 0 && !settled) {
       printf("settled. adc=%d diff=%d cvr=%u\n", adc, diff, cvr);
