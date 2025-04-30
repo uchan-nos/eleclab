@@ -110,6 +110,7 @@ void TIM2_InitForEncoder() {
 #define AMPx5_AN ANALOG_6
 #define VR_AN ANALOG_0
 #define VF_AN ANALOG_5
+#define ADC_BITS 10
 
 void SelectCh(uint8_t ch) {
   funDigitalWrite(SEL1_PIN, ch & 1);
@@ -178,6 +179,17 @@ int main() {
 
   printf("adc_min=%u\n", adc_min);
 
+  uint16_t adc_vref = 0;
+  for (int i = 0; i < 16; ++i) {
+    adc_vref += funAnalogRead(ANALOG_8);
+  }
+  adc_vref >>= 4;
+  // Vref = 1.2V (typical)
+  // adc_vref/16 : ADC@Vcc = 1.2 : Vcc
+  // Vcc = 1.2 * ADC@Vcc / (adc_vref/16)
+  const uint16_t vcc_mv = (UINT32_C(1200) * (1 << ADC_BITS)) / adc_vref;
+  printf("adc_vref=%u Vcc=%d(mV)\n", adc_vref, vcc_mv);
+
   uint16_t prev_cnt = TIM2->CNT;
   uint32_t goal_ua = prev_cnt * 10;
   TIM1->CH4CVR = LEDIfToPWM(goal_ua);
@@ -197,11 +209,12 @@ int main() {
     }
 
     int adc = funAnalogRead(AMPx49_AN);
-    // adc/4096 * Vcc = 49 * Vr
+    // adc/ADC@Vcc * Vcc = 49 * Vr
     // Vr = If * 50
-    // If = adc/4096 * Vcc / (49 * 50)
-    //    = (adc * Vcc) / (4096 * 49 * 50)
-    uint32_t if_ua = (adc * 5) * 100000 / (4096 * 49 * 5);
+    // If = Vr/50
+    //    = adc/ADC@Vcc * Vcc / (49 * 50)
+    //    = (adc * Vcc) / (ADC@Vcc * 49 * 50)
+    uint32_t if_ua = (adc * 5) * 100000 / ((1 << ADC_BITS) * 49 * 5);
     int diff = goal_ua - if_ua;
 
     if (diff < 0 && adc <= adc_min) {
