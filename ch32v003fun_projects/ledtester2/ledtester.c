@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define DMA_CNT 32
+uint16_t adc_buf[DMA_CNT];
+
 /*
  * @param psc  プリスケーラの設定値（0 => 1:1）
  * @param period  タイマ周期
@@ -84,9 +87,10 @@ void TIM1_Start() {
 }
 
 /*
- * TIM2 をエンコーダ計数モードに設定
+ * @param psc  プリスケーラの設定値（0 => 1:1）
+ * @param period  タイマ周期
  */
-void TIM2_InitForEncoder() {
+void TIM2_InitForSimpleTimer(uint16_t psc, uint16_t period) {
   // TIM2 を有効化
   RCC->APB1PCENR |= RCC_APB1Periph_TIM2;
 
@@ -94,12 +98,42 @@ void TIM2_InitForEncoder() {
   RCC->APB1PRSTR |= RCC_APB1Periph_TIM2;
   RCC->APB1PRSTR &= ~RCC_APB1Periph_TIM2;
 
-  // 両エッジカウントモードに設定
-  TIM2->SMCFGR = TIM_EncoderMode_TI1;
-  // TI12 => 両エッジカウントモード（1 クリックで 4 進む）
+  // TIM2 の周期
+  TIM2->PSC = psc;
+  TIM2->ATRLR = period;
+  TIM2->CTLR1 |= TIM_ARPE;
+  TIM2->CTLR2 |= TIM_TRGOSource_Update;
+}
 
-  // カウンタを有効化
+void TIM2_Start() {
+  // アップデートイベント（UG）を発生させ、プリロードを行う
+  TIM2->SWEVGR |= TIM_UG;
+
+  // TIM2 をスタートする
   TIM2->CTLR1 |= TIM_CEN;
+}
+
+void ADC1_StopContinuousConv() {
+  ADC1->CTLR2 &= ~ADC_CONT;
+}
+
+void ADC1_StartContinuousConv() {
+  ADC1->CTLR2 |= ADC_CONT;
+  ADC1->CTLR2 |= ADC_SWSTART;
+}
+
+uint32_t adc_conv_start_tick, adc_conv_end_tick;
+
+void TIM2_IRQHandler(void) __attribute__((interrupt));
+void TIM2_IRQHandler(void) {
+  if (TIM2->INTFR & TIM_IT_Update) {
+    // タイマの更新割り込み
+    TIM2->INTFR &= ~TIM_IT_Update;
+    printf("TIM2: update\n");
+    DMA1_Channel1->CNTR = DMA_CNT;
+    ADC1_StartContinuousConv();
+    adc_conv_start_tick = SysTick->CNT;
+  }
 }
 
 #define SEL1_PIN PC0
@@ -132,6 +166,92 @@ uint16_t LEDIfToPWM(uint32_t if_ua) {
   return (69905 * if_ua) / 100000 + 7864;
 }
 
+/*
+ * DMA1 を ADC1 のために設定する。
+ * ADC1 は Channel1 に対応する。
+ *
+ * @param buf  DMA 転送先のバッファ
+ * @param count  DMA 転送するデータ数
+ * @param it_en  有効化する割り込み要因
+ */
+void DMA1_InitForADC1(uint16_t* buf, uint16_t count, uint32_t it_en) {
+	RCC->AHBPCENR |= RCC_AHBPeriph_DMA1;
+
+  // DMA を ADC1 向けに設定
+  DMA1_Channel1->PADDR = (uint32_t)&ADC1->RDATAR;
+  DMA1_Channel1->MADDR = (uint32_t)buf;
+  DMA1_Channel1->CNTR = count;
+  DMA1_Channel1->CFGR =
+		DMA_M2M_Disable |
+		DMA_Priority_VeryHigh |
+		DMA_MemoryDataSize_HalfWord |
+		DMA_PeripheralDataSize_HalfWord |
+		DMA_MemoryInc_Enable |
+    DMA_PeripheralInc_Disable |
+		DMA_Mode_Normal |
+		DMA_DIR_PeripheralSRC |
+    it_en;
+
+  // 全ての設定が終わってから DMA を有効化
+  DMA1_Channel1->CFGR |= DMA_CFGR1_EN;
+}
+
+void DMA1_Channel1_IRQHandler(void) __attribute__((interrupt));
+void DMA1_Channel1_IRQHandler(void) {
+  if (DMA1->INTFR & DMA1_IT_TC1) {
+    // DMA 転送完了
+    DMA1->INTFCR = DMA1_IT_TC1;
+    adc_conv_end_tick = SysTick->CNT;
+    ADC1_StopContinuousConv();
+    uint16_t adc_sum = 0;
+    for (int i = 0; i < DMA_CNT; ++i) {
+      adc_sum += adc_buf[i];
+    }
+    uint16_t adc_avg = adc_sum / DMA_CNT;
+    uint32_t adc_avg_end_tick = SysTick->CNT;
+    printf("DMA1_TC1: sum=%u avg=%u (%u ticks, %u ticks)\n",
+           adc_sum,
+           adc_avg,
+           adc_conv_end_tick - adc_conv_start_tick,
+           adc_avg_end_tick - adc_conv_end_tick);
+  }
+}
+
+/*
+ * ADC1 を DMA で動作させるための初期化を行う。
+ *
+ * @param trig  トリガの設定（ADC_ExternalTrigConv_x）
+ */
+void ADC1_InitForDMA(uint32_t trig) {
+  RCC->APB2PCENR |= RCC_APB2Periph_ADC1;
+
+  // ADC のレジスタを初期化
+  RCC->APB2PRSTR |= RCC_APB2Periph_ADC1;
+  RCC->APB2PRSTR &= ~RCC_APB2Periph_ADC1;
+
+  // ADCCLK を 24 MHz に設定
+  RCC->CFGR0 &= ~RCC_ADCPRE;
+  RCC->CFGR0 |= RCC_ADCPRE_DIV2;
+
+  // ADC の設定
+  ADC1->CTLR2 =
+    (trig == ADC_ExternalTrigConv_None ? 0 : ADC_EXTTRIG) |
+    trig |
+    ADC_DMA |
+    ADC_ADON;
+
+  // キャリブレーションをリセット
+  ADC1->CTLR2 |= ADC_RSTCAL;
+  while (ADC1->CTLR2 & ADC_RSTCAL);
+
+  // キャリブレーション
+  ADC1->CTLR2 |= ADC_CAL;
+  while (ADC1->CTLR2 & ADC_CAL);
+}
+
+#define MAKE_ADC_SAMPTR(ch, sample_time) \
+  ((sample_time) << (3 * (ch)))
+
 int main() {
   SystemInit();
 
@@ -159,8 +279,8 @@ int main() {
   TIM1->CH1CVR = 0;
   TIM1_Start();
 
-  TIM2_InitForEncoder();
-  TIM2->CNT = 20;
+  //TIM2_InitForEncoder();
+  //TIM2->CNT = 20;
 
   SelectCh(0);
 
@@ -193,7 +313,26 @@ int main() {
 
   int settled = 0; // 定常状態になったら 1
 
+  DMA1_InitForADC1(adc_buf, DMA_CNT, DMA_IT_TC);
+  NVIC_EnableIRQ(DMA1_Channel1_IRQn);
 
+  ADC1_InitForDMA(ADC_ExternalTrigConv_None);
+  ADC1->SAMPTR2 =
+    MAKE_ADC_SAMPTR(AMPx5_AN, ADC_SampleTime_15Cycles) |
+    MAKE_ADC_SAMPTR(AMPx49_AN, ADC_SampleTime_15Cycles);
+  ADC1->RSQR1 = 0; // 1 チャンネル
+  ADC1->RSQR3 = AMPx49_AN;
+
+  TIM2_InitForSimpleTimer(48000, 1000); // 1s
+  TIM2->DMAINTENR |= TIM_IT_Update;
+  NVIC_EnableIRQ(TIM2_IRQn);
+
+  printf("Starting TIM2\n");
+  TIM2_Start();
+
+  while (1);
+
+  /*
   while (1) {
     Delay_Ms(20);
     uint16_t cnt = TIM2->CNT;
@@ -235,4 +374,5 @@ int main() {
     }
     //printf("adc=%d\n", adc);
   }
+  */
 }
