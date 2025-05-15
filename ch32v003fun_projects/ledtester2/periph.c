@@ -72,6 +72,16 @@ void TIM1_Start() {
   TIM1->CTLR1 |= TIM_CEN;
 }
 
+void TIM1_SetPulseWidth(uint8_t channel, uint16_t width) {
+  switch (channel) {
+  case 0: TIM1->CH1CVR = width; break;
+  case 1: TIM1->CH2CVR = width; break;
+  case 2: TIM1->CH3CVR = width; break;
+  case 3: TIM1->CH4CVR = width; break;
+  default: assert(0);
+  }
+}
+
 void TIM2_InitForSimpleTimer(uint16_t psc, uint16_t period) {
   // TIM2 を有効化
   RCC->APB1PCENR |= RCC_APB1Periph_TIM2;
@@ -83,8 +93,12 @@ void TIM2_InitForSimpleTimer(uint16_t psc, uint16_t period) {
   // TIM2 の周期
   TIM2->PSC = psc;
   TIM2->ATRLR = period;
-  TIM2->CTLR1 |= TIM_ARPE;
-  TIM2->CTLR2 |= TIM_TRGOSource_Update;
+
+  TIM2->CTLR1 =
+    TIM_OPMode_Repetitive |
+    TIM_CKD_DIV1 |
+    TIM_CounterMode_Up |
+    TIM_ARPE;
 }
 
 void TIM2_Start() {
@@ -97,9 +111,9 @@ void TIM2_Start() {
 
 void TIM2_IRQHandler(void) __attribute__((interrupt));
 void TIM2_IRQHandler(void) {
-  if (TIM2->INTFR & TIM_IT_Update) {
+  if (TIM2->INTFR & TIM_FLAG_Update) {
     // タイマの更新割り込み
-    TIM2->INTFR &= ~TIM_IT_Update;
+    TIM2->INTFR = ~TIM_FLAG_Update;
     TIM2_Updated();
   }
 }

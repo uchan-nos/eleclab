@@ -11,7 +11,18 @@
 #include "periph.h"
 
 #define DMA_CNT 32
-uint16_t adc_buf[DMA_CNT];
+#define LED_NUM 4
+#define CSR 50 // 電流検出抵抗（Current Sensing Resistor）
+static uint16_t adc_buf[DMA_CNT];
+static uint32_t adc_conv_start_tick, adc_conv_end_tick;
+static uint8_t adc_current_ch, led_current_ch;
+static uint16_t goals_ua[LED_NUM]; // 制御目標の電流値（μA）
+static int16_t errors_ua[LED_NUM]; // 目標と現在の電流値の差
+static uint16_t led_pulse_width[LED_NUM]; // PWM パルス幅
+
+// VCC の電圧（0.1mV 単位。5V=50000）
+// ADC1_MeasureVCC() が設定する
+uint16_t vcc_01mv;
 
 #define SEL1_PIN PC0
 #define SEL2_PIN PC7
@@ -21,12 +32,121 @@ uint16_t adc_buf[DMA_CNT];
 #define AMPx5_AN ANALOG_6
 #define VR_AN ANALOG_0
 #define VF_AN ANALOG_5
-#define ADC_BITS 10
 
-static uint32_t adc_conv_start_tick, adc_conv_end_tick;
+// ADC の読み取り値を 0.1mV 単位に変換する
+#define ADC_TO_01MV(adc) (((uint32_t)vcc_01mv * (adc)) >> ADC_BITS)
 
+void __assert_func(const char *file, int line, const char *func, const char *expr) {
+  printf("assertion failed inside %s (%s:%d): %s\n", func, file, line, expr);
+  while (1) {
+    __WFE();
+  }
+}
+
+// Vref を用いて VCC を測定する
+void MeasureVCC(void) {
+  uint16_t adc_vref = 0;
+  for (int i = 0; i < 16; ++i) {
+    adc_vref += funAnalogRead(ANALOG_8);
+  }
+  adc_vref >>= 4;
+
+  // Vref = 1.2V (typical)
+  // adc_vref : ADC@Vcc = 1.2 : Vcc
+  // Vcc = 1.2 * ADC@Vcc / adc_vref
+  vcc_01mv = (UINT32_C(12000) << ADC_BITS) / adc_vref;
+}
+
+// ADC の読み取り値から電流値（μA 単位）を計算する
+uint16_t CalcIF(uint16_t adc_vr, uint8_t adc_ch) {
+  uint32_t vr_01mv = ADC_TO_01MV(adc_vr);
+  uint32_t if_ua = (vr_01mv * 100) / CSR;
+  switch (adc_ch) {
+  case AMPx49_AN:
+    if_ua /= 49;
+    break;
+  case AMPx5_AN:
+    if_ua = 49 * if_ua / 10;
+    break;
+  case VR_AN:
+    break;
+  default:
+    assert(0);
+  }
+  return if_ua;
+}
+
+void UpdateLEDCurrent(uint16_t if_ua) {
+  uint16_t goal_ua = goals_ua[led_current_ch];
+  int16_t err_ua = goal_ua - if_ua;
+  int16_t d_err_ua = err_ua - errors_ua[led_current_ch];
+  errors_ua[led_current_ch] = err_ua;
+
+  uint16_t pw = led_pulse_width[led_current_ch];
+  /*
+   * pw += 0.35 * err_ua + 0.45 * d_err_ua;
+   * Memory region         Used Size  Region Size  %age Used
+   *            FLASH:        6448 B        16 KB     39.36%
+   *              RAM:          32 B         2 KB      1.56%
+   */
+  //pw += 0.35 * err_ua + 0.45 * d_err_ua;
+
+  /*
+   * pw += 35 * (uint32_t)err_ua / 100 + 45 * (uint32_t)d_err_ua / 100;
+   * Memory region         Used Size  Region Size  %age Used
+   *            FLASH:        3032 B        16 KB     18.51%
+   *              RAM:          24 B         2 KB      1.17%
+   */
+  //pw += 35 * (uint32_t)err_ua / 100 + 45 * (uint32_t)d_err_ua / 100;
+
+  /*
+   * pw += (350 * (uint32_t)err_ua >> 10) + (450 * (uint32_t)d_err_ua >> 10);
+   * Memory region         Used Size  Region Size  %age Used
+   *            FLASH:        3008 B        16 KB     18.36%
+   *              RAM:          24 B         2 KB      1.17%
+   */
+  pw += (350 * (int32_t)err_ua >> 10) + (450 * (int32_t)d_err_ua >> 10);
+
+  if (pw > 30000) {
+    pw = 0;
+  }
+
+  //if (led_current_ch == 0) {
+  //  printf("%s: led=%d goal_ua=%u if_ua=%u err_ua=%d d_err_ua=%d pw=%u\n",
+  //      __func__, led_current_ch, goal_ua, if_ua, err_ua, d_err_ua, pw);
+  //}
+  led_pulse_width[led_current_ch] = pw;
+  TIM1_SetPulseWidth(led_current_ch, pw);
+}
+
+// 使用するアンプ倍率を決定し、対応する ADC チャンネルを選択
+void DetermineADCChForVR() {
+  ADC1->CTLR2 &= ~ADC_DMA;
+  uint16_t adc_vr = funAnalogRead(VR_AN);
+  ADC1->CTLR2 |= ADC_DMA;
+  //uint16_t adc_vr = 0;
+  if (adc_vr < 20) {
+    adc_current_ch = AMPx49_AN;
+  } else if (adc_vr < 200) {
+    adc_current_ch = AMPx5_AN;
+  } else {
+    adc_current_ch = VR_AN;
+  }
+  ADC1->RSQR3 = adc_current_ch;
+}
+
+int tim2_updated = 0;
 void TIM2_Updated(void) {
-  printf("TIM2: update\n");
+  ++tim2_updated;
+
+  ++led_current_ch;
+  if (led_current_ch == LED_NUM) {
+    led_current_ch = 0;
+  }
+  SelectLEDCh(led_current_ch);
+
+  DetermineADCChForVR();
+
   DMA1_Channel1->CNTR = DMA_CNT;
   ADC1_StartContinuousConv();
   adc_conv_start_tick = SysTick->CNT;
@@ -40,15 +160,36 @@ void DMA1_Channel1_Transferred(void) {
     adc_sum += adc_buf[i];
   }
   uint16_t adc_avg = adc_sum / DMA_CNT;
+  uint16_t if_ua;
+
+  switch (adc_current_ch) {
+  case AMPx49_AN:
+    // fall through
+  case AMPx5_AN:
+    // fall through
+  case VR_AN:
+    {
+      uint16_t if_ua = CalcIF(adc_avg, adc_current_ch);
+      UpdateLEDCurrent(if_ua);
+    }
+    break;
+  case VF_AN:
+    // something
+    break;
+  default:
+    assert(0);
+  }
+
   uint32_t adc_avg_end_tick = SysTick->CNT;
-  printf("DMA1_TC1: sum=%u avg=%u (%u ticks, %u ticks)\n",
-          adc_sum,
-          adc_avg,
-          adc_conv_end_tick - adc_conv_start_tick,
-          adc_avg_end_tick - adc_conv_end_tick);
+  //printf("DMA1_TC1: sum=%u avg=%u (%u ticks, %u ticks)\n",
+  //        adc_sum,
+  //        adc_avg,
+  //        adc_conv_end_tick - adc_conv_start_tick,
+  //        adc_avg_end_tick - adc_conv_end_tick);
 }
 
-void SelectCh(uint8_t ch) {
+void SelectLEDCh(uint8_t ch) {
+  led_current_ch = ch;
   funDigitalWrite(SEL1_PIN, ch & 1);
   funDigitalWrite(SEL2_PIN, (ch >> 1) & 1);
 }
@@ -90,7 +231,7 @@ int main() {
   //TIM2_InitForEncoder();
   //TIM2->CNT = 20;
 
-  SelectCh(0);
+  SelectLEDCh(0);
 
   // 出力 0 のときの ADC 値を下限とする
   uint16_t adc_min = 0;
@@ -102,18 +243,10 @@ int main() {
   }
   adc_min >>= 4;
 
-  printf("adc_min=%u\n", adc_min);
+  MeasureVCC();
 
-  uint16_t adc_vref = 0;
-  for (int i = 0; i < 16; ++i) {
-    adc_vref += funAnalogRead(ANALOG_8);
-  }
-  adc_vref >>= 4;
-  // Vref = 1.2V (typical)
-  // adc_vref/16 : ADC@Vcc = 1.2 : Vcc
-  // Vcc = 1.2 * ADC@Vcc / (adc_vref/16)
-  const uint16_t vcc_mv = (UINT32_C(1200) * (1 << ADC_BITS)) / adc_vref;
-  printf("adc_vref=%u Vcc=%d(mV)\n", adc_vref, vcc_mv);
+  printf("adc_min=%u\n", adc_min);
+  printf("Vcc=%d.%d(mV)\n", vcc_01mv / 10, vcc_01mv % 10);
 
   uint16_t prev_cnt = TIM2->CNT;
   uint32_t goal_ua = prev_cnt * 10;
@@ -131,14 +264,32 @@ int main() {
   ADC1->RSQR1 = 0; // 1 チャンネル
   ADC1->RSQR3 = AMPx49_AN;
 
-  TIM2_InitForSimpleTimer(48000, 1000); // 1s
+  TIM2_InitForSimpleTimer(48000, 10); // 1s
   TIM2->DMAINTENR |= TIM_IT_Update;
   NVIC_EnableIRQ(TIM2_IRQn);
+
+  goals_ua[0] = 100;
 
   printf("Starting TIM2\n");
   TIM2_Start();
 
-  while (1);
+  while (1) {
+    printf("goal=100\n");
+    goals_ua[0] = 100;
+    Delay_Ms(5000);
+    printf("goal=300\n");
+    goals_ua[0] = 300;
+    Delay_Ms(5000);
+    printf("goal=1000\n");
+    goals_ua[0] = 1000;
+    Delay_Ms(5000);
+    printf("goal=2000\n");
+    goals_ua[0] = 1000;
+    Delay_Ms(5000);
+    printf("goal=0\n");
+    goals_ua[0] = 0;
+    Delay_Ms(5000);
+  }
 
   /*
   while (1) {

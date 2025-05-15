@@ -36,6 +36,9 @@ void DMA1_InitForADC1(uint16_t* buf, uint16_t count, uint32_t it_en);
 
 void DMA1_Channel1_Transferred(void);
 
+
+#define ADC_BITS 10
+
 /*
  * ADC1 を DMA で動作させるための初期化を行う。
  *
