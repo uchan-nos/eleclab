@@ -21,8 +21,11 @@ static int16_t errors_ua[LED_NUM]; // 目標と現在の電流値の差
 static uint16_t led_pulse_width[LED_NUM]; // PWM パルス幅
 
 // VCC の電圧（0.1mV 単位。5V=50000）
-// ADC1_MeasureVCC() が設定する
+// MeasureVCC() が設定する
 uint16_t vcc_01mv;
+// PWM=0 のときの 49 倍アンプの出力値
+// MeasureGND() が設定する
+uint16_t adc_gnd_x49;
 
 #define SEL1_PIN PC0
 #define SEL2_PIN PC7
@@ -46,6 +49,7 @@ void __assert_func(const char *file, int line, const char *func, const char *exp
 
 // Vref を用いて VCC を測定する
 void MeasureVCC(void) {
+  funAnalogRead(ANALOG_8); // 1 回読み飛ばす
   uint16_t adc_vref = 0;
   for (int i = 0; i < 16; ++i) {
     adc_vref += funAnalogRead(ANALOG_8);
@@ -58,23 +62,37 @@ void MeasureVCC(void) {
   vcc_01mv = (UINT32_C(12000) << ADC_BITS) / adc_vref;
 }
 
+void MeasureGND(void) {
+  funAnalogRead(AMPx49_AN); // 1 回読み飛ばす
+  adc_gnd_x49 = UINT16_MAX;
+  for (int i = 0; i < 16; ++i) {
+    uint16_t adc = funAnalogRead(AMPx49_AN);
+    if (adc_gnd_x49 > adc) {
+      adc_gnd_x49 = adc;
+    }
+  }
+}
+
 // ADC の読み取り値から電流値（μA 単位）を計算する
 uint16_t CalcIF(uint16_t adc_vr, uint8_t adc_ch) {
-  uint32_t vr_01mv = ADC_TO_01MV(adc_vr);
-  uint32_t if_ua = (vr_01mv * 100) / CSR;
   switch (adc_ch) {
   case AMPx49_AN:
-    if_ua /= 49;
+    if (adc_vr >= adc_gnd_x49) {
+      adc_vr -= adc_gnd_x49;
+    } else {
+      adc_vr = 0;
+    }
+    return (ADC_TO_01MV(adc_vr) * 100) / CSR / 49;
     break;
   case AMPx5_AN:
-    if_ua = 49 * if_ua / 10;
+    return 49 * (ADC_TO_01MV(adc_vr) * 100) / CSR / 10;
     break;
   case VR_AN:
+    return (ADC_TO_01MV(adc_vr) * 100) / CSR;
     break;
   default:
     assert(0);
   }
-  return if_ua;
 }
 
 void UpdateLEDCurrent(uint16_t if_ua) {
@@ -270,25 +288,12 @@ int main() {
   TIM1_InitForPWM(0, 65535, 15, 0);
   TIM1->CH1CVR = 0;
   TIM1_Start();
-
-  //TIM2_InitForEncoder();
-  //TIM2->CNT = 20;
-
   SelectLEDCh(0);
-
-  // 出力 0 のときの ADC 値を下限とする
-  uint16_t adc_min = 0;
-  TIM1->CH1CVR = 0;
-  Delay_Ms(100);
-  for (int i = 0; i < 16; ++i) {
-    Delay_Ms(5);
-    adc_min += funAnalogRead(AMPx49_AN);
-  }
-  adc_min >>= 4;
-
+  Delay_Ms(1000);
   MeasureVCC();
+  MeasureGND();
 
-  printf("adc_min=%u\n", adc_min);
+  printf("adc_gnd_x49=%u\n", adc_gnd_x49);
   printf("Vcc=%d.%d(mV)\n", vcc_01mv / 10, vcc_01mv % 10);
 
   uint16_t prev_cnt = TIM2->CNT;
