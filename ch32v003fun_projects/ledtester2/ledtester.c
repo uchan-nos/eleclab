@@ -30,6 +30,7 @@ uint16_t vcc_01mv;
 #define AMPx49_AN ANALOG_7
 #define AMPx5_PIN PD6
 #define AMPx5_AN ANALOG_6
+#define VR_PIN PA2
 #define VR_AN ANALOG_0
 #define VF_AN ANALOG_5
 
@@ -119,12 +120,13 @@ void UpdateLEDCurrent(uint16_t if_ua) {
   TIM1_SetPulseWidth(led_current_ch, pw);
 }
 
+uint16_t adc_vrs[LED_NUM];
+
 // 使用するアンプ倍率を決定し、対応する ADC チャンネルを選択
 void DetermineADCChForVR() {
   ADC1->CTLR2 &= ~ADC_DMA;
+  funAnalogRead(VR_AN); // スイッチ切替直後は 1 回読み飛ばす必要がある
   uint16_t adc_vr = funAnalogRead(VR_AN);
-  ADC1->CTLR2 |= ADC_DMA;
-  //uint16_t adc_vr = 0;
   if (adc_vr < 20) {
     adc_current_ch = AMPx49_AN;
   } else if (adc_vr < 200) {
@@ -133,6 +135,12 @@ void DetermineADCChForVR() {
     adc_current_ch = VR_AN;
   }
   ADC1->RSQR3 = adc_current_ch;
+  //funAnalogRead(adc_current_ch); // スイッチ切替直後は 1 回読み飛ばす必要がある
+
+  ADC1->CTLR2 |= ADC_SWSTART;
+  while(!(ADC1->STATR & ADC_EOC));
+
+  ADC1->CTLR2 |= ADC_DMA;
 }
 
 int tim2_updated = 0;
@@ -144,6 +152,7 @@ void TIM2_Updated(void) {
     led_current_ch = 0;
   }
   SelectLEDCh(led_current_ch);
+  Delay_Ms(10);
 
   DetermineADCChForVR();
 
@@ -170,6 +179,7 @@ void DMA1_Channel1_Transferred(void) {
   case VR_AN:
     {
       uint16_t if_ua = CalcIF(adc_avg, adc_current_ch);
+      adc_vrs[led_current_ch] = adc_avg;
       UpdateLEDCurrent(if_ua);
     }
     break;
@@ -189,7 +199,6 @@ void DMA1_Channel1_Transferred(void) {
 }
 
 void SelectLEDCh(uint8_t ch) {
-  led_current_ch = ch;
   funDigitalWrite(SEL1_PIN, ch & 1);
   funDigitalWrite(SEL2_PIN, (ch >> 1) & 1);
 }
@@ -201,6 +210,29 @@ uint16_t LEDIfToPWM(uint32_t if_ua) {
 #define MAKE_ADC_SAMPTR(ch, sample_time) \
   ((sample_time) << (3 * (ch)))
 
+void EXTI7_0_IRQHandler(void) __attribute__((interrupt));
+void EXTI7_0_IRQHandler(void) {
+  static uint32_t last_enc_change_tick = 0;
+  uint32_t current_tick = SysTick->CNT;
+
+  uint16_t intfr = EXTI->INTFR;
+  if (intfr & EXTI_Line1) { // ENCA
+    if (last_enc_change_tick + 6000 <= current_tick) {
+      goals_ua[0] += funDigitalRead(PD3) ? 100 : -100; // ENCB
+      last_enc_change_tick = current_tick;
+    }
+  }
+  if (intfr & EXTI_Line2) { // Button
+    printf("goal_ua=%u err_ua=%d pw=%u adc_vr=[%u %u %u %u] pw=[%u %u %u %u]\n",
+            goals_ua[0],
+            errors_ua[0],
+            led_pulse_width[0],
+            adc_vrs[0], adc_vrs[1], adc_vrs[2], adc_vrs[3],
+            led_pulse_width[0], led_pulse_width[1], led_pulse_width[2], led_pulse_width[3]);
+  }
+  EXTI->INTFR = intfr;
+}
+
 int main() {
   SystemInit();
 
@@ -209,6 +241,7 @@ int main() {
 
   funPinMode(AMPx49_PIN, GPIO_CFGLR_IN_ANALOG);
   funPinMode(AMPx5_PIN, GPIO_CFGLR_IN_ANALOG);
+  funPinMode(VR_PIN, GPIO_CFGLR_IN_ANALOG);
   funPinMode(SEL1_PIN, GPIO_CFGLR_OUT_50Mhz_PP);
   funPinMode(SEL2_PIN, GPIO_CFGLR_OUT_50Mhz_PP);
   funPinMode(PD2, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH1
@@ -216,11 +249,21 @@ int main() {
   funPinMode(PC3, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH3
   funPinMode(PC4, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH4
 
-  AFIO->PCFR1 = AFIO_PCFR1_TIM2_REMAP_PARTIALREMAP2;
-  funPinMode(PC1, GPIO_CFGLR_IN_PUPD); // T2CH1_2
-  funPinMode(PD3, GPIO_CFGLR_IN_PUPD); // T2CH2_2
+  funPinMode(PC1, GPIO_CFGLR_IN_PUPD); // ENCA
+  funPinMode(PD3, GPIO_CFGLR_IN_PUPD); // ENCB
+  funPinMode(PC2, GPIO_CFGLR_IN_PUPD); // Button
   funDigitalWrite(PC1, 1); // pull up
   funDigitalWrite(PD3, 1); // pull up
+  funDigitalWrite(PC2, 1); // pull up
+
+  // ENCA と Button の変化で割り込み
+  AFIO->EXTICR = AFIO_EXTICR_EXTI1_PC | AFIO_EXTICR_EXTI2_PC;
+  EXTI->INTENR = EXTI_INTENR_MR1      | EXTI_INTENR_MR2;
+
+  // ENCA は立ち上がりエッジで、Button は両エッジで割り込み
+  EXTI->RTENR = EXTI_RTENR_TR2;
+  EXTI->FTENR = EXTI_RTENR_TR1 | EXTI_RTENR_TR2;
+  NVIC_EnableIRQ(EXTI7_0_IRQn);
 
   OPA1_Init(1, PD0, PA2);
 
@@ -268,27 +311,19 @@ int main() {
   TIM2->DMAINTENR |= TIM_IT_Update;
   NVIC_EnableIRQ(TIM2_IRQn);
 
-  goals_ua[0] = 100;
+  goals_ua[0] = 1000;
 
   printf("Starting TIM2\n");
   TIM2_Start();
 
+  uint16_t prev_goal = 0xffff;
   while (1) {
-    printf("goal=100\n");
-    goals_ua[0] = 100;
-    Delay_Ms(5000);
-    printf("goal=300\n");
-    goals_ua[0] = 300;
-    Delay_Ms(5000);
-    printf("goal=1000\n");
-    goals_ua[0] = 1000;
-    Delay_Ms(5000);
-    printf("goal=2000\n");
-    goals_ua[0] = 1000;
-    Delay_Ms(5000);
-    printf("goal=0\n");
-    goals_ua[0] = 0;
-    Delay_Ms(5000);
+    uint16_t goal = goals_ua[0];
+    if (prev_goal != goal) {
+      prev_goal = goal;
+      printf("new goal is %u uA\n", goal);
+    }
+    Delay_Ms(100);
   }
 
   /*
