@@ -20,9 +20,10 @@ static uint16_t goals_ua[LED_NUM]; // 制御目標の電流値（μA）
 static int16_t errors_ua[LED_NUM]; // 目標と現在の電流値の差
 static uint16_t led_pulse_width[LED_NUM]; // PWM パルス幅
 
-// VCC の電圧（0.1mV 単位。5V=50000）
+// VCC の電圧（μV 単位）
 // MeasureVCC() が設定する
-uint16_t vcc_01mv;
+uint32_t vcc_uv;
+
 // PWM=0 のときの 49 倍アンプの出力値
 // MeasureGND() が設定する
 uint16_t adc_gnd_x49;
@@ -37,8 +38,8 @@ uint16_t adc_gnd_x49;
 #define VR_AN ANALOG_0
 #define VF_AN ANALOG_5
 
-// ADC の読み取り値を 0.1mV 単位に変換する
-#define ADC_TO_01MV(adc) (((uint32_t)vcc_01mv * (adc)) >> ADC_BITS)
+// ADC の読み取り値を μV 単位に変換する
+#define ADC_TO_UV(adc) (((uint32_t)vcc_uv * (adc)) >> ADC_BITS)
 
 void __assert_func(const char *file, int line, const char *func, const char *expr) {
   printf("assertion failed inside %s (%s:%d): %s\n", func, file, line, expr);
@@ -54,12 +55,18 @@ void MeasureVCC(void) {
   for (int i = 0; i < 16; ++i) {
     adc_vref += funAnalogRead(ANALOG_8);
   }
-  adc_vref >>= 4;
+  //adc_vref >>= 4;
+
+  // ADC_BITS == 10
+  // adc_vref ~= 246 * 16
+  // bits(adc_vref) == 8 + 4
+  // bits(1200000) == 21
+  // bits(120000) == 17
 
   // Vref = 1.2V (typical)
   // adc_vref : ADC@Vcc = 1.2 : Vcc
   // Vcc = 1.2 * ADC@Vcc / adc_vref
-  vcc_01mv = (UINT32_C(12000) << ADC_BITS) / adc_vref;
+  vcc_uv = ((UINT32_C(120000) << (ADC_BITS + 4)) / adc_vref) * 10;
 }
 
 void MeasureGND(void) {
@@ -82,13 +89,13 @@ uint16_t CalcIF(uint16_t adc_vr, uint8_t adc_ch) {
     } else {
       adc_vr = 0;
     }
-    return (ADC_TO_01MV(adc_vr) * 100) / CSR / 49;
+    return ADC_TO_UV(adc_vr) / CSR / 49;
     break;
   case AMPx5_AN:
-    return 49 * (ADC_TO_01MV(adc_vr) * 100) / CSR / 10;
+    return 49 * ADC_TO_UV(adc_vr) / CSR / 10;
     break;
   case VR_AN:
-    return (ADC_TO_01MV(adc_vr) * 100) / CSR;
+    return ADC_TO_UV(adc_vr) / CSR;
     break;
   default:
     assert(0);
@@ -236,7 +243,7 @@ void EXTI7_0_IRQHandler(void) {
   uint16_t intfr = EXTI->INTFR;
   if (intfr & EXTI_Line1) { // ENCA
     if (last_enc_change_tick + 6000 <= current_tick) {
-      goals_ua[0] += funDigitalRead(PD3) ? 100 : -100; // ENCB
+      goals_ua[0] += funDigitalRead(PD3) ? 10 : -10; // ENCB
       last_enc_change_tick = current_tick;
     }
   }
@@ -294,7 +301,7 @@ int main() {
   MeasureGND();
 
   printf("adc_gnd_x49=%u\n", adc_gnd_x49);
-  printf("Vcc=%d.%d(mV)\n", vcc_01mv / 10, vcc_01mv % 10);
+  printf("Vcc=%d.%03d(mV)\n", vcc_uv / 1000, vcc_uv % 1000);
 
   uint16_t prev_cnt = TIM2->CNT;
   uint32_t goal_ua = prev_cnt * 10;
@@ -316,7 +323,7 @@ int main() {
   TIM2->DMAINTENR |= TIM_IT_Update;
   NVIC_EnableIRQ(TIM2_IRQn);
 
-  goals_ua[0] = 1000;
+  goals_ua[0] = 100;
 
   printf("Starting TIM2\n");
   TIM2_Start();
