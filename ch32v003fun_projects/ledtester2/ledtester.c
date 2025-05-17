@@ -92,7 +92,7 @@ uint16_t CalcIF(uint16_t adc_vr, uint8_t adc_ch) {
     return ADC_TO_UV(adc_vr) / CSR / 49;
     break;
   case AMPx5_AN:
-    return 49 * ADC_TO_UV(adc_vr) / CSR / 10;
+    return (10 * ADC_TO_UV(adc_vr) / CSR) / 49;
     break;
   case VR_AN:
     return ADC_TO_UV(adc_vr) / CSR;
