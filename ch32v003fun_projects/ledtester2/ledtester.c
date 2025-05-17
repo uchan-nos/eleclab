@@ -131,7 +131,8 @@ void UpdateLEDCurrent(uint16_t if_ua) {
    *            FLASH:        3008 B        16 KB     18.36%
    *              RAM:          24 B         2 KB      1.17%
    */
-  pw += (350 * (int32_t)err_ua >> 10) + (450 * (int32_t)d_err_ua >> 10);
+
+  pw += (2000 * (int32_t)err_ua >> 10) + (500 * (int32_t)d_err_ua >> 10);
 
   if (pw > 30000) {
     pw = 0;
