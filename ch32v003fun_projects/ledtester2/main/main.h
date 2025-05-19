@@ -63,12 +63,7 @@ void ADC1_StartContinuousConv();
  * pwctrl.c *
  ************/
 
-/*
- * 次の LED に制御を移す。次に制御対象となる LED の番号を返す。
- */
-uint8_t NextLED(void);
-
 uint16_t GetGoalCurrent(uint8_t led);
 void SetGoalCurrent(uint8_t led, uint16_t goal_ua);
 
-void UpdateLEDCurrent(uint16_t if_ua);
+uint16_t UpdateLEDCurrent(uint8_t led, uint16_t pw, uint16_t if_ua);

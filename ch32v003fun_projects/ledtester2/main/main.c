@@ -14,6 +14,8 @@
 #define CSR 50 // 電流検出抵抗（Current Sensing Resistor）
 static uint16_t adc_buf[DMA_CNT];
 static uint8_t adc_current_ch;
+static uint8_t led_current_ch;
+static uint16_t led_pulse_width[LED_NUM];
 
 // VCC の電圧（10μV 単位）
 // MeasureVCC() が設定する
@@ -133,7 +135,11 @@ int tim2_updated = 0;
 void TIM2_Updated(void) {
   ++tim2_updated;
 
-  SelectLEDCh(NextLED);
+  ++led_current_ch;
+  if (led_current_ch == LED_NUM) {
+    led_current_ch = 0;
+  }
+  SelectLEDCh(led_current_ch);
   Delay_Us(1);
 
   DetermineADCChForVR();
@@ -162,7 +168,10 @@ void DMA1_Channel1_Transferred(void) {
   case VR_AN:
     {
       uint16_t if_ua = CalcIF(adc_avg, adc_current_ch);
-      UpdateLEDCurrent(if_ua);
+      uint16_t pw = led_pulse_width[led_current_ch];
+      pw = UpdateLEDCurrent(led_current_ch, pw, if_ua);
+      led_pulse_width[led_current_ch] = pw;
+      TIM1_SetPulseWidth(led_current_ch, pw);
     }
     break;
   case VF_AN:
