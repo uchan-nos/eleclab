@@ -11,7 +11,7 @@
 #include "periph.h"
 
 #define DMA_CNT 32
-#define LED_NUM 1
+#define LED_NUM 4
 #define CSR 50 // 電流検出抵抗（Current Sensing Resistor）
 static uint16_t adc_buf[DMA_CNT];
 static uint32_t adc_conv_start_tick, adc_conv_end_tick;
@@ -20,12 +20,11 @@ static uint16_t goals_ua[LED_NUM]; // 制御目標の電流値（μA）
 static int16_t errors_ua[LED_NUM]; // 目標と現在の電流値の差
 static uint16_t led_pulse_width[LED_NUM]; // PWM パルス幅
 
-static uint32_t start_tick_measure_range;
 static uint8_t pw_fixed;
-static uint16_t if_ua_min, if_ua_max, pw_min, pw_max;
-static int16_t d_errors_ua[LED_NUM];
-static int16_t err_history[256];
-static uint8_t err_history_i;
+static uint16_t pw_fix_tick;
+static uint32_t pw_sum;
+//static uint16_t if_ua_min, if_ua_max;
+static uint16_t err_ua_max;
 
 // VCC の電圧（10μV 単位）
 // MeasureVCC() が設定する
@@ -123,11 +122,7 @@ void UpdateLEDCurrent(uint16_t if_ua) {
   int16_t err_ua = goal_ua - if_ua;
   int16_t prev_err_ua = errors_ua[led_current_ch];
   int16_t d_err_ua = err_ua - prev_err_ua;
-  int16_t prev_d_err_ua = d_errors_ua[led_current_ch];
   errors_ua[led_current_ch] = err_ua;
-  d_errors_ua[led_current_ch] = d_err_ua;
-
-  err_history[err_history_i++] = err_ua;
 
   uint16_t pw = led_pulse_width[led_current_ch];
   /*
@@ -173,35 +168,43 @@ void UpdateLEDCurrent(uint16_t if_ua) {
     pw = 0;
   }
 
-  if (start_tick_measure_range == 0 &&
-      ((err_ua > 0 && prev_err_ua < 0) || (err_ua < 0 && prev_err_ua > 0))) {
-    start_tick_measure_range = SysTick->CNT;
-    if_ua_min = if_ua;
-    if_ua_max = if_ua;
-    pw_min = pw;
-    pw_max = pw;
-    pw_fixed = 0;
-  } else if (start_tick_measure_range > 0) {
-    if (SysTick->CNT < start_tick_measure_range + 6000000)  {
-      if (prev_d_err_ua == 0 && d_err_ua == 0) {
-        // pass
-      } else if (prev_d_err_ua <= 0 && d_err_ua >= 0) {
-        pw_min = (pw + pw_min) >> 1;
-      } else if (prev_d_err_ua >= 0 && d_err_ua <= 0) {
-        pw_max = (pw + pw_max) >> 1;
-      }
+  if (led_current_ch == 0 && !pw_fixed) {
+    if ((pw_fix_tick & 0x3f) == 0) {
+      //if_ua_min = if_ua;
+      //if_ua_max = if_ua;
+      err_ua_max = 0;
+      pw_sum = 0;
     } else {
-      pw = (pw_min + pw_max) >> 1;
-      if (pw_fixed == 0) {
-        printf("pw fixed: %u (%u %u)\n", pw, pw_min, pw_max);
-        printf("err:");
-        for (int i = 0; i < 32; i++) {
-          uint8_t hist_i = err_history_i - 1 - i;
-          printf(" %d", err_history[hist_i]);
-        }
-        printf("\n");
+      //if (if_ua_min > if_ua) {
+      //  if_ua_min = if_ua;
+      //} else if (if_ua_max < if_ua) {
+      //  if_ua_max = if_ua;
+      //}
+      if (err_ua_max < abs(err_ua)) {
+        err_ua_max = abs(err_ua);
       }
+    }
+    pw_sum += pw;
+    ++pw_fix_tick;
+
+    // 0x40 ticks => 4ms * 0x40 == 256ms
+    if (pw_fix_tick >= 0x40 * 40) {
       pw_fixed = 1;
+    } else if ((pw_fix_tick & 0x3f) == 0) {
+      uint16_t tolerance = goals_ua[led_current_ch] >> 7;
+      if (tolerance < 4) {
+        tolerance = 4;
+      }
+      if (err_ua_max <= tolerance) {
+        pw_fixed = 1;
+      }
+    }
+
+    if (pw_fixed) {
+      pw = pw_sum >> 6;
+      //printf("pw fixed @%u: %u (%u %u)\n", pw_fix_tick, pw, if_ua_min, if_ua_max);
+      printf("pw fixed @%u: %u (%u)\n", pw_fix_tick, pw, err_ua_max);
+      pw_fix_tick = 0;
     }
   }
 
@@ -339,7 +342,7 @@ void EXTI7_0_IRQHandler(void) {
       }
       goals_ua[0] += funDigitalRead(PD3) ? diff_ua : -diff_ua; // ENCB
       last_enc_change_tick = current_tick;
-      start_tick_measure_range = 0;
+      pw_fixed = 0;
     }
   }
   if (intfr & EXTI_Line2) { // Button
