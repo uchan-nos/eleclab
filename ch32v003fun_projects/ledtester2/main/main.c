@@ -119,13 +119,7 @@ void DetermineADCChForVR() {
   } else {
     adc_current_ch = VR_AN;
   }
-  ADC1->RSQR3 = adc_current_ch;
   funAnalogRead(adc_current_ch); // スイッチ切替直後は 1 回読み飛ばす必要がある
-
-  /*
-  ADC1->CTLR2 |= ADC_SWSTART;
-  while(!(ADC1->STATR & ADC_EOC));
-  */
 
   ADC1->CTLR2 |= ADC_DMA;
 }
@@ -282,8 +276,6 @@ int main() {
     TIM1_SetPulseWidth(i, 5000);
   }
 
-  int settled = 0; // 定常状態になったら 1
-
   DMA1_InitForADC1(adc_buf, DMA_CNT, DMA_IT_TC);
   NVIC_EnableIRQ(DMA1_Channel1_IRQn);
 
@@ -299,28 +291,6 @@ int main() {
   TIM2->DMAINTENR |= TIM_IT_Update;
   NVIC_EnableIRQ(TIM2_IRQn);
 
-  /*
-  ADC1->CTLR2 &= ~ADC_DMA;
-  printf("testing AMPs\n");
-  for (uint16_t cvr = 6000; cvr < 10000; cvr += 100) {
-    TIM1->CH1CVR = cvr;
-    printf("CH1CVR=%5u: ", cvr);
-    Delay_Ms(500);
-    funAnalogRead(VR_AN);
-    uint16_t adc_vr = funAnalogRead(VR_AN);
-    funAnalogRead(AMPx49_AN);
-    uint16_t adc_x49 = funAnalogRead(AMPx49_AN);
-    funAnalogRead(AMPx5_AN);
-    uint16_t adc_x5 = funAnalogRead(AMPx5_AN);
-
-    printf("vr=%4u, x49=%4u (%5uuA), x5=%4u (%5uuA)\n",
-           adc_vr,
-           adc_x49, CalcIF(adc_x49, AMPx49_AN),
-           adc_x5, CalcIF(adc_x5, AMPx5_AN));
-  }
-  ADC1->CTLR2 |= ADC_DMA;
-  */
-
   printf("Starting TIM2\n");
   TIM2_Start();
 
@@ -333,48 +303,4 @@ int main() {
     }
     Delay_Ms(100);
   }
-
-  /*
-  while (1) {
-    Delay_Ms(20);
-    uint16_t cnt = TIM2->CNT;
-    if (prev_cnt != cnt) {
-      prev_cnt = cnt;
-      goal_ua = cnt * 10;
-      settled = 0;
-    } else if (settled) {
-      continue;
-    }
-
-    int adc = funAnalogRead(AMPx49_AN);
-    // adc/ADC@Vcc * Vcc = 49 * Vr
-    // Vr = If * 50
-    // If = Vr/50
-    //    = adc/ADC@Vcc * Vcc / (49 * 50)
-    //    = (adc * Vcc) / (ADC@Vcc * 49 * 50)
-    uint32_t if_ua = (adc * 5) * 100000 / ((1 << ADC_BITS) * 49 * 5);
-    int diff = goal_ua - if_ua;
-
-    if (diff < 0 && adc <= adc_min) {
-      printf("adc=%u adc_min=%d\n", adc, adc_min);
-      continue; // これ以上下がらない
-    }
-
-    uint16_t cvr = TIM1->CH1CVR;
-    if (diff < 0 && cvr < -diff) {
-      cvr = 0;
-    } else if (diff > 0 && cvr > 20000) {
-      cvr = 20000;
-    } else {
-      cvr += diff;
-    }
-    TIM1->CH1CVR = cvr;
-
-    if (abs(diff) == 0 && !settled) {
-      printf("settled. adc=%d diff=%d cvr=%u\n", adc, diff, cvr);
-      settled = 1;
-    }
-    //printf("adc=%d\n", adc);
-  }
-  */
 }
