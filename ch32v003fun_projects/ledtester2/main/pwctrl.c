@@ -12,6 +12,7 @@ static uint16_t pw_fix_tick;
 static uint32_t pw_sum;
 static uint16_t err_ua_max;
 
+static uint16_t prev_pw[LED_NUM];
 static uint16_t goals_ua[LED_NUM]; // 制御目標の電流値（μA）
 static int16_t errors_ua[LED_NUM]; // 目標と現在の電流値の差
 static uint8_t pw_fixed;
@@ -29,12 +30,14 @@ void SetGoalCurrent(uint8_t led, uint16_t goal_ua) {
   }
 }
 
-uint16_t UpdateLEDCurrent(uint8_t led, uint16_t pw, uint16_t if_ua) {
+uint16_t NextPW(uint8_t led, uint16_t if_ua) {
   uint16_t goal_ua = goals_ua[led];
   int16_t err_ua = goal_ua - if_ua;
   int16_t prev_err_ua = errors_ua[led];
   int16_t d_err_ua = err_ua - prev_err_ua;
   errors_ua[led] = err_ua;
+
+  uint16_t pw = prev_pw[led];
 
   /*
    * pw += 0.35 * err_ua + 0.45 * d_err_ua;
@@ -119,5 +122,6 @@ uint16_t UpdateLEDCurrent(uint8_t led, uint16_t pw, uint16_t if_ua) {
     }
   }
 
+  prev_pw[led] = pw;
   return pw;
 }

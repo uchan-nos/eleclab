@@ -15,7 +15,6 @@
 static uint16_t adc_buf[DMA_CNT];
 static uint8_t adc_current_ch;
 static uint8_t led;
-static uint16_t pw[LED_NUM];
 
 // VCC の電圧（10μV 単位）
 // MeasureVCC() が設定する
@@ -168,8 +167,8 @@ void DMA1_Channel1_Transferred(void) {
   case VR_AN:
     {
       uint16_t if_ua = CalcIF(adc_avg, adc_current_ch);
-      pw[led] = UpdateLEDCurrent(led, pw[led], if_ua);
-      TIM1_SetPulseWidth(led, pw[led]);
+      uint16_t pw = NextPW(led, if_ua);
+      TIM1_SetPulseWidth(led, pw);
     }
     break;
   case VF_AN:
