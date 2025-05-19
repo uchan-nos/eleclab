@@ -13,7 +13,6 @@
 #define DMA_CNT 32
 #define CSR 50 // 電流検出抵抗（Current Sensing Resistor）
 static uint16_t adc_buf[DMA_CNT];
-static uint32_t adc_conv_start_tick, adc_conv_end_tick;
 static uint8_t adc_current_ch;
 
 // VCC の電圧（10μV 単位）
@@ -141,14 +140,12 @@ void TIM2_Updated(void) {
 
   DMA1_Channel1->CNTR = DMA_CNT;
   ADC1_StartContinuousConv();
-  adc_conv_start_tick = SysTick->CNT;
 }
 
 void DMA1_Channel1_Transferred(void) {
   static uint8_t prev_adc_ch = 0;
   static uint16_t prev_if_ua = 0;
 
-  adc_conv_end_tick = SysTick->CNT;
   ADC1_StopContinuousConv();
   uint16_t adc_sum = 0;
   for (int i = 0; i < DMA_CNT; ++i) {
@@ -174,13 +171,6 @@ void DMA1_Channel1_Transferred(void) {
   default:
     assert(0);
   }
-
-  uint32_t adc_avg_end_tick = SysTick->CNT;
-  //printf("DMA1_TC1: sum=%u avg=%u (%u ticks, %u ticks)\n",
-  //        adc_sum,
-  //        adc_avg,
-  //        adc_conv_end_tick - adc_conv_start_tick,
-  //        adc_avg_end_tick - adc_conv_end_tick);
 }
 
 void SelectLEDCh(uint8_t ch) {
