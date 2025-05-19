@@ -16,11 +16,6 @@ static uint16_t adc_buf[DMA_CNT];
 static uint32_t adc_conv_start_tick, adc_conv_end_tick;
 static uint8_t adc_current_ch;
 
-uint8_t led_current_ch;
-uint16_t goals_ua[LED_NUM];
-int16_t errors_ua[LED_NUM];
-uint8_t pw_fixed;
-
 // VCC の電圧（10μV 単位）
 // MeasureVCC() が設定する
 uint32_t vcc_10uv;
@@ -112,8 +107,6 @@ uint16_t CalcIF(uint16_t adc_vr, uint8_t adc_ch) {
   }
 }
 
-uint16_t adc_vrs[LED_NUM];
-
 // 使用するアンプ倍率を決定し、対応する ADC チャンネルを選択
 void DetermineADCChForVR() {
   ADC1->CTLR2 &= ~ADC_DMA;
@@ -141,11 +134,7 @@ int tim2_updated = 0;
 void TIM2_Updated(void) {
   ++tim2_updated;
 
-  ++led_current_ch;
-  if (led_current_ch == LED_NUM) {
-    led_current_ch = 0;
-  }
-  SelectLEDCh(led_current_ch);
+  SelectLEDCh(NextLED);
   Delay_Us(1);
 
   DetermineADCChForVR();
@@ -176,14 +165,6 @@ void DMA1_Channel1_Transferred(void) {
   case VR_AN:
     {
       uint16_t if_ua = CalcIF(adc_avg, adc_current_ch);
-      //if (led_current_ch == 0) {
-      //  if (prev_adc_ch == AMPx49_AN && adc_current_ch == AMPx5_AN) {
-      //    printf("x49->x5 if:%u->%u\n", prev_if_ua, if_ua);
-      //  }
-      //  prev_adc_ch = adc_current_ch;
-      //  prev_if_ua = if_ua;
-      //}
-      adc_vrs[led_current_ch] = adc_avg;
       UpdateLEDCurrent(if_ua);
     }
     break;
@@ -223,31 +204,25 @@ void EXTI7_0_IRQHandler(void) {
   if (intfr & EXTI_Line1) { // ENCA
     if (last_enc_change_tick + 6000 <= current_tick) {
       int diff_ua = 1000;
-      if (goals_ua[0] < 100) {
+      uint16_t goal_ua = GetGoalCurrent(0);
+      if (goal_ua < 100) {
         diff_ua = 10;
-      } else if (goals_ua[0] < 200) {
+      } else if (goal_ua < 200) {
         diff_ua = 20;
-      } else if (goals_ua[0] < 500) {
+      } else if (goal_ua < 500) {
         diff_ua = 50;
-      } else if (goals_ua[0] < 1000) {
+      } else if (goal_ua < 1000) {
         diff_ua = 100;
-      } else if (goals_ua[0] < 2000) {
+      } else if (goal_ua < 2000) {
         diff_ua = 200;
-      } else if (goals_ua[0] < 5000) {
+      } else if (goal_ua < 5000) {
         diff_ua = 500;
       }
-      goals_ua[0] += funDigitalRead(PD3) ? diff_ua : -diff_ua; // ENCB
+      SetGoalCurrent(0, goal_ua + (funDigitalRead(PD3) ? diff_ua : -diff_ua)); // ENCB
       last_enc_change_tick = current_tick;
-      pw_fixed = 0;
     }
   }
   if (intfr & EXTI_Line2) { // Button
-    printf("goal_ua=%u err_ua=%d pw=%u adc_vr=[%u %u %u %u] pw=[%u %u %u %u]\n",
-            goals_ua[0],
-            errors_ua[0],
-            led_pulse_width[0],
-            adc_vrs[0], adc_vrs[1], adc_vrs[2], adc_vrs[3],
-            led_pulse_width[0], led_pulse_width[1], led_pulse_width[2], led_pulse_width[3]);
   }
   EXTI->INTFR = intfr;
 }
@@ -340,14 +315,14 @@ int main() {
   ADC1->CTLR2 |= ADC_DMA;
   */
 
-  goals_ua[0] = 30;
+  SetGoalCurrent(0, 30);
 
   printf("Starting TIM2\n");
   TIM2_Start();
 
   uint16_t prev_goal = 0xffff;
   while (1) {
-    uint16_t goal = goals_ua[0];
+    uint16_t goal = GetGoalCurrent(0);
     if (prev_goal != goal) {
       prev_goal = goal;
       printf("new goal is %u uA\n", goal);

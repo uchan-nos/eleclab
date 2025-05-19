@@ -8,11 +8,6 @@
 
 #define LED_NUM 4
 
-extern uint8_t led_current_ch;
-extern uint16_t goals_ua[LED_NUM]; // 制御目標の電流値（μA）
-extern int16_t errors_ua[LED_NUM]; // 目標と現在の電流値の差
-extern uint8_t pw_fixed;
-
 /************
  * periph.c *
  ************/
@@ -68,6 +63,12 @@ void ADC1_StartContinuousConv();
  * pwctrl.c *
  ************/
 
-extern uint16_t led_pulse_width[LED_NUM]; // PWM パルス幅
+/*
+ * 次の LED に制御を移す。次に制御対象となる LED の番号を返す。
+ */
+uint8_t NextLED(void);
+
+uint16_t GetGoalCurrent(uint8_t led);
+void SetGoalCurrent(uint8_t led, uint16_t goal_ua);
 
 void UpdateLEDCurrent(uint16_t if_ua);
