@@ -198,9 +198,10 @@ void EXTI7_0_IRQHandler(void) {
 
   uint16_t intfr = EXTI->INTFR;
   if (intfr & EXTI_Line1) { // ENCA
+    const int encb = funDigitalRead(PD3);
     if (last_enc_change_tick + 6000 <= current_tick) {
       int diff_ua = 1000;
-      uint16_t goal_ua = GetGoalCurrent(0);
+      int16_t goal_ua = GetGoalCurrent(0);
       if (goal_ua < 100) {
         diff_ua = 10;
       } else if (goal_ua < 200) {
@@ -214,7 +215,15 @@ void EXTI7_0_IRQHandler(void) {
       } else if (goal_ua < 5000) {
         diff_ua = 500;
       }
-      SetGoalCurrent(0, goal_ua + (funDigitalRead(PD3) ? diff_ua : -diff_ua)); // ENCB
+
+      goal_ua += encb ? diff_ua : -diff_ua;
+      if (goal_ua < 0) {
+        goal_ua = 0;
+      } else if (goal_ua > 20000) {
+        goal_ua = 20000;
+      }
+
+      SetGoalCurrent(0, goal_ua); // ENCB
       last_enc_change_tick = current_tick;
     }
   }
@@ -268,9 +277,10 @@ int main() {
   printf("adc_gnd: x5=%u x49=%u\n", adc_gnd_x5, adc_gnd_x49);
   printf("Vcc=%d.%02d(mV)\n", vcc_10uv / 100, vcc_10uv % 100);
 
-  uint16_t prev_cnt = TIM2->CNT;
-  uint32_t goal_ua = prev_cnt * 10;
-  TIM1->CH1CVR = LEDIfToPWM(goal_ua);
+  for (uint8_t i = 0; i < LED_NUM; ++i) {
+    SetGoalCurrent(i, 0);
+    TIM1_SetPulseWidth(i, 5000);
+  }
 
   int settled = 0; // 定常状態になったら 1
 
@@ -310,8 +320,6 @@ int main() {
   }
   ADC1->CTLR2 |= ADC_DMA;
   */
-
-  SetGoalCurrent(0, 30);
 
   printf("Starting TIM2\n");
   TIM2_Start();
