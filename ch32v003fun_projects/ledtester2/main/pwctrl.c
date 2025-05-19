@@ -6,11 +6,39 @@
 
 #include "main.h"
 
-uint16_t led_pulse_width[LED_NUM];
+#include <assert.h>
+
+static uint16_t led_pulse_width[LED_NUM];
 
 static uint16_t pw_fix_tick;
 static uint32_t pw_sum;
 static uint16_t err_ua_max;
+
+static uint8_t led_current_ch;
+static uint16_t goals_ua[LED_NUM]; // 制御目標の電流値（μA）
+static int16_t errors_ua[LED_NUM]; // 目標と現在の電流値の差
+static uint8_t pw_fixed;
+
+uint8_t NextLED(void) {
+  ++led_current_ch;
+  if (led_current_ch == LED_NUM) {
+    led_current_ch = 0;
+  }
+  return led_current_ch;
+}
+
+uint16_t GetGoalCurrent(uint8_t led) {
+  assert(led < LED_NUM);
+  return goals_ua[led];
+}
+
+void SetGoalCurrent(uint8_t led, uint16_t goal_ua) {
+  assert(led < LED_NUM);
+  if (goals_ua[led] != goal_ua) {
+    goals_ua[led] = goal_ua;
+    pw_fixed = 0;
+  }
+}
 
 void UpdateLEDCurrent(uint16_t if_ua) {
   uint16_t goal_ua = goals_ua[led_current_ch];
