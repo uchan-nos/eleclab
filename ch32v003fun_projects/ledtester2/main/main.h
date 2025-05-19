@@ -66,4 +66,11 @@ void ADC1_StartContinuousConv();
 uint16_t GetGoalCurrent(uint8_t led);
 void SetGoalCurrent(uint8_t led, uint16_t goal_ua);
 
-uint16_t UpdateLEDCurrent(uint8_t led, uint16_t pw, uint16_t if_ua);
+/*
+ * 次の PWM パルス幅を計算する
+ *
+ * @param led  計算対象の LED
+ * @param if_ua  現在の LED 電流（μA）
+ * @return 次の PWM パルス幅（0x0000 - 0xffff）
+ */
+uint16_t NextPW(uint8_t led, uint16_t if_ua);
