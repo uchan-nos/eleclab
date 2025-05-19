@@ -2,6 +2,21 @@
 
 #include <stdint.h>
 
+/************
+ ** main.c **
+ ************/
+
+#define LED_NUM 4
+
+extern uint8_t led_current_ch;
+extern uint16_t goals_ua[LED_NUM]; // 制御目標の電流値（μA）
+extern int16_t errors_ua[LED_NUM]; // 目標と現在の電流値の差
+extern uint8_t pw_fixed;
+
+/************
+ * periph.c *
+ ************/
+
 /*
  * @param psc  プリスケーラの設定値（0 => 1:1）
  * @param period  タイマ周期
@@ -48,3 +63,11 @@ void ADC1_InitForDMA(uint32_t trig);
 
 void ADC1_StopContinuousConv();
 void ADC1_StartContinuousConv();
+
+/************
+ * pwctrl.c *
+ ************/
+
+extern uint16_t led_pulse_width[LED_NUM]; // PWM パルス幅
+
+void UpdateLEDCurrent(uint16_t if_ua);
