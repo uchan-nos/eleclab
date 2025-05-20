@@ -25,6 +25,8 @@ uint32_t vcc_10uv;
 uint16_t adc_gnd_x5;
 uint16_t adc_gnd_x49;
 
+volatile uint32_t tick = 0;
+
 #define SEL1_PIN PC0
 #define SEL2_PIN PC7
 #define AMPx49_PIN PD4
@@ -34,6 +36,11 @@ uint16_t adc_gnd_x49;
 #define VR_PIN PA2
 #define VR_AN ANALOG_0
 #define VF_AN ANALOG_5
+#define ENCA_PIN PC1
+#define ENCA_EXTI_LINE EXTI_Line1
+#define ENCB_PIN PD3
+#define BTN_PIN PC2
+#define BTN_EXTI_LINE EXTI_Line2
 
 // ADC の読み取り値を 10μV 単位に変換する
 #define ADC_TO_10UV(adc) (((uint32_t)vcc_10uv * (adc)) >> ADC_BITS)
@@ -124,9 +131,13 @@ void DetermineADCChForVR() {
   ADC1->CTLR2 |= ADC_DMA;
 }
 
-int tim2_updated = 0;
 void TIM2_Updated(void) {
-  ++tim2_updated;
+  static uint8_t cnt = 0;
+  if (++cnt >= TICK_MS) {
+    cnt -= TICK_MS;
+    ++tick;
+    UpdateUI(tick);
+  }
 
   ++led;
   if (led == LED_NUM) {
@@ -191,8 +202,14 @@ void EXTI7_0_IRQHandler(void) {
   uint32_t current_tick = SysTick->CNT;
 
   uint16_t intfr = EXTI->INTFR;
-  if (intfr & EXTI_Line1) { // ENCA
-    const int encb = funDigitalRead(PD3);
+  if (intfr & ENCA_EXTI_LINE) { // ENCA
+    const int encb = funDigitalRead(ENCB_PIN);
+    if (encb) {
+      DialRotatedCW();
+    } else {
+      DialRotatedCCW();
+    }
+    /*
     if (last_enc_change_tick + 6000 <= current_tick) {
       int diff_ua = 1000;
       int16_t goal_ua = GetGoalCurrent(0);
@@ -220,8 +237,14 @@ void EXTI7_0_IRQHandler(void) {
       SetGoalCurrent(0, goal_ua); // ENCB
       last_enc_change_tick = current_tick;
     }
+    */
   }
-  if (intfr & EXTI_Line2) { // Button
+  if (intfr & BTN_EXTI_LINE) { // Button
+    if (funDigitalRead(BTN_PIN)) {
+      ButtonReleased(tick);
+    } else {
+      ButtonPressed(tick);
+    }
   }
   EXTI->INTFR = intfr;
 }
@@ -242,12 +265,12 @@ int main() {
   funPinMode(PC3, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH3
   funPinMode(PC4, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH4
 
-  funPinMode(PC1, GPIO_CFGLR_IN_PUPD); // ENCA
-  funPinMode(PD3, GPIO_CFGLR_IN_PUPD); // ENCB
-  funPinMode(PC2, GPIO_CFGLR_IN_PUPD); // Button
-  funDigitalWrite(PC1, 1); // pull up
-  funDigitalWrite(PD3, 1); // pull up
-  funDigitalWrite(PC2, 1); // pull up
+  funPinMode(ENCA_PIN, GPIO_CFGLR_IN_PUPD); // ENCA
+  funPinMode(ENCB_PIN, GPIO_CFGLR_IN_PUPD); // ENCB
+  funPinMode(BTN_PIN, GPIO_CFGLR_IN_PUPD); // Button
+  funDigitalWrite(ENCA_PIN, 1); // pull up
+  funDigitalWrite(ENCB_PIN, 1); // pull up
+  funDigitalWrite(BTN_PIN, 1); // pull up
 
   // ENCA と Button の変化で割り込み
   AFIO->EXTICR = AFIO_EXTICR_EXTI1_PC | AFIO_EXTICR_EXTI2_PC;
@@ -264,7 +287,10 @@ int main() {
   TIM1->CH1CVR = 0;
   TIM1_Start();
   SelectLEDCh(0);
-  Delay_Ms(1000);
+
+  InitUI();
+  Delay_Ms(800);
+
   MeasureVCC();
   MeasureGND();
 
@@ -287,7 +313,7 @@ int main() {
   ADC1->RSQR1 = 0; // 1 チャンネル
   ADC1->RSQR3 = AMPx49_AN;
 
-  TIM2_InitForSimpleTimer(48000, 1); // 1ms
+  TIM2_InitForSimpleTimer(48000, CTRL_PERIOD_MS); // 1ms
   TIM2->DMAINTENR |= TIM_IT_Update;
   NVIC_EnableIRQ(TIM2_IRQn);
 

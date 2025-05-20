@@ -8,6 +8,14 @@
 
 #define LED_NUM 4
 
+// LED 1 つあたりの制御周期
+// 特定の LED については LED_NUM 倍の時間間隔で制御される
+#define CTRL_PERIOD_MS 1
+
+#define TICK_MS 10
+
+extern volatile uint32_t tick;
+
 /************
  * periph.c *
  ************/
@@ -21,6 +29,14 @@
 void TIM1_InitForPWM(uint16_t psc, uint16_t period, uint8_t channels, int default_high);
 
 void TIM1_Start();
+
+/*
+ * TIM1 のパルス幅を設定する
+ *
+ * @param channel  設定対象のチャンネル（0～3）
+ * @param width  パルス幅（0～65535）
+ */
+void TIM1_SetPulseWidth(uint8_t channel, uint16_t width);
 
 /*
  * @param psc  プリスケーラの設定値（0 => 1:1）
@@ -59,12 +75,18 @@ void ADC1_InitForDMA(uint32_t trig);
 void ADC1_StopContinuousConv();
 void ADC1_StartContinuousConv();
 
+void LCD_ShowCursor();
+void LCD_HideCursor();
+void LCD_MoveCursor(int x, int y);
+void LCD_PutString(const char *s, int n);
+
 /************
  * pwctrl.c *
  ************/
 
 uint16_t GetGoalCurrent(uint8_t led);
 void SetGoalCurrent(uint8_t led, uint16_t goal_ua);
+void IncGoalCurrent(uint8_t led, int amount_ua);
 
 /*
  * 次の PWM パルス幅を計算する
@@ -74,3 +96,24 @@ void SetGoalCurrent(uint8_t led, uint16_t goal_ua);
  * @return 次の PWM パルス幅（0x0000 - 0xffff）
  */
 uint16_t NextPW(uint8_t led, uint16_t if_ua);
+
+/************
+ *** ui.c ***
+ ************/
+
+enum DispMode {
+  DM_MODESELECT,
+  DM_MULTI_CC,
+  DM_MULTI_CV,
+  DM_SINGLE_CC,
+  DM_SINGLE_CV,
+  DM_GLOBAL_CC,
+  DM_GLOBAL_CV,
+};
+
+void DialRotatedCW(void);
+void DialRotatedCCW(void);
+void ButtonPressed(uint32_t tick);
+void ButtonReleased(uint32_t tick);
+void InitUI();
+void UpdateUI(uint32_t tick);
