@@ -30,7 +30,20 @@ void SetGoalCurrent(uint8_t led, uint16_t goal_ua) {
   }
 }
 
+void IncGoalCurrent(uint8_t led, int amount_ua) {
+  assert(led < LED_NUM);
+  int32_t g = goals_ua[led] + amount_ua;
+  if (g > 20000) {
+    g = 20000;
+  } else if (g < 0) {
+    g = 0;
+  }
+  goals_ua[led] = g;
+}
+
 uint16_t NextPW(uint8_t led, uint16_t if_ua) {
+  assert(CTRL_PERIOD_MS == 1);
+
   uint16_t goal_ua = goals_ua[led];
   int16_t err_ua = goal_ua - if_ua;
   int16_t prev_err_ua = errors_ua[led];
@@ -116,8 +129,6 @@ uint16_t NextPW(uint8_t led, uint16_t if_ua) {
 
     if (pw_fixed) {
       pw = pw_sum >> 6;
-      //printf("pw fixed @%u: %u (%u %u)\n", pw_fix_tick, pw, if_ua_min, if_ua_max);
-      printf("pw fixed @%u: %u (%u)\n", pw_fix_tick, pw, err_ua_max);
       pw_fix_tick = 0;
     }
   }

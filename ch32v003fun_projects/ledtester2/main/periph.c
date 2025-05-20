@@ -195,3 +195,24 @@ void ADC1_StartContinuousConv() {
   ADC1->CTLR2 |= ADC_CONT;
   ADC1->CTLR2 |= ADC_SWSTART;
 }
+
+void LCD_ShowCursor() {
+  printf("show cursor\n");
+}
+
+void LCD_HideCursor() {
+  printf("hide cursor\n");
+}
+
+void LCD_MoveCursor(int x, int y) {
+  printf("move to %d,%d\n", x, y);
+}
+
+void LCD_PutString(const char *s, int n) {
+  printf("putstr: ");
+  for (int i = 0; i < n; ++i) {
+    putchar(s[i]);
+  }
+  putchar('\n');
+}
+
