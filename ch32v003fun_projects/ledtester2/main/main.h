@@ -117,3 +117,15 @@ void ButtonPressed(uint32_t tick);
 void ButtonReleased(uint32_t tick);
 void InitUI();
 void UpdateUI(uint32_t tick);
+
+/************
+ * queue.c **
+ ************/
+// 割り込みハンドラからメインスレッドへメッセージを伝えるキュー
+#define QUEUE_CAP 4
+typedef uint8_t QueueElemType;
+
+void Queue_Init(void);
+uint8_t Queue_IsEmpty(void);
+QueueElemType Queue_Pop(void);
+void Queue_Push(QueueElemType v);
