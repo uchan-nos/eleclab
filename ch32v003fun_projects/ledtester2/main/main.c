@@ -25,8 +25,6 @@ uint32_t vcc_10uv;
 uint16_t adc_gnd_x5;
 uint16_t adc_gnd_x49;
 
-volatile uint32_t tick = 0;
-
 #define SEL1_PIN PC0
 #define SEL2_PIN PC7
 #define AMPx49_PIN PD4
@@ -44,6 +42,13 @@ volatile uint32_t tick = 0;
 
 // ADC の読み取り値を 10μV 単位に変換する
 #define ADC_TO_10UV(adc) (((uint32_t)vcc_10uv * (adc)) >> ADC_BITS)
+
+// キューのメッセージ
+#define MSG_TICK 0x00
+#define MSG_CW   0x10
+#define MSG_CCW  0x11
+#define MSG_PRS  0x12
+#define MSG_REL  0x13
 
 void __assert_func(const char *file, int line, const char *func, const char *expr) {
   printf("assertion failed inside %s (%s:%d): %s\n", func, file, line, expr);
@@ -133,10 +138,10 @@ void DetermineADCChForVR() {
 
 void TIM2_Updated(void) {
   static uint8_t cnt = 0;
-  if (++cnt >= TICK_MS) {
+  cnt += CTRL_PERIOD_MS;
+  if (cnt >= TICK_MS) {
     cnt -= TICK_MS;
-    ++tick;
-    UpdateUI(tick);
+    Queue_Push(MSG_TICK);
   }
 
   ++led;
@@ -162,7 +167,6 @@ void DMA1_Channel1_Transferred(void) {
     adc_sum += adc_buf[i];
   }
   uint16_t adc_avg = adc_sum / DMA_CNT;
-  uint16_t if_ua;
 
   switch (adc_current_ch) {
   case AMPx49_AN:
@@ -204,47 +208,11 @@ void EXTI7_0_IRQHandler(void) {
   uint16_t intfr = EXTI->INTFR;
   if (intfr & ENCA_EXTI_LINE) { // ENCA
     const int encb = funDigitalRead(ENCB_PIN);
-    if (encb) {
-      DialRotatedCW();
-    } else {
-      DialRotatedCCW();
-    }
-    /*
-    if (last_enc_change_tick + 6000 <= current_tick) {
-      int diff_ua = 1000;
-      int16_t goal_ua = GetGoalCurrent(0);
-      if (goal_ua < 100) {
-        diff_ua = 10;
-      } else if (goal_ua < 200) {
-        diff_ua = 20;
-      } else if (goal_ua < 500) {
-        diff_ua = 50;
-      } else if (goal_ua < 1000) {
-        diff_ua = 100;
-      } else if (goal_ua < 2000) {
-        diff_ua = 200;
-      } else if (goal_ua < 5000) {
-        diff_ua = 500;
-      }
-
-      goal_ua += encb ? diff_ua : -diff_ua;
-      if (goal_ua < 0) {
-        goal_ua = 0;
-      } else if (goal_ua > 20000) {
-        goal_ua = 20000;
-      }
-
-      SetGoalCurrent(0, goal_ua); // ENCB
-      last_enc_change_tick = current_tick;
-    }
-    */
+    Queue_Push(MSG_CW + (encb ? 0 : 1));
   }
   if (intfr & BTN_EXTI_LINE) { // Button
-    if (funDigitalRead(BTN_PIN)) {
-      ButtonReleased(tick);
-    } else {
-      ButtonPressed(tick);
-    }
+    const int btn = funDigitalRead(BTN_PIN);
+    Queue_Push(MSG_PRS + btn);
   }
   EXTI->INTFR = intfr;
 }
@@ -321,12 +289,40 @@ int main() {
   TIM2_Start();
 
   uint16_t prev_goal = 0xffff;
+  uint32_t tick = 0;
   while (1) {
-    uint16_t goal = GetGoalCurrent(0);
-    if (prev_goal != goal) {
-      prev_goal = goal;
-      printf("new goal is %u uA\n", goal);
+    __disable_irq();
+    if (Queue_IsEmpty()) {
+      __enable_irq();
+      continue;
     }
-    Delay_Ms(100);
+    QueueElemType msg = Queue_Pop();
+    __enable_irq();
+
+    switch (msg) {
+    case MSG_TICK:
+      ++tick;
+      UpdateUI(tick);
+      if ((tick & 15) == 0) {
+        uint16_t goal = GetGoalCurrent(0);
+        if (prev_goal != goal) {
+          prev_goal = goal;
+          printf("new goal is %u uA\n", goal);
+        }
+      }
+      break;
+    case MSG_CW:
+      DialRotatedCW();
+      break;
+    case MSG_CCW:
+      DialRotatedCCW();
+      break;
+    case MSG_PRS:
+      ButtonPressed(tick);
+      break;
+    case MSG_REL:
+      ButtonReleased(tick);
+      break;
+    }
   }
 }
