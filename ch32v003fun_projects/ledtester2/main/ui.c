@@ -6,6 +6,7 @@
 #include "main.h"
 
 #include <assert.h>
+#include <stdio.h>
 
 #define LONG_PRESS_TICK (500 / TICK_MS)
 
