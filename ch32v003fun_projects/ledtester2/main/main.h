@@ -14,7 +14,19 @@
 
 #define TICK_MS 10
 
-extern volatile uint32_t tick;
+#define INC_MOD(var, modulo) \
+  do {\
+    if (++var >= modulo) {\
+      var = 0;\
+    }\
+  } while (0)
+
+#define DEC_MOD(var, modulo) \
+  do {\
+    if (--var >= modulo) {\
+      var = modulo - 1;\
+    }\
+  } while (0)
 
 /************
  * periph.c *
@@ -79,6 +91,9 @@ void LCD_ShowCursor();
 void LCD_HideCursor();
 void LCD_MoveCursor(int x, int y);
 void LCD_PutString(const char *s, int n);
+void LCD_PutSpaces(int n);
+
+uint16_t GetVF(uint8_t led);
 
 /************
  * pwctrl.c *
