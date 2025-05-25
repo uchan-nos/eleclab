@@ -2,6 +2,7 @@
 
 #include "ch32fun.h"
 #include <assert.h>
+#include <stdio.h>
 
 void TIM1_InitForPWM(uint16_t psc, uint16_t period, uint8_t channels, int default_high) {
   // TIM1 を有効化
@@ -197,22 +198,223 @@ void ADC1_StartContinuousConv() {
 }
 
 void LCD_ShowCursor() {
-  printf("show cursor\n");
+  uint8_t cmd = LCD_SHOW_CURSOR;
+  I2C1_Send(LCD_I2C_ADDR, &cmd, 1);
 }
 
 void LCD_HideCursor() {
-  printf("hide cursor\n");
+  uint8_t cmd = LCD_HIDE_CURSOR;
+  TIM1_SetPulseWidth(0, 0x00FF);
+  Delay_Ms(2);
+  if (I2C1_Send(LCD_I2C_ADDR, &cmd, 1) == 0) {
+    TIM1_SetPulseWidth(0, 0xFF00);
+  } else {
+    TIM1_SetPulseWidth(0, 0x7FFF);
+  }
 }
 
 void LCD_MoveCursor(int x, int y) {
-  printf("move to %d,%d\n", x, y);
+  uint8_t cmd[2] = {LCD_MOVE_CURSOR, (y << 6) | (x & 0x3f)};
+  I2C1_Send(LCD_I2C_ADDR, cmd, 2);
 }
 
 void LCD_PutString(const char *s, int n) {
-  printf("putstr: ");
-  for (int i = 0; i < n; ++i) {
-    putchar(s[i]);
-  }
-  putchar('\n');
+  uint8_t cmd[33];
+  n &= 0x1f;
+  cmd[0] = LCD_PUT_STRING | n;
+  strncpy(cmd + 1, s, n);
+  I2C1_Send(LCD_I2C_ADDR, cmd, n + 1);
 }
 
+void LCD_PutSpaces(int n) {
+  uint8_t cmd[2] = {LCD_PUT_SPACES, n};
+  I2C1_Send(LCD_I2C_ADDR, cmd, 2);
+}
+
+static volatile vfs_mv[LED_NUM];
+
+uint16_t GetVF(uint8_t led) {
+  return vfs_mv[led];
+}
+
+void I2C1_Init(void) {
+  uint16_t tempreg;
+
+  // I2C を有効化
+  RCC->APB1PCENR |= RCC_APB1Periph_I2C1;
+
+  // I2C1 をリセット
+  RCC->APB1PRSTR |= RCC_APB1Periph_I2C1;
+  RCC->APB1PRSTR &= ~RCC_APB1Periph_I2C1;
+
+  // I2C モジュールのクロックを設定
+  I2C1->CTLR2 = (FUNCONF_SYSTEM_CORE_CLOCK/I2C_PRERATE) & I2C_CTLR2_FREQ;
+
+  // I2C 通信速度を設定
+#if (I2C_CLKRATE <= 100000)
+  // 標準モード（<=100kHz）
+  tempreg = (FUNCONF_SYSTEM_CORE_CLOCK/(2*I2C_CLKRATE)) & I2C_CKCFGR_CCR;
+#else
+  // 高速モード（>100kHz）
+#  ifdef I2C_DUTY_16_9
+  tempreg = (FUNCONF_SYSTEM_CORE_CLOCK/(25*I2C_CLKRATE)) & I2C_CKCFGR_CCR;
+  tempreg |= I2C_CKCFGR_DUTY;
+#  else
+  // 33.3% duty cycle
+  tempreg = (FUNCONF_SYSTEM_CORE_CLOCK/(3*I2C_CLKRATE)) & I2C_CKCFGR_CCR;
+#  endif
+  tempreg |= I2C_CKCFGR_FS;
+#endif
+  I2C1->CKCFGR = tempreg;
+
+  // I2C1 モジュールを有効化
+  I2C1->CTLR1 |= I2C_CTLR1_PE;
+
+  // ACK 応答を有効化（PE=1 にした後に設定しなければならない）
+  I2C1->CTLR1 |= I2C_CTLR1_ACK;
+}
+
+// I2C エラー定義
+enum I2cErrors {
+  I2CERR_NOT_BUSY,
+  I2CERR_MASTER_MODE,
+  I2CERR_TRANSMIT_MODE,
+  I2CERR_TX_EMPTY,
+  I2CERR_BYTE_TRANSMITTED,
+  I2CERR_BYTE_RECEIVED,
+  I2CERR_RECEIVE_MODE,
+};
+char *i2c_error_strings[] = {
+  "not busy",
+  "master mode",
+  "transmit mode",
+  "tx empty",
+  "byte transmitted",
+  "byte received",
+  "receive mode",
+};
+
+// I2C エラー表示
+int I2cError(enum I2cErrors err) {
+  printf("I2cError: timeout waiting for %s\n\r", i2c_error_strings[err]);
+  I2C1_Init(); // I2C をリセット
+  return 1;
+}
+
+uint32_t I2cReadStatus() {
+  // STAR1 を STAR2 より先に読み出す必要がある
+  uint32_t status = I2C1->STAR1;
+  status |= I2C1->STAR2 << 16;
+  return status;
+}
+
+// 最後に発生したイベントが引数で指定されたものであれば真を返す。
+int I2cCheckEvent(uint32_t event) {
+  return (I2cReadStatus() & event) == event;
+}
+
+// ビジー状態が終わるのを待つ。
+int I2cWaitBusy() {
+  int timeout = I2C_TIMEOUT_MAX;
+  while ((I2C1->STAR2 & I2C_STAR2_BUSY) && timeout--);
+  return timeout;
+}
+
+// イベント成立を待つ。成立時のタイムアウト値を返す。
+int I2cWaitEvent(uint32_t event) {
+  int timeout = I2C_TIMEOUT_MAX;
+  while ((!I2cCheckEvent(event)) && timeout--);
+  return timeout;
+}
+
+// I2C バスへパケットを送る（割り込みを使わずブロッキングモード）
+int I2C1_Send(uint8_t addr, uint8_t *data, uint8_t sz) {
+  //printf("I2C1_Send: 0=%02X sz=%u\n", data[0], sz);
+  uint32_t start_tick = SysTick->CNT;
+  if (I2cWaitBusy() == -1) {
+    return I2cError(I2CERR_NOT_BUSY);
+  }
+
+  uint32_t sb_tick = SysTick->CNT;
+  //printf("sb\n");
+  // スタートビットを送る
+  I2C1->CTLR1 |= I2C_CTLR1_START;
+  if (I2cWaitEvent(I2C_EVENT_MASTER_MODE_SELECT) == -1) {
+    return I2cError(I2CERR_MASTER_MODE);
+  }
+
+  uint32_t addr_tick = SysTick->CNT;
+  //printf("addr\n");
+  // 7 ビットアドレスと write フラグを送る
+  I2C1->DATAR = addr<<1;
+  if (I2cWaitEvent(I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED) == -1) {
+    return I2cError(I2CERR_TRANSMIT_MODE);
+  }
+
+  uint32_t data_tick = SysTick->CNT;
+  uint32_t datar_tick = 0, event_received_tick = 0;
+  // 1 バイトずつ送信
+  while (sz--) {
+    I2C1->DATAR = *data++;
+    datar_tick = SysTick->CNT;
+    //if (I2cWaitEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTED) == -1) {
+    //  return I2cError(I2CERR_BYTE_TRANSMITTED);
+    //}
+    int timeout = 100000;
+    uint32_t status;
+    while ((status = I2cReadStatus()) != I2C_EVENT_MASTER_BYTE_TRANSMITTED) {
+      if ((timeout & 0xff) == 0) {
+        printf("%08X!=%08X\n", status, I2C_EVENT_MASTER_BYTE_TRANSMITTED);
+      }
+      if (timeout-- == 0) {
+        return I2cError(I2CERR_BYTE_TRANSMITTED);
+      }
+    }
+    event_received_tick = SysTick->CNT;
+  }
+
+  uint32_t stop_tick = SysTick->CNT;
+  //printf("stp\n");
+  // ストップビットを送る
+  I2C1->CTLR1 |= I2C_CTLR1_STOP;
+
+  //printf("%lu %lu %lu %lu %lu %lu\n",
+  //       sb_tick - start_tick,
+  //       addr_tick - sb_tick,
+  //       data_tick - addr_tick,
+  //       datar_tick - data_tick,
+  //       event_received_tick - datar_tick,
+  //       stop_tick - event_received_tick);
+  return 0;
+}
+
+// I2C バスからパケットを受け取る（割り込みを使わずブロッキングモード）
+uint8_t I2C1_Recv(uint8_t addr, uint8_t *data, uint8_t sz) {
+  if (I2cWaitBusy() == -1) {
+    return I2cError(I2CERR_NOT_BUSY);
+  }
+
+  // スタートビットを送る
+  I2C1->CTLR1 |= I2C_CTLR1_START;
+  if (I2cWaitEvent(I2C_EVENT_MASTER_MODE_SELECT) == -1) {
+    return I2cError(I2CERR_MASTER_MODE);
+  }
+
+  // 7 ビットアドレスと read フラグを送る
+  I2C1->DATAR = addr<<1 | 1;
+  if (I2cWaitEvent(I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED) == -1) {
+    return I2cError(I2CERR_RECEIVE_MODE);
+  }
+
+  // 1 バイトずつ受信
+  while (sz--) {
+    if (I2cWaitEvent(I2C_EVENT_MASTER_BYTE_RECEIVED) == -1) {
+      return I2cError(I2CERR_BYTE_RECEIVED);
+    }
+    *data++ = I2C1->DATAR;
+  }
+
+  // ストップビットを送る
+  I2C1->CTLR1 |= I2C_CTLR1_STOP;
+  return 0;
+}

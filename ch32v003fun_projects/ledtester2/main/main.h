@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "../common.h"
 
 /************
  ** main.c **
@@ -94,6 +95,10 @@ void LCD_PutString(const char *s, int n);
 void LCD_PutSpaces(int n);
 
 uint16_t GetVF(uint8_t led);
+
+void I2C1_Init(void);
+int I2C1_Send(uint8_t addr, uint8_t *data, uint8_t sz);
+uint8_t I2C1_Recv(uint8_t addr, uint8_t *data, uint8_t sz);
 
 /************
  * pwctrl.c *

@@ -40,6 +40,10 @@ uint16_t adc_gnd_x49;
 #define BTN_PIN PC2
 #define BTN_EXTI_LINE EXTI_Line2
 
+#define I2C_REMAP GPIO_FullRemap_I2C1
+#define SCL_PIN PC5
+#define SDA_PIN PC6
+
 // ADC の読み取り値を 10μV 単位に変換する
 #define ADC_TO_10UV(adc) (((uint32_t)vcc_10uv * (adc)) >> ADC_BITS)
 
@@ -223,6 +227,8 @@ int main() {
   funAnalogInit();
   funGpioInitAll();
 
+  AFIO->PCFR1 |= I2C_REMAP;
+
   funPinMode(AMPx49_PIN, GPIO_CFGLR_IN_ANALOG);
   funPinMode(AMPx5_PIN, GPIO_CFGLR_IN_ANALOG);
   funPinMode(VR_PIN, GPIO_CFGLR_IN_ANALOG);
@@ -232,6 +238,11 @@ int main() {
   funPinMode(PA1, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH2
   funPinMode(PC3, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH3
   funPinMode(PC4, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH4
+
+  funDigitalWrite(SCL_PIN, 1);
+  funDigitalWrite(SDA_PIN, 1);
+  funPinMode(SCL_PIN, GPIO_CFGLR_OUT_50Mhz_AF_OD);
+  funPinMode(SDA_PIN, GPIO_CFGLR_OUT_50Mhz_AF_OD);
 
   funPinMode(ENCA_PIN, GPIO_CFGLR_IN_PUPD); // ENCA
   funPinMode(ENCB_PIN, GPIO_CFGLR_IN_PUPD); // ENCB
@@ -256,7 +267,7 @@ int main() {
   TIM1_Start();
   SelectLEDCh(0);
 
-  InitUI();
+  I2C1_Init();
   Delay_Ms(800);
 
   MeasureVCC();
@@ -264,6 +275,8 @@ int main() {
 
   printf("adc_gnd: x5=%u x49=%u\n", adc_gnd_x5, adc_gnd_x49);
   printf("Vcc=%d.%02d(mV)\n", vcc_10uv / 100, vcc_10uv % 100);
+
+  InitUI();
 
   for (uint8_t i = 0; i < LED_NUM; ++i) {
     SetGoalCurrent(i, 0);

@@ -16,7 +16,7 @@ static uint8_t rp = 0, wp = 0, free = QUEUE_CAP;
   } while (0)
 
 uint8_t Queue_IsEmpty(void) {
-  return free > 0;
+  return free == QUEUE_CAP;
 }
 
 QueueElemType Queue_Pop(void) {
