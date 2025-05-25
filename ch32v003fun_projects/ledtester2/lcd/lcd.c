@@ -5,6 +5,76 @@
  */
 #include "ch32fun.h"
 #include <assert.h>
+#include <stddef.h>
+
+#include "../common.h"
+
+#define QUEUE_CAP 8
+#define MK_I2C 1
+
+struct Message {
+  uint8_t kind;
+  union {
+    struct {
+      uint8_t cmd;
+      uint8_t argc;
+      uint8_t argv[32];
+    } i2c;
+  };
+};
+
+static struct Message queue[QUEUE_CAP];
+static volatile uint8_t rp = 0, wp = 0, free = QUEUE_CAP;
+
+#define INC_PTR(p) \
+  do {\
+    if (++p >= QUEUE_CAP) {\
+      p = 0;\
+    }\
+  } while (0)
+
+uint8_t Queue_IsEmpty(void) {
+  return free == QUEUE_CAP;
+}
+
+struct Message *Queue_Front(void) {
+  if (free < QUEUE_CAP) {
+    return queue + rp;
+  }
+  return NULL;
+}
+
+void Queue_Pop(void) {
+  if (free < QUEUE_CAP) {
+    INC_PTR(rp);
+    ++free;
+  }
+}
+
+struct Message *Queue_Bottom(void) {
+  if (free > 0) {
+    return queue + wp;
+  }
+  return NULL;
+}
+
+void Queue_Push(void) {
+  if (free > 0) {
+    INC_PTR(wp);
+    --free;
+  }
+}
+
+#define SCL_PIN PC2
+#define SDA_PIN PC1
+
+#define LCD_E   PD0
+#define LCD_RS  PC0
+#define LCD_RW  PC3
+#define LCD_DB4 PC4
+#define LCD_DB5 PC5
+#define LCD_DB6 PC6
+#define LCD_DB7 PC7
 
 void OPA1_Init(int enable, int neg_pin, int pos_pin) {
   assert(neg_pin == PA1 || neg_pin == PD0);
@@ -17,6 +87,197 @@ void OPA1_Init(int enable, int neg_pin, int pos_pin) {
   EXTEN->EXTEN_CTR = ctr;
 }
 
+void I2C1_InitAsSlave(uint8_t addr7) {
+  uint16_t tempreg;
+
+  // I2C を有効化
+  RCC->APB1PCENR |= RCC_APB1Periph_I2C1;
+
+  // I2C1 をリセット
+  RCC->APB1PRSTR |= RCC_APB1Periph_I2C1;
+  RCC->APB1PRSTR &= ~RCC_APB1Periph_I2C1;
+
+  I2C1->CTLR1 |= I2C_CTLR1_SWRST;
+  I2C1->CTLR1 &= ~I2C_CTLR1_SWRST;
+
+  // I2C モジュールのクロックを設定
+  I2C1->CTLR2 = (FUNCONF_SYSTEM_CORE_CLOCK/I2C_PRERATE) & I2C_CTLR2_FREQ;
+
+  // I2C 通信速度を設定
+#if (I2C_CLKRATE <= 100000)
+  // 標準モード（<=100kHz）
+  tempreg = (FUNCONF_SYSTEM_CORE_CLOCK/(2*I2C_CLKRATE)) & I2C_CKCFGR_CCR;
+#else
+  // 高速モード（>100kHz）
+#  ifdef I2C_DUTY_16_9
+  tempreg = (FUNCONF_SYSTEM_CORE_CLOCK/(25*I2C_CLKRATE)) & I2C_CKCFGR_CCR;
+  tempreg |= I2C_CKCFGR_DUTY;
+#  else
+  // 33.3% duty cycle
+  tempreg = (FUNCONF_SYSTEM_CORE_CLOCK/(3*I2C_CLKRATE)) & I2C_CKCFGR_CCR;
+#  endif
+  tempreg |= I2C_CKCFGR_FS;
+#endif
+  I2C1->CKCFGR = tempreg;
+
+  // アドレスを設定
+  I2C1->OADDR1 = addr7 << 1;
+
+  // I2C1 モジュールを有効化
+  I2C1->CTLR1 |= I2C_CTLR1_PE;
+
+  // ACK 応答を有効化（PE=1 にした後に設定しなければならない）
+  I2C1->CTLR1 |= I2C_CTLR1_ACK;
+}
+
+uint32_t I2C1_ReadStatus() {
+  // STAR1 を STAR2 より先に読み出す必要がある
+  uint32_t status = I2C1->STAR1;
+  status |= I2C1->STAR2 << 16;
+  return status;
+}
+
+enum I2CState {
+  IS_IDLE, // 受信開始待ち
+  IS_CMD,  // コマンドバイトの受信待ち
+  IS_ARG,  // 引数の受信待ち
+};
+
+static enum I2CState i2c_state;
+static uint8_t i2c_cmd, i2c_argc, i2c_argi;
+static uint8_t i2c_argv[32];
+
+void I2C1_EV_IRQHandler(void) __attribute__((interrupt));
+void I2C1_EV_IRQHandler(void) {
+  uint32_t status = I2C1_ReadStatus();
+
+  printf("%08X\n", status);
+  //uint8_t c =
+  //  ((status & I2C_FLAG_ADDR) ? 0x01 : 0x00) |
+  //  ((status & I2C_FLAG_STOPF) ? 0x02 : 0x00) |
+  //  ((status & I2C_FLAG_RXNE) ? 0x04 : 0x00);
+  //lcd_putc(c + '0');
+
+  if (status & I2C_IT_ADDR) { // アドレスバイトを受信した
+    i2c_state = IS_CMD;
+    //printf("addr ");
+  }
+
+  if (status & I2C_IT_RXNE) { // データバイトを受信
+    //printf("rxne ");
+    if (i2c_state == IS_IDLE || i2c_state == IS_CMD) {
+      //printf("cmd ");
+      i2c_cmd = I2C1->DATAR;
+      i2c_argi = 0;
+
+      if ((i2c_cmd & 0xF0) == 0x00) {
+        i2c_argc = 0;
+      } else if ((i2c_cmd & 0xF0) == 0x10) {
+        i2c_argc = 1;
+      } else if ((i2c_cmd & 0xF0) == 0x20) {
+        i2c_argc = i2c_cmd & 0x1F;
+      }
+
+      if (i2c_argc == 0) {
+        i2c_state = IS_IDLE;
+      } else {
+        i2c_state = IS_ARG;
+      }
+    } else if (i2c_state == IS_ARG) {
+      //printf("arg ");
+      i2c_argv[i2c_argi++] = I2C1->DATAR;
+      if (i2c_argi == i2c_argc) {
+        i2c_state = IS_IDLE;
+      }
+    } else {
+      printf("I2C_IT_RXNE: unexpected i2c_state=%d\n", i2c_state);
+    }
+
+    if (i2c_state == IS_IDLE) {
+      printf("push\n");
+      struct Message *msg = Queue_Bottom();
+      if (msg) {
+        msg->kind = MK_I2C;
+        msg->i2c.cmd = i2c_cmd;
+        msg->i2c.argc = i2c_argc;
+        memcpy(msg->i2c.argv, i2c_argv, sizeof(msg->i2c.argv));
+        Queue_Push();
+      }
+    }
+  }
+
+  if (status & I2C_IT_STOPF) { // ストップビットを受信
+    //printf("stop ");
+    I2C1->CTLR1 &= ~(I2C_CTLR1_STOP); // ストップビットをクリア
+  }
+
+  //printf("\n");
+}
+
+void I2C1_ER_IRQHandler(void) __attribute__((interrupt));
+void I2C1_ER_IRQHandler(void) {
+  // とりあえずすべてのエラーを無視
+  I2C1->STAR1 = ~I2C1->STAR1;
+}
+
+static void lcd_out4(uint8_t rs, uint8_t val) {
+  funDigitalWrite(LCD_RS, rs);
+  funDigitalWrite(LCD_E, 1);
+
+  funDigitalWrite(LCD_DB4, val & 0b0001u ? 1 : 0);
+  funDigitalWrite(LCD_DB5, val & 0b0010u ? 1 : 0);
+  funDigitalWrite(LCD_DB6, val & 0b0100u ? 1 : 0);
+  funDigitalWrite(LCD_DB7, val & 0b1000u ? 1 : 0);
+
+  Delay_Us(1);
+  funDigitalWrite(LCD_E, 0);
+  Delay_Us(1);
+}
+
+void lcd_out8(uint8_t rs, uint8_t val) {
+  lcd_out4(rs, val >> 4u);
+  lcd_out4(rs, val);
+}
+
+void lcd_exec(uint8_t cmd) {
+  lcd_out8(0, cmd);
+  if (cmd == 0x01u || cmd == 0x02u) {
+    Delay_Us(1640);
+  } else {
+    Delay_Us(40);
+  }
+}
+
+void lcd_putc(char c) {
+  lcd_out8(1, c);
+  Delay_Us(40);
+}
+
+void lcd_puts(const char* s) {
+  while (*s) {
+    lcd_putc(*s);
+    ++s;
+  }
+}
+
+void LCD_Init() {
+  Delay_Ms(40);
+  lcd_out4(0, 0x3u);
+  Delay_Us(4100);
+  lcd_out4(0, 0x3u);
+  Delay_Us(40);
+  lcd_out4(0, 0x3u);
+  Delay_Us(40);
+  lcd_out4(0, 0x2u);  // 4bit mode after this line
+  Delay_Us(40);
+
+  lcd_exec(0x28u); // function set: 4bit, 2lines, 5x7dots
+  lcd_exec(0x08u); // display on/off: display off, cursor off, no blink
+  lcd_exec(0x01u); // clear display
+  lcd_exec(0x06u); // entry mode set: increment, with display shift
+  lcd_exec(0x0cu); // display on/off: display on, cursor off, no blink
+}
+
 int main() {
   SystemInit();
 
@@ -27,8 +288,71 @@ int main() {
   funPinMode(PA2, GPIO_CFGLR_IN_ANALOG); // Opamp Input
   //funPinMode(PD4, GPIO_CFGLR_IN_ANALOG); // Opamp Output
 
+  funDigitalWrite(SCL_PIN, 1);
+  funDigitalWrite(SDA_PIN, 1);
+  funPinMode(SCL_PIN, GPIO_CFGLR_OUT_50Mhz_AF_OD);
+  funPinMode(SDA_PIN, GPIO_CFGLR_OUT_50Mhz_AF_OD);
+
+  funPinMode(LCD_E,   GPIO_CFGLR_OUT_10Mhz_PP);
+  funPinMode(LCD_RS,  GPIO_CFGLR_OUT_10Mhz_PP);
+  funPinMode(LCD_RW,  GPIO_CFGLR_OUT_10Mhz_PP);
+  funPinMode(LCD_DB4, GPIO_CFGLR_OUT_10Mhz_PP);
+  funPinMode(LCD_DB5, GPIO_CFGLR_OUT_10Mhz_PP);
+  funPinMode(LCD_DB6, GPIO_CFGLR_OUT_10Mhz_PP);
+  funPinMode(LCD_DB7, GPIO_CFGLR_OUT_10Mhz_PP);
+
   OPA1_Init(1, PA1, PA2);
 
+  LCD_Init();
+
+  I2C1_InitAsSlave(LCD_I2C_ADDR);
+  I2C1->CTLR2 |= I2C_IT_BUF | I2C_IT_EVT | I2C_IT_ERR;
+  NVIC_EnableIRQ(I2C1_EV_IRQn);
+  NVIC_EnableIRQ(I2C1_ER_IRQn);
+
   while (1) {
+    __disable_irq();
+    if (Queue_IsEmpty()) {
+      printf("queue empty\n");
+      Delay_Ms(500);
+      __enable_irq();
+      continue;
+    }
+    struct Message *msg = Queue_Front();
+    __enable_irq();
+
+    if (msg->kind == MK_I2C) {
+      printf("cmd=%02X argc=%d\n", msg->i2c.cmd, msg->i2c.argc);
+      if (msg->i2c.cmd == LCD_HIDE_CURSOR) {
+        lcd_exec(0x0C); // display=on, cursor=off
+      } else if (msg->i2c.cmd == LCD_SHOW_CURSOR) {
+        lcd_exec(0x0E); // display=on, cursor=on
+      } else if (msg->i2c.cmd == LCD_MOVE_CURSOR) {
+        uint8_t xy = msg->i2c.argv[0];
+        uint8_t x = xy & 0x3F;
+        uint8_t y = (xy >> 6) & 3;
+        uint8_t addr = 0x80; // set DDRAM addr
+        addr |= (y & 1) << 6;
+        addr |= (y & 2) << 3;
+        addr |= x;
+        lcd_exec(addr);
+      } else if (msg->i2c.cmd == LCD_PUT_SPACES) {
+        uint8_t n = msg->i2c.argv[0];
+        for (uint8_t i = 0; i < n; ++i) {
+          lcd_putc(' ');
+        }
+      } else if ((msg->i2c.cmd & 0xF0) == LCD_PUT_STRING) {
+        uint8_t n = msg->i2c.cmd & 0x1F;
+        for (uint8_t i = 0; i < n; ++i) {
+          lcd_putc(msg->i2c.argv[i]);
+        }
+      }
+    } else {
+      printf("unknown msg\n");
+    }
+
+    __disable_irq();
+    Queue_Pop();
+    __enable_irq();
   }
 }
