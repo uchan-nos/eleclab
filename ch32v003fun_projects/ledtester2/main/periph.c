@@ -275,7 +275,7 @@ void I2C1_Init(void) {
 }
 
 // I2C エラー定義
-enum I2cErrors {
+enum I2C_Errors {
   I2CERR_NOT_BUSY,
   I2CERR_MASTER_MODE,
   I2CERR_TRANSMIT_MODE,
@@ -295,13 +295,13 @@ char *i2c_error_strings[] = {
 };
 
 // I2C エラー表示
-int I2cError(enum I2cErrors err) {
-  printf("I2cError: timeout waiting for %s\n\r", i2c_error_strings[err]);
+int I2C_Error(enum I2C_Errors err) {
+  printf("I2C_Error: timeout waiting for %s\n\r", i2c_error_strings[err]);
   I2C1_Init(); // I2C をリセット
   return 1;
 }
 
-uint32_t I2cReadStatus() {
+uint32_t I2C1_ReadStatus() {
   // STAR1 を STAR2 より先に読み出す必要がある
   uint32_t status = I2C1->STAR1;
   status |= I2C1->STAR2 << 16;
@@ -309,107 +309,77 @@ uint32_t I2cReadStatus() {
 }
 
 // 最後に発生したイベントが引数で指定されたものであれば真を返す。
-int I2cCheckEvent(uint32_t event) {
-  return (I2cReadStatus() & event) == event;
+int I2C1_CheckEvent(uint32_t event) {
+  return (I2C1_ReadStatus() & event) == event;
 }
 
 // ビジー状態が終わるのを待つ。
-int I2cWaitBusy() {
+int I2C1_WaitBusy() {
   int timeout = I2C_TIMEOUT_MAX;
   while ((I2C1->STAR2 & I2C_STAR2_BUSY) && timeout--);
   return timeout;
 }
 
 // イベント成立を待つ。成立時のタイムアウト値を返す。
-int I2cWaitEvent(uint32_t event) {
+int I2C1_WaitEvent(uint32_t event) {
   int timeout = I2C_TIMEOUT_MAX;
-  while ((!I2cCheckEvent(event)) && timeout--);
+  while ((!I2C1_CheckEvent(event)) && timeout--);
   return timeout;
 }
 
 // I2C バスへパケットを送る（割り込みを使わずブロッキングモード）
 int I2C1_Send(uint8_t addr, uint8_t *data, uint8_t sz) {
-  //printf("I2C1_Send: 0=%02X sz=%u\n", data[0], sz);
-  uint32_t start_tick = SysTick->CNT;
-  if (I2cWaitBusy() == -1) {
-    return I2cError(I2CERR_NOT_BUSY);
+  if (I2C1_WaitBusy() == -1) {
+    return I2C_Error(I2CERR_NOT_BUSY);
   }
 
-  uint32_t sb_tick = SysTick->CNT;
-  //printf("sb\n");
   // スタートビットを送る
   I2C1->CTLR1 |= I2C_CTLR1_START;
-  if (I2cWaitEvent(I2C_EVENT_MASTER_MODE_SELECT) == -1) {
-    return I2cError(I2CERR_MASTER_MODE);
+  if (I2C1_WaitEvent(I2C_EVENT_MASTER_MODE_SELECT) == -1) {
+    return I2C_Error(I2CERR_MASTER_MODE);
   }
 
-  uint32_t addr_tick = SysTick->CNT;
-  //printf("addr\n");
   // 7 ビットアドレスと write フラグを送る
   I2C1->DATAR = addr<<1;
-  if (I2cWaitEvent(I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED) == -1) {
-    return I2cError(I2CERR_TRANSMIT_MODE);
+  if (I2C1_WaitEvent(I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED) == -1) {
+    return I2C_Error(I2CERR_TRANSMIT_MODE);
   }
 
-  uint32_t data_tick = SysTick->CNT;
-  uint32_t datar_tick = 0, event_received_tick = 0;
   // 1 バイトずつ送信
   while (sz--) {
     I2C1->DATAR = *data++;
-    datar_tick = SysTick->CNT;
-    //if (I2cWaitEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTED) == -1) {
-    //  return I2cError(I2CERR_BYTE_TRANSMITTED);
-    //}
-    int timeout = 100000;
-    uint32_t status;
-    while ((status = I2cReadStatus()) != I2C_EVENT_MASTER_BYTE_TRANSMITTED) {
-      if ((timeout & 0xff) == 0) {
-        printf("%08X!=%08X\n", status, I2C_EVENT_MASTER_BYTE_TRANSMITTED);
-      }
-      if (timeout-- == 0) {
-        return I2cError(I2CERR_BYTE_TRANSMITTED);
-      }
+    if (I2C1_WaitEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTED) == -1) {
+      return I2C_Error(I2CERR_BYTE_TRANSMITTED);
     }
-    event_received_tick = SysTick->CNT;
   }
 
-  uint32_t stop_tick = SysTick->CNT;
-  //printf("stp\n");
   // ストップビットを送る
   I2C1->CTLR1 |= I2C_CTLR1_STOP;
-
-  //printf("%lu %lu %lu %lu %lu %lu\n",
-  //       sb_tick - start_tick,
-  //       addr_tick - sb_tick,
-  //       data_tick - addr_tick,
-  //       datar_tick - data_tick,
-  //       event_received_tick - datar_tick,
-  //       stop_tick - event_received_tick);
   return 0;
 }
 
 // I2C バスからパケットを受け取る（割り込みを使わずブロッキングモード）
 uint8_t I2C1_Recv(uint8_t addr, uint8_t *data, uint8_t sz) {
-  if (I2cWaitBusy() == -1) {
-    return I2cError(I2CERR_NOT_BUSY);
+  if (I2C1_WaitBusy() == -1) {
+    return I2C_Error(I2CERR_NOT_BUSY);
   }
 
   // スタートビットを送る
   I2C1->CTLR1 |= I2C_CTLR1_START;
-  if (I2cWaitEvent(I2C_EVENT_MASTER_MODE_SELECT) == -1) {
-    return I2cError(I2CERR_MASTER_MODE);
+  if (I2C1_WaitEvent(I2C_EVENT_MASTER_MODE_SELECT) == -1) {
+    return I2C_Error(I2CERR_MASTER_MODE);
   }
 
   // 7 ビットアドレスと read フラグを送る
   I2C1->DATAR = addr<<1 | 1;
-  if (I2cWaitEvent(I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED) == -1) {
-    return I2cError(I2CERR_RECEIVE_MODE);
+  if (I2C1_WaitEvent(I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED) == -1) {
+    return I2C_Error(I2CERR_RECEIVE_MODE);
   }
 
   // 1 バイトずつ受信
   while (sz--) {
-    if (I2cWaitEvent(I2C_EVENT_MASTER_BYTE_RECEIVED) == -1) {
-      return I2cError(I2CERR_BYTE_RECEIVED);
+    if (I2C1_WaitEvent(I2C_EVENT_MASTER_BYTE_RECEIVED) == -1) {
+      return I2C_Error(I2CERR_BYTE_RECEIVED);
     }
     *data++ = I2C1->DATAR;
   }
