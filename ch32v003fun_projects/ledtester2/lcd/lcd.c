@@ -5,12 +5,13 @@
  */
 #include "ch32fun.h"
 #include <assert.h>
-#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "../common.h"
 
 #define QUEUE_CAP 8
-#define MK_I2C 1
+#define MK_CMD 1
 
 struct Message {
   uint8_t kind;
@@ -19,7 +20,7 @@ struct Message {
       uint8_t cmd;
       uint8_t argc;
       uint8_t argv[32];
-    } i2c;
+    } cmd;
   };
 };
 
@@ -151,22 +152,12 @@ void I2C1_EV_IRQHandler(void) __attribute__((interrupt));
 void I2C1_EV_IRQHandler(void) {
   uint32_t status = I2C1_ReadStatus();
 
-  printf("%08X\n", status);
-  //uint8_t c =
-  //  ((status & I2C_FLAG_ADDR) ? 0x01 : 0x00) |
-  //  ((status & I2C_FLAG_STOPF) ? 0x02 : 0x00) |
-  //  ((status & I2C_FLAG_RXNE) ? 0x04 : 0x00);
-  //lcd_putc(c + '0');
-
   if (status & I2C_IT_ADDR) { // アドレスバイトを受信した
     i2c_state = IS_CMD;
-    //printf("addr ");
   }
 
   if (status & I2C_IT_RXNE) { // データバイトを受信
-    //printf("rxne ");
     if (i2c_state == IS_IDLE || i2c_state == IS_CMD) {
-      //printf("cmd ");
       i2c_cmd = I2C1->DATAR;
       i2c_argi = 0;
 
@@ -184,7 +175,6 @@ void I2C1_EV_IRQHandler(void) {
         i2c_state = IS_ARG;
       }
     } else if (i2c_state == IS_ARG) {
-      //printf("arg ");
       i2c_argv[i2c_argi++] = I2C1->DATAR;
       if (i2c_argi == i2c_argc) {
         i2c_state = IS_IDLE;
@@ -194,24 +184,20 @@ void I2C1_EV_IRQHandler(void) {
     }
 
     if (i2c_state == IS_IDLE) {
-      printf("push\n");
       struct Message *msg = Queue_Bottom();
       if (msg) {
-        msg->kind = MK_I2C;
-        msg->i2c.cmd = i2c_cmd;
-        msg->i2c.argc = i2c_argc;
-        memcpy(msg->i2c.argv, i2c_argv, sizeof(msg->i2c.argv));
+        msg->kind = MK_CMD;
+        msg->cmd.cmd = i2c_cmd;
+        msg->cmd.argc = i2c_argc;
+        memcpy(msg->cmd.argv, i2c_argv, sizeof(msg->cmd.argv));
         Queue_Push();
       }
     }
   }
 
   if (status & I2C_IT_STOPF) { // ストップビットを受信
-    //printf("stop ");
     I2C1->CTLR1 &= ~(I2C_CTLR1_STOP); // ストップビットをクリア
   }
-
-  //printf("\n");
 }
 
 void I2C1_ER_IRQHandler(void) __attribute__((interrupt));
@@ -321,14 +307,14 @@ int main() {
     struct Message *msg = Queue_Front();
     __enable_irq();
 
-    if (msg->kind == MK_I2C) {
-      printf("cmd=%02X argc=%d\n", msg->i2c.cmd, msg->i2c.argc);
-      if (msg->i2c.cmd == LCD_HIDE_CURSOR) {
+    if (msg->kind == MK_CMD) {
+      printf("cmd=%02X argc=%d\n", msg->cmd.cmd, msg->cmd.argc);
+      if (msg->cmd.cmd == LCD_HIDE_CURSOR) {
         lcd_exec(0x0C); // display=on, cursor=off
-      } else if (msg->i2c.cmd == LCD_SHOW_CURSOR) {
+      } else if (msg->cmd.cmd == LCD_SHOW_CURSOR) {
         lcd_exec(0x0E); // display=on, cursor=on
-      } else if (msg->i2c.cmd == LCD_MOVE_CURSOR) {
-        uint8_t xy = msg->i2c.argv[0];
+      } else if (msg->cmd.cmd == LCD_MOVE_CURSOR) {
+        uint8_t xy = msg->cmd.argv[0];
         uint8_t x = xy & 0x3F;
         uint8_t y = (xy >> 6) & 3;
         uint8_t addr = 0x80; // set DDRAM addr
@@ -336,15 +322,15 @@ int main() {
         addr |= (y & 2) << 3;
         addr |= x;
         lcd_exec(addr);
-      } else if (msg->i2c.cmd == LCD_PUT_SPACES) {
-        uint8_t n = msg->i2c.argv[0];
+      } else if (msg->cmd.cmd == LCD_PUT_SPACES) {
+        uint8_t n = msg->cmd.argv[0];
         for (uint8_t i = 0; i < n; ++i) {
           lcd_putc(' ');
         }
-      } else if ((msg->i2c.cmd & 0xF0) == LCD_PUT_STRING) {
-        uint8_t n = msg->i2c.cmd & 0x1F;
+      } else if ((msg->cmd.cmd & 0xF0) == LCD_PUT_STRING) {
+        uint8_t n = msg->cmd.cmd & 0x1F;
         for (uint8_t i = 0; i < n; ++i) {
-          lcd_putc(msg->i2c.argv[i]);
+          lcd_putc(msg->cmd.argv[i]);
         }
       }
     } else {
