@@ -313,9 +313,9 @@ int main() {
   while (1) {
     __disable_irq();
     if (Queue_IsEmpty()) {
+      __enable_irq();
       printf("queue empty\n");
       Delay_Ms(500);
-      __enable_irq();
       continue;
     }
     struct Message *msg = Queue_Front();
