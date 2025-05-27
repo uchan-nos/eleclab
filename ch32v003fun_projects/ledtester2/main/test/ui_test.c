@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2025 Kota UCHIDA
+ *
+ * ‰æ–Êo—Í•ƒ†[ƒU“ü—Í
+ */
+
 #include <execinfo.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -177,7 +183,7 @@ void test_ui_manip() {
   InitUI();
   test_screen(0, 0, "0.00mA  0.00mA  ", "  0.00mA  0.00mA");
 
-  // LED1 ã®é›»æµã‚’èª¿æ•´
+  // LED1 ‚Ì“d—¬‚ğ’²®
   DialRotatedCW();
   test_screen(0, 0, "0.01mA  0.00mA  ", "  0.00mA  0.00mA");
   DialRotatedCW();
@@ -185,7 +191,7 @@ void test_ui_manip() {
   DialRotatedCCW();
   test_screen(0, 0, "0.01mA  0.00mA  ", "  0.00mA  0.00mA");
 
-  // ãƒœã‚¿ãƒ³ã‚’æŠ¼ã—ãªãŒã‚‰å›è»¢ã§ LED å¤‰æ›´
+  // ƒ{ƒ^ƒ“‚ğ‰Ÿ‚µ‚È‚ª‚ç‰ñ“]‚Å LED •ÏX
   StepTick(10);
   ButtonPressed(tick);
   DialRotatedCW();
@@ -193,19 +199,19 @@ void test_ui_manip() {
   StepTick(4);
   ButtonReleased(tick);
 
-  // LED2 ã®é›»æµã‚’èª¿æ•´
+  // LED2 ‚Ì“d—¬‚ğ’²®
   for (int i = 0; i < 25; ++i) {
     DialRotatedCW();
   }
   test_screen(2, 1, "0.01mA  0.00mA  ", "  0.25mA  0.00mA");
 
-  // ãƒœã‚¿ãƒ³é•·æŠ¼ã—ã§ãƒ¡ã‚¤ãƒ³ãƒ¡ãƒ‹ãƒ¥ãƒ¼ã¸
+  // ƒ{ƒ^ƒ“’·‰Ÿ‚µ‚ÅƒƒCƒ“ƒƒjƒ…[‚Ö
   StepTick(6);
   ButtonPressed(tick);
   StepTick(980);
   ButtonReleased(tick);
   test_screen(0, 0, "MULTI   SINGLE  ", "GLOBAL          ");
-  // ãƒ¡ã‚¤ãƒ³ãƒ¡ãƒ‹ãƒ¥ãƒ¼ã®ã‚«ãƒ¼ã‚½ãƒ«ç§»
+  // ƒƒCƒ“ƒƒjƒ…[‚ÌƒJ[ƒ\ƒ‹ˆÚ
   StepTick(10);
   DialRotatedCW();
   test_screen(8, 0, "MULTI   SINGLE  ", "GLOBAL          ");
@@ -216,19 +222,27 @@ void test_ui_manip() {
   DialRotatedCCW();
   test_screen(8, 0, "MULTI   SINGLE  ", "GLOBAL          ");
 
-  // SINGLE ã§ã‚¯ãƒªãƒƒã‚¯
+  // SINGLE ‚ÅƒNƒŠƒbƒN
   StepTick(10);
-  ButtonPressed(1010);
+  ButtonPressed(tick);
   StepTick(10);
-  ButtonReleased(1011);
+  ButtonReleased(tick);
   test_screen(4, 0, "D2  0.25mA 2.13V", "5:11476 33: 4676");
 
-  // LED2 ã‚’é¸æŠ
+  // LED3 ‚ğ‘I‘ğ
   StepTick(10);
-  ButtonPressed(1020);
+  ButtonPressed(tick);
   StepTick(1000);
   DialRotatedCW();
-  test_screen(0, 0, "D2  0.25mA 2.13V", "5:11476 33: 4676");
+  test_screen(4, 0, "D3  0.00mA 0.00V", "LED ¦ »¼Ã ¸ÀŞ»² ");
+
+  // LED3 ‚ğ‘}“ü
+  vfs_mv[2] = 2600;
+  StepTick(100);
+  test_screen(4, 0, "D3  0.00mA 2.60V", "5:>=10M 33:>=10M");
+  ButtonReleased(tick);
+  DialRotatedCW();
+  test_screen(4, 0, "D3  0.01mA 2.60V", "5: 240K 33:70000");
 
   printf("%d passed, %d failed\n", n_passed, n_failed);
   if (n_failed == 0) {

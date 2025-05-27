@@ -5,6 +5,7 @@
  */
 #include "main.h"
 
+#include "ch32fun.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -17,8 +18,9 @@
 
 #define LONG_PRESS_MS 500
 #define LONG_PRESS_TICK (LONG_PRESS_MS / TICK_MS)
-#define REFRESH_PERIOD_MS 300
+#define REFRESH_PERIOD_MS 50
 #define REFRESH_PERIOD_TICK (REFRESH_PERIOD_MS / TICK_MS)
+#define VF_THRESHOLD_MV 200
 
 enum Input {
   IN_CW,  // Encoder rotation CW
@@ -163,17 +165,23 @@ static void DispSingleCC() {
   LCD_PutString(buf, 5);
 
   LCD_MoveCursor(0, 1);
+  if (vf_mv < VF_THRESHOLD_MV) {
+    // LED ヲ サシテクダサイ
+    LCD_PutString("LED \xa6 \xbb\xbc\xc3 \xb8\xc0\xde\xbb\xb2 ", 16);
+  } else if (goal_ua == 0) {
+    LCD_PutString("5:>=10M 33:>=10M", 16);
+  } else {
+    uint32_t r5 = (uint32_t)(5000 - vf_mv) * 1000 / goal_ua;
+    FormatR(buf, r5);
+    LCD_PutString("5:", 2);
+    LCD_PutString(buf, 5);
+    LCD_PutSpaces(1);
 
-  uint32_t r5 = (uint32_t)(5000 - vf_mv) * 1000 / goal_ua;
-  FormatR(buf, r5);
-  LCD_PutString("5:", 2);
-  LCD_PutString(buf, 5);
-  LCD_PutSpaces(1);
-
-  uint32_t r3 = (uint32_t)(3300 - vf_mv) * 1000 / goal_ua;
-  FormatR(buf, r3);
-  LCD_PutString("33:", 3);
-  LCD_PutString(buf, 5);
+    uint32_t r3 = (uint32_t)(3300 - vf_mv) * 1000 / goal_ua;
+    FormatR(buf, r3);
+    LCD_PutString("33:", 3);
+    LCD_PutString(buf, 5);
+  }
 
   LCD_MoveCursor(4, 0);
   LCD_ShowCursor();
@@ -233,6 +241,35 @@ static void HandleInput_MultiCC(enum Input in) {
   }
 }
 
+static void HandleInput_SingleCC(enum Input in) {
+  if (press_tick > 0) {
+    switch (in) {
+    case IN_CW:
+      INC_MOD(led, LED_NUM);
+      break;
+    case IN_CCW:
+      DEC_MOD(led, LED_NUM);
+      break;
+    case IN_REL:
+      if (long_pressed && !rotated_while_pressed) {
+        DispModeselect();
+        return;
+      }
+    }
+    DispSingleCC();
+  } else {
+    switch (in) {
+    case IN_CW:
+      IncGoalCurrent(led, 10);
+      break;
+    case IN_CCW:
+      IncGoalCurrent(led, -10);
+      break;
+    }
+    DispSingleCC();
+  }
+}
+
 static void DefaultHandler(enum Input in) {
   printf("default handler: in=%d\n", in);
 }
@@ -244,6 +281,8 @@ static HandlerType GetHandler(void) {
     return HandleInput_ModeSelect;
   case DM_MULTI_CC:
     return HandleInput_MultiCC;
+  case DM_SINGLE_CC:
+    return HandleInput_SingleCC;
   }
   return DefaultHandler;
 }
@@ -284,6 +323,7 @@ void ButtonReleased(uint32_t tick) {
 static void PeriodicRefresh(void) {
   switch (disp_mode) {
   case DM_SINGLE_CC:
+    DispSingleCC();
     break;
   }
 }
