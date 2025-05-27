@@ -165,7 +165,7 @@ void I2C1_EV_IRQHandler(void) {
         i2c_argc = 0;
       } else if ((i2c_cmd & 0xF0) == 0x10) {
         i2c_argc = 1;
-      } else if ((i2c_cmd & 0xF0) == 0x20) {
+      } else if ((i2c_cmd & 0xE0) != 0) {
         i2c_argc = i2c_cmd & 0x1F;
       }
 
@@ -300,8 +300,6 @@ int main() {
     __disable_irq();
     if (Queue_IsEmpty()) {
       __enable_irq();
-      printf("queue empty\n");
-      Delay_Ms(500);
       continue;
     }
     struct Message *msg = Queue_Front();
@@ -310,9 +308,9 @@ int main() {
     if (msg->kind == MK_CMD) {
       printf("cmd=%02X argc=%d\n", msg->cmd.cmd, msg->cmd.argc);
       if (msg->cmd.cmd == LCD_HIDE_CURSOR) {
-        lcd_exec(0x0C); // display=on, cursor=off
+        lcd_exec(0x0C); // display=on, cursor=off, curpos=off
       } else if (msg->cmd.cmd == LCD_SHOW_CURSOR) {
-        lcd_exec(0x0E); // display=on, cursor=on
+        lcd_exec(0x0D); // display=on, cursor=off, curpos=on
       } else if (msg->cmd.cmd == LCD_MOVE_CURSOR) {
         uint8_t xy = msg->cmd.argv[0];
         uint8_t x = xy & 0x3F;
@@ -327,7 +325,7 @@ int main() {
         for (uint8_t i = 0; i < n; ++i) {
           lcd_putc(' ');
         }
-      } else if ((msg->cmd.cmd & 0xF0) == LCD_PUT_STRING) {
+      } else if ((msg->cmd.cmd & 0xE0) == LCD_PUT_STRING) {
         uint8_t n = msg->cmd.cmd & 0x1F;
         for (uint8_t i = 0; i < n; ++i) {
           lcd_putc(msg->cmd.argv[i]);
