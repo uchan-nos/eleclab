@@ -40,6 +40,7 @@ static uint8_t long_pressed = 0;
 static uint32_t press_tick = 0;
 static uint8_t rotated_while_pressed = 0;
 static uint32_t refresh_tick = 0;
+static uint32_t current_tick;
 
 // 与えられた電流値を mA 単位の文字列に変換（きっかり 6 文字 + NUL 終端）
 STATIC void FormatMA(char *buf, uint16_t ua) {
@@ -191,7 +192,7 @@ static void DispGlobalCC() {
   disp_mode = DM_GLOBAL_CC;
 }
 
-static void HandleInput_ModeSelect(enum Input in) {
+static void HandleInput_ModeSelect(enum Input in, int arg) {
   switch (in) {
   case IN_CW:
     INC_MOD(op_mode, 3);
@@ -212,7 +213,7 @@ static void HandleInput_ModeSelect(enum Input in) {
   }
 }
 
-static void HandleInput_MultiCC(enum Input in) {
+static void HandleInput_MultiCC(enum Input in, int arg) {
   if (press_tick > 0) {
     switch (in) {
     case IN_CW:
@@ -231,17 +232,17 @@ static void HandleInput_MultiCC(enum Input in) {
   } else {
     switch (in) {
     case IN_CW:
-      IncGoalCurrent(led, 10);
+      IncGoalCurrent(led, 10 * arg);
       break;
     case IN_CCW:
-      IncGoalCurrent(led, -10);
+      IncGoalCurrent(led, 10 * arg);
       break;
     }
     RefreshContentMultiCC(led);
   }
 }
 
-static void HandleInput_SingleCC(enum Input in) {
+static void HandleInput_SingleCC(enum Input in, int arg) {
   if (press_tick > 0) {
     switch (in) {
     case IN_CW:
@@ -260,21 +261,21 @@ static void HandleInput_SingleCC(enum Input in) {
   } else {
     switch (in) {
     case IN_CW:
-      IncGoalCurrent(led, 10);
+      IncGoalCurrent(led, 10 * arg);
       break;
     case IN_CCW:
-      IncGoalCurrent(led, -10);
+      IncGoalCurrent(led, 10 * arg);
       break;
     }
     DispSingleCC();
   }
 }
 
-static void DefaultHandler(enum Input in) {
-  printf("default handler: in=%d\n", in);
+static void DefaultHandler(enum Input in, int arg) {
+  printf("default handler: in=%d arg=%d\n", in, arg);
 }
 
-typedef void (*HandlerType)(enum Input);
+typedef void (*HandlerType)(enum Input, int);
 static HandlerType GetHandler(void) {
   switch (disp_mode) {
   case DM_MODESELECT:
@@ -287,33 +288,77 @@ static HandlerType GetHandler(void) {
   return DefaultHandler;
 }
 
+/*
+ * 加速を考慮したダイアル回転数の計算
+ *
+ * @param dir  ダイアル回転方向（CW=1, CCW=-1）
+ * @return 加速済み回転数
+ */
+STATIC int AccelDial(int dir) {
+  static int lastdir = 0; // 最後に観測した回転方向
+  static unsigned int rotcnt = 0; // 回転数（tick が変化するたびにリセット）
+  static uint32_t lastrot_tick = 0; // 最後に回転したときの時刻
+
+  int v = 0;
+  if (lastdir != dir) {
+    // 逆回転が早すぎたら誤動作として無視する
+    // ゆっくりした逆回転は意図した動作だとして受け入れる
+    if (lastrot_tick + (100 / TICK_MS) < current_tick) {
+      v = dir;
+      lastdir = dir;
+      rotcnt = 1;
+      lastrot_tick = current_tick;
+    }
+  } else if (lastrot_tick == current_tick) {
+    ++rotcnt;
+  } else if (lastrot_tick + 2 <= current_tick && rotcnt == 1) {
+    v = dir;
+  } else {
+    ++rotcnt;
+    int tick_diff = current_tick - lastrot_tick;
+    int rot2 = rotcnt * rotcnt;
+    v = (1 << (rotcnt << 2)) / tick_diff;
+    if (v == 0) {
+      // 最低でも ±1 は動くようにする
+      v = dir;
+    } else if (dir < 0) {
+      v = -v;
+    }
+
+    lastrot_tick = current_tick;
+    rotcnt = 1;
+  }
+
+  return v;
+}
+
 void DialRotatedCW(void) {
-  GetHandler()(IN_CW);
+  GetHandler()(IN_CW, AccelDial(1));
   if (press_tick > 0) {
     rotated_while_pressed = 1;
   }
 }
 
 void DialRotatedCCW(void) {
-  GetHandler()(IN_CCW);
+  GetHandler()(IN_CCW, AccelDial(-1));
   if (press_tick > 0) {
     rotated_while_pressed = 1;
   }
 }
 
 void ButtonPressed(uint32_t tick) {
-  GetHandler()(IN_PR);
+  GetHandler()(IN_PR, 0);
   if (press_tick == 0) {
     press_tick = tick;
   }
 }
 
 static void ButtonLongPressed(uint32_t tick) {
-  GetHandler()(IN_LPR);
+  GetHandler()(IN_LPR, 0);
 }
 
 void ButtonReleased(uint32_t tick) {
-  GetHandler()(IN_REL);
+  GetHandler()(IN_REL, 0);
   long_pressed = 0;
   press_tick = 0;
   rotated_while_pressed = 0;
@@ -334,6 +379,7 @@ void InitUI() {
 }
 
 void UpdateUI(uint32_t tick) {
+  current_tick = tick;
   if (press_tick > 0 && !long_pressed && press_tick + LONG_PRESS_TICK <= tick) {
     // 長押し
     long_pressed = 1;
