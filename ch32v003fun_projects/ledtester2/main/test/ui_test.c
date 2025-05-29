@@ -14,6 +14,7 @@
 void FormatMA(char *buf, uint16_t ua);
 void FormatV(char *buf, uint16_t mv);
 void FormatR(char *buf, uint32_t ohm);
+int AccelDial(int dir);
 
 uint16_t goals_ua[LED_NUM];
 uint16_t vfs_mv[LED_NUM] = {1650, 2131, 3 /* no LED */, 3215};

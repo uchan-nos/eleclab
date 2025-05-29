@@ -212,7 +212,10 @@ void EXTI7_0_IRQHandler(void) {
   uint16_t intfr = EXTI->INTFR;
   if (intfr & ENCA_EXTI_LINE) { // ENCA
     const int encb = funDigitalRead(ENCB_PIN);
-    Queue_Push(MSG_CW + (encb ? 0 : 1));
+    if (last_enc_change_tick + Ticks_from_Ms(3) <= current_tick) {
+      Queue_Push(MSG_CW + (encb ? 0 : 1));
+      last_enc_change_tick = current_tick;
+    }
   }
   if (intfr & BTN_EXTI_LINE) { // Button
     const int btn = funDigitalRead(BTN_PIN);
@@ -303,6 +306,7 @@ int main() {
 
   uint16_t prev_goal = 0xffff;
   uint32_t tick = 0;
+
   while (1) {
     __disable_irq();
     if (Queue_IsEmpty()) {
@@ -316,13 +320,6 @@ int main() {
     case MSG_TICK:
       ++tick;
       UpdateUI(tick);
-      if ((tick & 15) == 0) {
-        uint16_t goal = GetGoalCurrent(0);
-        if (prev_goal != goal) {
-          prev_goal = goal;
-          printf("new goal is %u uA\n", goal);
-        }
-      }
       break;
     case MSG_CW:
       DialRotatedCW();
