@@ -332,36 +332,22 @@ STATIC int AccelDial(int dir) {
   return v;
 }
 
-void DialRotatedCW(void) {
+static void DialRotatedCW(void) {
   GetHandler()(IN_CW, AccelDial(1));
   if (press_tick > 0) {
     rotated_while_pressed = 1;
   }
 }
 
-void DialRotatedCCW(void) {
+static void DialRotatedCCW(void) {
   GetHandler()(IN_CCW, AccelDial(-1));
   if (press_tick > 0) {
     rotated_while_pressed = 1;
   }
 }
 
-void ButtonPressed(uint32_t tick) {
-  GetHandler()(IN_PR, 0);
-  if (press_tick == 0) {
-    press_tick = tick;
-  }
-}
-
 static void ButtonLongPressed(uint32_t tick) {
   GetHandler()(IN_LPR, 0);
-}
-
-void ButtonReleased(uint32_t tick) {
-  GetHandler()(IN_REL, 0);
-  long_pressed = 0;
-  press_tick = 0;
-  rotated_while_pressed = 0;
 }
 
 // 変化する現在値に応じて表示を更新する
@@ -378,7 +364,7 @@ void InitUI() {
   DispMultiCC();
 }
 
-void UpdateUI(uint32_t tick) {
+static void UpdateUI(uint32_t tick) {
   current_tick = tick;
   if (press_tick > 0 && !long_pressed && press_tick + LONG_PRESS_TICK <= tick) {
     // 長押し
@@ -389,5 +375,33 @@ void UpdateUI(uint32_t tick) {
   if (refresh_tick + REFRESH_PERIOD_TICK <= tick) {
     refresh_tick += REFRESH_PERIOD_TICK;
     PeriodicRefresh();
+  }
+}
+
+void HandleUIEvent(uint32_t tick, MessageType msg) {
+  switch (msg) {
+  case MSG_TICK:
+    UpdateUI(tick);
+    break;
+  case MSG_CW:
+    DialRotatedCW();
+    break;
+  case MSG_CCW:
+    DialRotatedCCW();
+    break;
+  case MSG_PRS_MODE:
+    GetHandler()(IN_PR, 0);
+    if (press_tick == 0) {
+      press_tick = tick;
+    }
+    break;
+  case MSG_REL_MODE:
+    GetHandler()(IN_REL, 0);
+    long_pressed = 0;
+    press_tick = 0;
+    rotated_while_pressed = 0;
+    break;
+  case MSG_PRS_LED:
+  case MSG_REL_LED:
   }
 }

@@ -29,6 +29,16 @@
     }\
   } while (0)
 
+// キューのメッセージ
+typedef uint8_t MessageType;
+#define MSG_TICK      0x00
+#define MSG_CW        0x10
+#define MSG_CCW       0x11
+#define MSG_PRS_MODE  0x12
+#define MSG_REL_MODE  0x13
+#define MSG_PRS_LED   0x14
+#define MSG_REL_LED   0x15
+
 /************
  * periph.c *
  ************/
@@ -131,19 +141,15 @@ enum DispMode {
   DM_GLOBAL_CV,
 };
 
-void DialRotatedCW(void);
-void DialRotatedCCW(void);
-void ButtonPressed(uint32_t tick);
-void ButtonReleased(uint32_t tick);
 void InitUI();
-void UpdateUI(uint32_t tick);
+void HandleUIEvent(uint32_t tick, MessageType msg);
 
 /************
  * queue.c **
  ************/
 // 割り込みハンドラからメインスレッドへメッセージを伝えるキュー
 #define QUEUE_CAP 4
-typedef uint8_t QueueElemType;
+typedef MessageType QueueElemType;
 
 void Queue_Init(void);
 uint8_t Queue_IsEmpty(void);
