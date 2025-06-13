@@ -32,6 +32,7 @@ uint16_t adc_gnd_x49;
 #define VR_PIN PA2
 #define VR_AN ANALOG_0
 #define VF_AN ANALOG_5
+#define NEXT_PIN PD3
 
 #define EXTI_LINE_N(n) EXTI_Line # n
 
@@ -158,6 +159,12 @@ void DetermineADCChForVR() {
   ADC1->CTLR2 |= ADC_DMA;
 }
 
+void NextLEDCh() {
+  funDigitalWrite(NEXT_PIN, 1);
+  Delay_Us(1);
+  funDigitalWrite(NEXT_PIN, 0);
+}
+
 void TIM2_Updated(void) {
   static uint8_t cnt = 0;
   cnt += CTRL_PERIOD_MS;
@@ -170,7 +177,7 @@ void TIM2_Updated(void) {
   if (led == LED_NUM) {
     led = 0;
   }
-  SelectLEDCh(led);
+  NextLEDCh();
   Delay_Us(1);
 
   DetermineADCChForVR();
@@ -208,11 +215,6 @@ void DMA1_Channel1_Transferred(void) {
   default:
     assert(0);
   }
-}
-
-void SelectLEDCh(uint8_t ch) {
-  //funDigitalWrite(SEL1_PIN, ch & 1);
-  //funDigitalWrite(SEL2_PIN, (ch >> 1) & 1);
 }
 
 uint16_t LEDIfToPWM(uint32_t if_ua) {
@@ -264,6 +266,7 @@ int main() {
   funPinMode(AMPx49_PIN, GPIO_CFGLR_IN_ANALOG);
   funPinMode(AMPx5_PIN, GPIO_CFGLR_IN_ANALOG);
   funPinMode(VR_PIN, GPIO_CFGLR_IN_ANALOG);
+  funPinMode(NEXT_PIN, GPIO_CFGLR_OUT_50Mhz_PP);
   //funPinMode(SEL1_PIN, GPIO_CFGLR_OUT_50Mhz_PP);
   //funPinMode(SEL2_PIN, GPIO_CFGLR_OUT_50Mhz_PP);
   funPinMode(PD2, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH1
@@ -300,9 +303,20 @@ int main() {
   TIM1_InitForPWM(0, 65535, 15, 0);
   TIM1->CH1CVR = 0;
   TIM1_Start();
-  SelectLEDCh(0);
 
   I2C1_Init();
+
+  // LCD コントローラ側と通信が確立するまで送り続ける
+  int set_bl_cnt = 0;
+  for (; set_bl_cnt < 100; ++set_bl_cnt) {
+    if (LCD_SetBLBrightness(128) == 0) {
+      break;
+    }
+  }
+  if (set_bl_cnt == 100) {
+    printf("Failed to connect to the LCD controller\n");
+  }
+
   Delay_Ms(800);
 
   MeasureVCC();
@@ -310,6 +324,7 @@ int main() {
 
   printf("adc_gnd: x5=%u x49=%u\n", adc_gnd_x5, adc_gnd_x49);
   printf("Vcc=%d.%02d(mV)\n", vcc_10uv / 100, vcc_10uv % 100);
+  LCD_SelectAnalogCh(led);
 
   InitUI();
 
@@ -336,7 +351,6 @@ int main() {
   printf("Starting TIM2\n");
   TIM2_Start();
 
-  uint16_t prev_goal = 0xffff;
   uint32_t tick = 0;
 
   while (1) {
