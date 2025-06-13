@@ -25,8 +25,6 @@ uint32_t vcc_10uv;
 uint16_t adc_gnd_x5;
 uint16_t adc_gnd_x49;
 
-#define SEL1_PIN PC0
-#define SEL2_PIN PC7
 #define AMPx49_PIN PD4
 #define AMPx49_AN ANALOG_7
 #define AMPx5_PIN PD6
@@ -34,25 +32,45 @@ uint16_t adc_gnd_x49;
 #define VR_PIN PA2
 #define VR_AN ANALOG_0
 #define VF_AN ANALOG_5
-#define ENCA_PIN PC1
-#define ENCA_EXTI_LINE EXTI_Line1
-#define ENCB_PIN PD3
-#define BTN_PIN PC2
-#define BTN_EXTI_LINE EXTI_Line2
 
-#define I2C_REMAP GPIO_FullRemap_I2C1
-#define SCL_PIN PC5
-#define SDA_PIN PC6
+#define EXTI_LINE_N(n) EXTI_Line # n
+
+#define ENCA_PORT     PC
+#define ENCA_LINE     0
+#define ENCB_PORT     PC
+#define ENCB_LINE     5
+#define MODE_BTN_PORT PC
+#define MODE_BTN_LINE 6
+#define LED_BTN_PORT  PC
+#define LED_BTN_LINE  7
+
+#define CONCAT2(a, b) a ## b
+#define CONCAT4(a, b, c, d) a ## b ## c ## d
+
+#define PIN_NAME_RAW(port, line) CONCAT2(port, line)
+#define PIN_NAME(id) PIN_NAME_RAW(id ## _PORT, id ## _LINE)
+
+#define EXTI_LINE_RAW(line) CONCAT2(EXTI_Line, line)
+#define EXTI_LINE(id) EXTI_LINE_RAW(id ## _LINE)
+
+#define AFIO_EXTICR_VAL_RAW(port, line) CONCAT4(AFIO_EXTICR_EXTI, line, _, port)
+#define AFIO_EXTICR_VAL(id) AFIO_EXTICR_VAL_RAW(id ## _PORT, id ## _LINE)
+
+#define EXTI_MR_RAW(line) CONCAT2(EXTI_INTENR_MR, line)
+#define EXTI_MR(id) EXTI_MR_RAW(id ## _LINE)
+
+#define ENCA_PIN      PIN_NAME(ENCA)
+#define ENCB_PIN      PIN_NAME(ENCB)
+#define MODE_BTN_PIN  PIN_NAME(MODE_BTN)
+#define LED_BTN_PIN   PIN_NAME(LED_BTN)
+
+#define I2C_REMAP 0
+// 0, GPIO_PartialRemap_I2C1, GPIO_FullRemap_I2C1
+#define SCL_PIN PC2
+#define SDA_PIN PC1
 
 // ADC の読み取り値を 10μV 単位に変換する
 #define ADC_TO_10UV(adc) (((uint32_t)vcc_10uv * (adc)) >> ADC_BITS)
-
-// キューのメッセージ
-#define MSG_TICK 0x00
-#define MSG_CW   0x10
-#define MSG_CCW  0x11
-#define MSG_PRS  0x12
-#define MSG_REL  0x13
 
 void __assert_func(const char *file, int line, const char *func, const char *expr) {
   printf("assertion failed inside %s (%s:%d): %s\n", func, file, line, expr);
@@ -193,8 +211,8 @@ void DMA1_Channel1_Transferred(void) {
 }
 
 void SelectLEDCh(uint8_t ch) {
-  funDigitalWrite(SEL1_PIN, ch & 1);
-  funDigitalWrite(SEL2_PIN, (ch >> 1) & 1);
+  //funDigitalWrite(SEL1_PIN, ch & 1);
+  //funDigitalWrite(SEL2_PIN, (ch >> 1) & 1);
 }
 
 uint16_t LEDIfToPWM(uint32_t if_ua) {
@@ -207,19 +225,30 @@ uint16_t LEDIfToPWM(uint32_t if_ua) {
 void EXTI7_0_IRQHandler(void) __attribute__((interrupt));
 void EXTI7_0_IRQHandler(void) {
   static uint32_t last_enc_change_tick = 0;
+  static int last_encb = 0;
   uint32_t current_tick = SysTick->CNT;
 
   uint16_t intfr = EXTI->INTFR;
-  if (intfr & ENCA_EXTI_LINE) { // ENCA
-    const int encb = funDigitalRead(ENCB_PIN);
-    if (last_enc_change_tick + Ticks_from_Ms(3) <= current_tick) {
-      Queue_Push(MSG_CW + (encb ? 0 : 1));
-      last_enc_change_tick = current_tick;
+  if (intfr & EXTI_LINE(ENCA)) { // ENCA
+    const int enca = funDigitalRead(ENCA_PIN);
+    // ENCA の立ち下がりエッジで情報を記憶し、立ち上がりエッジでキューに積む。
+    // 立ち下がりから立ち上がりまでの時間が短すぎるときは誤動作と判断し、キューに積まない。
+    if (enca) { // 立ち上がりエッジ
+      if (last_enc_change_tick + Ticks_from_Ms(3) <= current_tick) {
+        Queue_Push(MSG_CW + (last_encb ? 0 : 1));
+      }
+    } else { // 立ち下がりエッジ
+      last_encb = funDigitalRead(ENCB_PIN);
     }
+    last_enc_change_tick = current_tick;
   }
-  if (intfr & BTN_EXTI_LINE) { // Button
-    const int btn = funDigitalRead(BTN_PIN);
-    Queue_Push(MSG_PRS + btn);
+  if (intfr & EXTI_LINE(MODE_BTN)) { // Button
+    const int btn = funDigitalRead(MODE_BTN_PIN);
+    Queue_Push(MSG_PRS_MODE + btn);
+  }
+  if (intfr & EXTI_LINE(LED_BTN)) { // Button
+    const int btn = funDigitalRead(LED_BTN_PIN);
+    Queue_Push(MSG_PRS_LED + btn);
   }
   EXTI->INTFR = intfr;
 }
@@ -235,8 +264,8 @@ int main() {
   funPinMode(AMPx49_PIN, GPIO_CFGLR_IN_ANALOG);
   funPinMode(AMPx5_PIN, GPIO_CFGLR_IN_ANALOG);
   funPinMode(VR_PIN, GPIO_CFGLR_IN_ANALOG);
-  funPinMode(SEL1_PIN, GPIO_CFGLR_OUT_50Mhz_PP);
-  funPinMode(SEL2_PIN, GPIO_CFGLR_OUT_50Mhz_PP);
+  //funPinMode(SEL1_PIN, GPIO_CFGLR_OUT_50Mhz_PP);
+  //funPinMode(SEL2_PIN, GPIO_CFGLR_OUT_50Mhz_PP);
   funPinMode(PD2, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH1
   funPinMode(PA1, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH2
   funPinMode(PC3, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH3
@@ -249,18 +278,21 @@ int main() {
 
   funPinMode(ENCA_PIN, GPIO_CFGLR_IN_PUPD); // ENCA
   funPinMode(ENCB_PIN, GPIO_CFGLR_IN_PUPD); // ENCB
-  funPinMode(BTN_PIN, GPIO_CFGLR_IN_PUPD); // Button
+  funPinMode(MODE_BTN_PIN, GPIO_CFGLR_IN_PUPD); // Button 'MODE'
+  funPinMode(LED_BTN_PIN, GPIO_CFGLR_IN_PUPD); // Button 'LED'
   funDigitalWrite(ENCA_PIN, 1); // pull up
   funDigitalWrite(ENCB_PIN, 1); // pull up
-  funDigitalWrite(BTN_PIN, 1); // pull up
+  funDigitalWrite(MODE_BTN_PIN, 1); // pull up
+  funDigitalWrite(LED_BTN_PIN, 1); // pull up
 
   // ENCA と Button の変化で割り込み
-  AFIO->EXTICR = AFIO_EXTICR_EXTI1_PC | AFIO_EXTICR_EXTI2_PC;
-  EXTI->INTENR = EXTI_INTENR_MR1      | EXTI_INTENR_MR2;
+  AFIO->EXTICR = AFIO_EXTICR_VAL(ENCA) | AFIO_EXTICR_VAL(MODE_BTN) | AFIO_EXTICR_VAL(LED_BTN);
+  //EXTI->INTENR = EXTI_INTENR_MR0      | EXTI_INTENR_MR6      | EXTI_INTENR_MR7;
+  EXTI->INTENR = EXTI_MR(ENCA) | EXTI_MR(MODE_BTN) | EXTI_MR(LED_BTN);
 
-  // ENCA は立ち上がりエッジで、Button は両エッジで割り込み
-  EXTI->RTENR = EXTI_RTENR_TR2;
-  EXTI->FTENR = EXTI_RTENR_TR1 | EXTI_RTENR_TR2;
+  // ENCA もボタンも両エッジで割り込み
+  EXTI->RTENR = EXTI_MR(MODE_BTN) | EXTI_MR(LED_BTN) | EXTI_MR(ENCA);
+  EXTI->FTENR = EXTI_MR(MODE_BTN) | EXTI_MR(LED_BTN) | EXTI_MR(ENCA);
   NVIC_EnableIRQ(EXTI7_0_IRQn);
 
   OPA1_Init(1, PD0, PA2);
@@ -316,23 +348,9 @@ int main() {
     QueueElemType msg = Queue_Pop();
     __enable_irq();
 
-    switch (msg) {
-    case MSG_TICK:
+    if (msg == MSG_TICK) {
       ++tick;
-      UpdateUI(tick);
-      break;
-    case MSG_CW:
-      DialRotatedCW();
-      break;
-    case MSG_CCW:
-      DialRotatedCCW();
-      break;
-    case MSG_PRS:
-      ButtonPressed(tick);
-      break;
-    case MSG_REL:
-      ButtonReleased(tick);
-      break;
     }
+    HandleUIEvent(tick, msg);
   }
 }
