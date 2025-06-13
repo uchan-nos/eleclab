@@ -103,6 +103,8 @@ void LCD_HideCursor();
 void LCD_MoveCursor(int x, int y);
 void LCD_PutString(const char *s, int n);
 void LCD_PutSpaces(int n);
+int LCD_SetBLBrightness(uint8_t brightness);
+void LCD_SelectAnalogCh(uint8_t ch);
 
 uint16_t GetVF(uint8_t led);
 

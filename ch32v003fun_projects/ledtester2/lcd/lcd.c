@@ -77,6 +77,11 @@ void Queue_Push(void) {
 #define LCD_DB6 PC6
 #define LCD_DB7 PC7
 
+#define SEL1_PIN PD2
+#define SEL2_PIN PD3
+#define BL_PIN   PD5
+#define NEXT_PIN PD6
+
 void OPA1_Init(int enable, int neg_pin, int pos_pin) {
   assert(neg_pin == PA1 || neg_pin == PD0);
   assert(pos_pin == PA2 || pos_pin == PD7);
@@ -264,6 +269,27 @@ void LCD_Init() {
   lcd_exec(0x0cu); // display on/off: display on, cursor off, no blink
 }
 
+static uint8_t current_ch;
+
+void SelectCh(uint8_t ch) {
+  current_ch = ch & 3;
+  funDigitalWrite(SEL1_PIN, current_ch & 1);
+  funDigitalWrite(SEL2_PIN, (current_ch >> 1) & 1);
+}
+
+void NextCh() {
+  SelectCh(current_ch + 1);
+}
+
+void EXTI7_0_IRQHandler(void) __attribute__((interrupt));
+void EXTI7_0_IRQHandler(void) {
+  uint16_t intfr = EXTI->INTFR;
+  if (intfr & EXTI_Line6) {
+    NextCh();
+  }
+  EXTI->INTFR = intfr;
+}
+
 int main() {
   SystemInit();
 
@@ -287,6 +313,11 @@ int main() {
   funPinMode(LCD_DB6, GPIO_CFGLR_OUT_10Mhz_PP);
   funPinMode(LCD_DB7, GPIO_CFGLR_OUT_10Mhz_PP);
 
+  funPinMode(SEL1_PIN, GPIO_CFGLR_OUT_10Mhz_PP);
+  funPinMode(SEL2_PIN, GPIO_CFGLR_OUT_10Mhz_PP);
+  funPinMode(BL_PIN, GPIO_CFGLR_OUT_10Mhz_PP);
+  funPinMode(NEXT_PIN, GPIO_CFGLR_IN_FLOAT);
+
   OPA1_Init(1, PA1, PA2);
 
   LCD_Init();
@@ -295,6 +326,12 @@ int main() {
   I2C1->CTLR2 |= I2C_IT_BUF | I2C_IT_EVT | I2C_IT_ERR;
   NVIC_EnableIRQ(I2C1_EV_IRQn);
   NVIC_EnableIRQ(I2C1_ER_IRQn);
+
+  // NEXT ピン（PD6）の立ち上がりエッジで割り込み
+  AFIO->EXTICR = AFIO_EXTICR_EXTI6_PD;
+  EXTI->INTENR = EXTI_INTENR_MR6;
+  EXTI->RTENR  = EXTI_RTENR_TR6;
+  NVIC_EnableIRQ(EXTI7_0_IRQn);
 
   while (1) {
     __disable_irq();
@@ -325,6 +362,11 @@ int main() {
         for (uint8_t i = 0; i < n; ++i) {
           lcd_putc(' ');
         }
+      } else if (msg->cmd.cmd == LCD_SET_BL) {
+        uint8_t brightness = msg->cmd.argv[0];
+        funDigitalWrite(BL_PIN, brightness > 127);
+      } else if (msg->cmd.cmd == SELECT_CH) {
+        SelectCh(msg->cmd.argv[0]);
       } else if ((msg->cmd.cmd & 0xE0) == LCD_PUT_STRING) {
         uint8_t n = msg->cmd.cmd & 0x1F;
         for (uint8_t i = 0; i < n; ++i) {
