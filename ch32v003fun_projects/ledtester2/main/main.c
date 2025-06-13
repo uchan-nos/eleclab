@@ -329,7 +329,7 @@ int main() {
   ADC1->RSQR1 = 0; // 1 チャンネル
   ADC1->RSQR3 = AMPx49_AN;
 
-  TIM2_InitForSimpleTimer(48000, CTRL_PERIOD_MS); // 1ms
+  TIM2_InitForSimpleTimer(FUNCONF_SYSTEM_CORE_CLOCK / 2000 - 1, CTRL_PERIOD_MS * 2 - 1);
   TIM2->DMAINTENR |= TIM_IT_Update;
   NVIC_EnableIRQ(TIM2_IRQn);
 
