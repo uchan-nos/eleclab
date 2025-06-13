@@ -82,6 +82,9 @@ void Queue_Push(void) {
 #define BL_PIN   PD5
 #define NEXT_PIN PD6
 
+// PD5 = T2CH4_3
+#define TIM2_REMAP AFIO_PCFR1_TIM2_REMAP_FULLREMAP
+
 void OPA1_Init(int enable, int neg_pin, int pos_pin) {
   assert(neg_pin == PA1 || neg_pin == PD0);
   assert(pos_pin == PA2 || pos_pin == PD7);
@@ -290,6 +293,85 @@ void EXTI7_0_IRQHandler(void) {
   EXTI->INTFR = intfr;
 }
 
+void TIM2_InitForPWM(uint16_t psc, uint16_t period, uint8_t channels, int default_high) {
+  // TIM2 を有効化
+  RCC->APB1PCENR |= RCC_APB1Periph_TIM2;
+
+  // TIM2 をリセット
+  RCC->APB1PRSTR |= RCC_APB1Periph_TIM2;
+  RCC->APB1PRSTR &= ~RCC_APB1Periph_TIM2;
+
+  // TIM2 の周期
+  TIM2->PSC = psc;
+  TIM2->ATRLR = period;
+
+  // CCxS=0 => Compare Capture Channel x は出力
+  // CCxM=6/7 => Compare Capture Channel x は PWM モード
+  //   CCxM=6 の場合、CNT <= CHxCVR で出力 1、CHxCVR < CNT で出力 0
+  //   CCxM=7 の場合、CNT <= CHxCVR で出力 0、CHxCVR < CNT で出力 1
+  uint16_t ocmode = TIM_OCMode_PWM1 | TIM_OCPreload_Enable | TIM_OCFast_Disable;
+  uint16_t ccconf = TIM_CC1E | (default_high ? TIM_CC1P : 0);
+  uint16_t chctlr = 0;
+  uint16_t ccer = 0;
+
+  if (channels & 1) {
+    chctlr |= ocmode;
+    ccer |= ccconf;
+  }
+  if (channels & 2) {
+    chctlr |= ocmode << 8;
+    ccer |= ccconf << 4;
+  }
+  TIM2->CHCTLR1 = chctlr;
+
+  chctlr = 0;
+  if (channels & 4) {
+    chctlr |= ocmode;
+    ccer |= ccconf << 8;
+  }
+  if (channels & 8) {
+    chctlr |= ocmode << 8;
+    ccer |= ccconf << 12;
+  }
+  TIM2->CHCTLR2 = chctlr;
+  TIM2->CCER = ccer;
+
+  // 出力を有効化
+  TIM2->BDTR |= TIM_MOE;
+
+  //       CNT の変化と PWM 出力
+  //   ATRLR|...............__
+  //        |            __|  |
+  //        |         __|     |
+  //  CHxCVR|......__|        |
+  //        |   __|  :        |
+  //       0|__|_____:________|__
+  //         <------>|<------>|
+  //         ________          __
+  // OCxREF |   1    |___0____|   CCxM=6 の場合。CCxM=7 では 1/0 が反転。
+
+  // CHCTLR の設定後に auto-reload preload を有効化
+  TIM2->CTLR1 |= TIM_ARPE;
+}
+
+void TIM2_Start() {
+  // アップデートイベント（UG）を発生させ、プリロードを行う
+  TIM2->SWEVGR |= TIM_UG;
+
+  // TIM2 をスタートする
+  TIM2->CTLR1 |= TIM_CEN;
+}
+
+void TIM2_SetPulseWidth(uint8_t channel, uint16_t width) {
+  switch (channel) {
+  case 0: TIM2->CH1CVR = width; break;
+  case 1: TIM2->CH2CVR = width; break;
+  case 2: TIM2->CH3CVR = width; break;
+  case 3: TIM2->CH4CVR = width; break;
+  default: assert(0);
+  }
+}
+
 int main() {
   SystemInit();
 
@@ -315,7 +397,6 @@ int main() {
 
   funPinMode(SEL1_PIN, GPIO_CFGLR_OUT_10Mhz_PP);
   funPinMode(SEL2_PIN, GPIO_CFGLR_OUT_10Mhz_PP);
-  funPinMode(BL_PIN, GPIO_CFGLR_OUT_10Mhz_PP);
   funPinMode(NEXT_PIN, GPIO_CFGLR_IN_FLOAT);
 
   OPA1_Init(1, PA1, PA2);
@@ -332,6 +413,12 @@ int main() {
   EXTI->INTENR = EXTI_INTENR_MR6;
   EXTI->RTENR  = EXTI_RTENR_TR6;
   NVIC_EnableIRQ(EXTI7_0_IRQn);
+
+  AFIO->PCFR1 |= TIM2_REMAP;
+  funPinMode(BL_PIN, GPIO_CFGLR_OUT_10Mhz_AF_PP);
+  TIM2_InitForPWM(FUNCONF_SYSTEM_CORE_CLOCK / (256 * 1000) - 1, 255, 1 << 3, 0);
+  TIM2_SetPulseWidth(3, 32);
+  TIM2_Start();
 
   while (1) {
     __disable_irq();
@@ -364,7 +451,8 @@ int main() {
         }
       } else if (msg->cmd.cmd == LCD_SET_BL) {
         uint8_t brightness = msg->cmd.argv[0];
-        funDigitalWrite(BL_PIN, brightness > 127);
+        //funDigitalWrite(BL_PIN, brightness > 127);
+        TIM2_SetPulseWidth(3, brightness);
       } else if (msg->cmd.cmd == SELECT_CH) {
         SelectCh(msg->cmd.argv[0]);
       } else if ((msg->cmd.cmd & 0xE0) == LCD_PUT_STRING) {
