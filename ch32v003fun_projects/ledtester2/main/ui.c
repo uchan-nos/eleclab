@@ -5,7 +5,6 @@
  */
 #include "main.h"
 
-#include "ch32fun.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

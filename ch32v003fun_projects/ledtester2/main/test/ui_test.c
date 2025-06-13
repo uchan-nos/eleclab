@@ -174,8 +174,12 @@ uint32_t tick = 0;
 void StepTick(int step) {
   for (int i = 0; i < step; ++i) {
     ++tick;
-    UpdateUI(tick);
+    HandleUIEvent(tick, MSG_TICK);
   }
+}
+
+void Event(MessageType msg) {
+  HandleUIEvent(tick, msg);
 }
 
 void test_ui_manip() {
@@ -185,64 +189,64 @@ void test_ui_manip() {
   test_screen(0, 0, "0.00mA  0.00mA  ", "  0.00mA  0.00mA");
 
   // LED1 の電流を調整
-  DialRotatedCW();
+  Event(MSG_CW);
   test_screen(0, 0, "0.01mA  0.00mA  ", "  0.00mA  0.00mA");
-  DialRotatedCW();
+  Event(MSG_CW);
   test_screen(0, 0, "0.02mA  0.00mA  ", "  0.00mA  0.00mA");
-  DialRotatedCCW();
+  Event(MSG_CCW);
   test_screen(0, 0, "0.01mA  0.00mA  ", "  0.00mA  0.00mA");
 
   // ボタンを押しながら回転で LED 変更
   StepTick(10);
-  ButtonPressed(tick);
-  DialRotatedCW();
+  Event(MSG_PRS_MODE);
+  Event(MSG_CW);
   test_screen(2, 1, "0.01mA  0.00mA  ", "  0.00mA  0.00mA");
   StepTick(4);
-  ButtonReleased(tick);
+  Event(MSG_REL_MODE);
 
   // LED2 の電流を調整
   for (int i = 0; i < 25; ++i) {
-    DialRotatedCW();
+    Event(MSG_CW);
   }
   test_screen(2, 1, "0.01mA  0.00mA  ", "  0.25mA  0.00mA");
 
   // ボタン長押しでメインメニューへ
   StepTick(6);
-  ButtonPressed(tick);
+  Event(MSG_PRS_MODE);
   StepTick(980);
-  ButtonReleased(tick);
+  Event(MSG_REL_MODE);
   test_screen(0, 0, "MULTI   SINGLE  ", "GLOBAL          ");
   // メインメニューのカーソル移
   StepTick(10);
-  DialRotatedCW();
+  Event(MSG_CW);
   test_screen(8, 0, "MULTI   SINGLE  ", "GLOBAL          ");
   StepTick(10);
-  DialRotatedCW();
+  Event(MSG_CW);
   test_screen(0, 1, "MULTI   SINGLE  ", "GLOBAL          ");
   StepTick(10);
-  DialRotatedCCW();
+  Event(MSG_CCW);
   test_screen(8, 0, "MULTI   SINGLE  ", "GLOBAL          ");
 
   // SINGLE でクリック
   StepTick(10);
-  ButtonPressed(tick);
+  Event(MSG_PRS_MODE);
   StepTick(10);
-  ButtonReleased(tick);
+  Event(MSG_REL_MODE);
   test_screen(4, 0, "D2  0.25mA 2.13V", "5:11476 33: 4676");
 
   // LED3 を選択
   StepTick(10);
-  ButtonPressed(tick);
+  Event(MSG_PRS_MODE);
   StepTick(1000);
-  DialRotatedCW();
+  Event(MSG_CW);
   test_screen(4, 0, "D3  0.00mA 0.00V", "LED ｦ ｻｼﾃ ｸﾀﾞｻｲ ");
 
   // LED3 を挿入
   vfs_mv[2] = 2600;
   StepTick(100);
   test_screen(4, 0, "D3  0.00mA 2.60V", "5:>=10M 33:>=10M");
-  ButtonReleased(tick);
-  DialRotatedCW();
+  Event(MSG_REL_MODE);
+  Event(MSG_CW);
   test_screen(4, 0, "D3  0.01mA 2.60V", "5: 240K 33:70000");
 
   printf("%d passed, %d failed\n", n_passed, n_failed);
