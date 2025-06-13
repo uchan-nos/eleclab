@@ -204,13 +204,8 @@ void LCD_ShowCursor() {
 
 void LCD_HideCursor() {
   uint8_t cmd = LCD_HIDE_CURSOR;
-  TIM1_SetPulseWidth(0, 0x00FF);
   Delay_Ms(2);
-  if (I2C1_Send(LCD_I2C_ADDR, &cmd, 1) == 0) {
-    TIM1_SetPulseWidth(0, 0xFF00);
-  } else {
-    TIM1_SetPulseWidth(0, 0x7FFF);
-  }
+  I2C1_Send(LCD_I2C_ADDR, &cmd, 1);
 }
 
 void LCD_MoveCursor(int x, int y) {
