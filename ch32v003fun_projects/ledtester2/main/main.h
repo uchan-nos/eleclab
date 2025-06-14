@@ -140,6 +140,8 @@ enum DispMode {
   DM_SINGLE_CV,
   DM_GLOBAL_CC,
   DM_GLOBAL_CV,
+  DM_CONFIG,
+  DM_CONFIG_BL,
 };
 
 void InitUI();

@@ -379,7 +379,7 @@ int main() {
   NVIC_EnableIRQ(I2C1_ER_IRQn);
 
   funPinMode(BL_PIN, GPIO_CFGLR_OUT_10Mhz_AF_PP);
-  TIM2_InitForPWM(FUNCONF_SYSTEM_CORE_CLOCK / (256 * 1000) - 1, 255, 1 << 1, 0);
+  TIM2_InitForPWM(0, 65535, 1 << 1, 0);
   TIM2_SetPulseWidth(1, 32);
   TIM2_Start();
 
@@ -414,7 +414,15 @@ int main() {
         }
       } else if (msg->cmd.cmd == LCD_SET_BL) {
         uint8_t brightness = msg->cmd.argv[0];
-        TIM2_SetPulseWidth(1, brightness);
+        uint16_t pw;
+        if (brightness == 0) {
+          pw = 0;
+        } else if (brightness <= 14) {
+          pw = 1 << (brightness + 1);
+        } else {
+          pw = 65535;
+        }
+        TIM2_SetPulseWidth(1, pw);
       } else if ((msg->cmd.cmd & 0xE0) == LCD_PUT_STRING) {
         uint8_t n = msg->cmd.cmd & 0x1F;
         for (uint8_t i = 0; i < n; ++i) {

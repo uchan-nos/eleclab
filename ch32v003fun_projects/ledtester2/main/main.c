@@ -318,7 +318,7 @@ int main() {
   // LCD コントローラ側と通信が確立するまで送り続ける
   int set_bl_cnt = 0;
   for (; set_bl_cnt < 100; ++set_bl_cnt) {
-    if (LCD_SetBLBrightness(128) == 0) {
+    if (LCD_SetBLBrightness(10) == 0) {
       break;
     }
   }

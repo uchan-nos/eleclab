@@ -29,9 +29,11 @@ enum Input {
   IN_REL, // Release
 };
 
-const static enum DispMode kOpModes[3] = {
-  DM_MULTI_CC, DM_SINGLE_CC, DM_GLOBAL_CC
+#define NUM_OP_MODE 4
+const static enum DispMode kOpModes[NUM_OP_MODE] = {
+  DM_MULTI_CC, DM_SINGLE_CC, DM_GLOBAL_CC, DM_CONFIG
 };
+
 static uint8_t op_mode = 0;
 static enum DispMode disp_mode;
 static uint8_t led = 0;
@@ -40,6 +42,7 @@ static uint32_t press_tick = 0;
 static uint8_t rotated_while_pressed = 0;
 static uint32_t refresh_tick = 0;
 static uint32_t current_tick;
+static uint8_t bl_brightness = 13; // 0 - 15
 
 // 与えられた電流値を mA 単位の文字列に変換（きっかり 6 文字 + NUL 終端）
 STATIC void FormatMA(char *buf, uint16_t ua) {
@@ -115,7 +118,7 @@ static void DispModeselect() {
   disp_mode = DM_MODESELECT;
   op_mode = 0;
   DispWholeArea("MULTI   SINGLE  ",
-                "GLOBAL          ");
+                "GLOBAL  CONFIG  ");
 }
 
 static void MoveCursorMultiLED(uint8_t led) {
@@ -191,14 +194,35 @@ static void DispGlobalCC() {
   disp_mode = DM_GLOBAL_CC;
 }
 
+static void DispConfig() {
+  disp_mode = DM_CONFIG;
+  DispWholeArea("BL BRIGHT       ",
+                "                ");
+}
+
+static void DispConfigBL() {
+  char buf[4];
+  disp_mode = DM_CONFIG_BL;
+  LCD_HideCursor();
+  LCD_MoveCursor(0, 0);
+  LCD_PutString("0-15: ", 6);
+  sprintf(buf, "%2d", bl_brightness);
+  LCD_PutString(buf, 2);
+  LCD_PutSpaces(8);
+  LCD_MoveCursor(0, 1);
+  LCD_PutSpaces(16);
+  LCD_MoveCursor(7, 0);
+  LCD_ShowCursor();
+}
+
 static void HandleInput_ModeSelect(enum Input in, int arg) {
   switch (in) {
   case IN_CW:
-    INC_MOD(op_mode, 3);
+    INC_MOD(op_mode, NUM_OP_MODE);
     LCD_MoveCursor((op_mode & 1) * 8, (op_mode & 2) >> 1);
     break;
   case IN_CCW:
-    DEC_MOD(op_mode, 3);
+    DEC_MOD(op_mode, NUM_OP_MODE);
     LCD_MoveCursor((op_mode & 1) * 8, (op_mode & 2) >> 1);
     break;
   case IN_REL:
@@ -206,6 +230,7 @@ static void HandleInput_ModeSelect(enum Input in, int arg) {
     case DM_MULTI_CC: DispMultiCC(); break;
     case DM_SINGLE_CC: DispSingleCC(); break;
     case DM_GLOBAL_CC: DispGlobalCC(); break;
+    case DM_CONFIG: DispConfig(); break;
     default: assert(0);
     }
     break;
@@ -270,6 +295,35 @@ static void HandleInput_SingleCC(enum Input in, int arg) {
   }
 }
 
+static void HandleInput_Config(enum Input in, int arg) {
+  switch (in) {
+  case IN_PR:
+    DispConfigBL();
+    return;
+  case IN_REL:
+    if (long_pressed && !rotated_while_pressed) {
+      DispModeselect();
+      return;
+    }
+  }
+}
+
+static void HandleInput_ConfigBL(enum Input in, int arg) {
+  if (in == IN_CW || in == IN_CCW) {
+    int new_br = bl_brightness + (in == IN_CW ? 1 : -1);
+    if (new_br > 15) {
+      new_br = 15;
+    } else if (new_br < 0) {
+      new_br = 0;
+    }
+    bl_brightness = new_br;
+    LCD_SetBLBrightness(bl_brightness);
+    DispConfigBL();
+  } else if (in == IN_REL && long_pressed) {
+    DispModeselect();
+  }
+}
+
 static void DefaultHandler(enum Input in, int arg) {
   printf("default handler: in=%d arg=%d\n", in, arg);
 }
@@ -283,6 +337,10 @@ static HandlerType GetHandler(void) {
     return HandleInput_MultiCC;
   case DM_SINGLE_CC:
     return HandleInput_SingleCC;
+  case DM_CONFIG:
+    return HandleInput_Config;
+  case DM_CONFIG_BL:
+    return HandleInput_ConfigBL;
   }
   return DefaultHandler;
 }
@@ -359,6 +417,8 @@ static void PeriodicRefresh(void) {
 }
 
 void InitUI() {
+  LCD_SetBLBrightness(bl_brightness);
+
   disp_mode = op_mode = DM_MULTI_CC;
   DispMultiCC();
 }
