@@ -70,6 +70,10 @@ void LCD_PutSpaces(int n) {
   cx += n;
 }
 
+int LCD_SetBLBrightness(uint8_t brightness) {
+  return 0;
+}
+
 static int assert_failed;
 void __assert_fail(const char *__assertion, const char *__file,
                    unsigned int __line, const char *__function) {
@@ -254,6 +258,13 @@ void test_accel_dials() {
   }
 }
 
+void click_mode_btn() {
+  DelayMs(100);
+  Event(MSG_PRS_MODE);
+  DelayMs(100);
+  Event(MSG_REL_MODE);
+}
+
 void test_ui_manip() {
   memset(screen, ' ', LCD_WIDTH * 2);
 
@@ -291,17 +302,17 @@ void test_ui_manip() {
   Event(MSG_PRS_MODE);
   StepTick(980);
   Event(MSG_REL_MODE);
-  test_screen(0, 0, "MULTI   SINGLE  ", "GLOBAL          ");
+  test_screen(0, 0, "MULTI   SINGLE  ", "GLOBAL  CONFIG  ");
   // メインメニューのカーソル移
   StepTick(10);
   Event(MSG_CW);
-  test_screen(8, 0, "MULTI   SINGLE  ", "GLOBAL          ");
+  test_screen(8, 0, "MULTI   SINGLE  ", "GLOBAL  CONFIG  ");
   StepTick(10);
   Event(MSG_CW);
-  test_screen(0, 1, "MULTI   SINGLE  ", "GLOBAL          ");
+  test_screen(0, 1, "MULTI   SINGLE  ", "GLOBAL  CONFIG  ");
   StepTick(10);
   Event(MSG_CCW);
-  test_screen(8, 0, "MULTI   SINGLE  ", "GLOBAL          ");
+  test_screen(8, 0, "MULTI   SINGLE  ", "GLOBAL  CONFIG  ");
 
   // SINGLE でクリック
   StepTick(10);
@@ -324,6 +335,27 @@ void test_ui_manip() {
   Event(MSG_REL_MODE);
   Event(MSG_CW);
   test_screen(4, 0, "D3  0.01mA 2.60V", "5: 240K 33:70000");
+
+  // ボタン長押しでメインメニューへ
+  DelayMs(100);
+  Event(MSG_PRS_MODE);
+  DelayMs(4000);
+  Event(MSG_REL_MODE);
+  // 設定画面を選択
+  for (int i = 0; i < 3; ++i) {
+    DelayMs(500);
+    Event(MSG_CW);
+  }
+  test_screen(8, 1, "MULTI   SINGLE  ", "GLOBAL  CONFIG  ");
+  click_mode_btn();
+  test_screen(0, 0, "BL BRIGHT       ", "                ");
+
+  // バックライト輝度設定
+  click_mode_btn();
+  test_screen(7, 0, "0-15: 10        ", "                ");
+  DelayMs(500);
+  Event(MSG_CW);
+  test_screen(7, 0, "0-15: 11        ", "                ");
 }
 
 int main() {
