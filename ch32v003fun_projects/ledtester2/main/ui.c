@@ -305,18 +305,18 @@ STATIC int AccelDial(int dir) {
     if (lastrot_tick + (100 / TICK_MS) < current_tick) {
       v = dir;
       lastdir = dir;
-      rotcnt = 1;
+      rotcnt = 0;
       lastrot_tick = current_tick;
     }
   } else if (lastrot_tick == current_tick) {
     ++rotcnt;
-  } else if (lastrot_tick + 2 <= current_tick && rotcnt == 1) {
-    v = dir;
   } else {
     ++rotcnt;
     int tick_diff = current_tick - lastrot_tick;
-    int rot2 = rotcnt * rotcnt;
-    v = (1 << (rotcnt << 2)) / tick_diff;
+    v = (rotcnt * 20) / tick_diff;
+    if (v > 32) {
+      v = 32;
+    }
     if (v == 0) {
       // 最低でも ±1 は動くようにする
       v = dir;
@@ -325,7 +325,7 @@ STATIC int AccelDial(int dir) {
     }
 
     lastrot_tick = current_tick;
-    rotcnt = 1;
+    rotcnt = 0;
   }
 
   return v;
