@@ -27,7 +27,6 @@
 #define LCD_MOVE_CURSOR 0x10
 #define LCD_PUT_SPACES  0x11
 #define LCD_SET_BL      0x12
-#define SELECT_CH       0x18
 
 // 可変長引数（引数のバイト数はコマンドバイトの下位 5 ビットで表現）
 #define LCD_PUT_STRING  0x20

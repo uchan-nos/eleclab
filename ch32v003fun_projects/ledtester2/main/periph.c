@@ -231,11 +231,6 @@ int LCD_SetBLBrightness(uint8_t brightness) {
   return I2C1_Send(LCD_I2C_ADDR, cmd, 2);
 }
 
-void LCD_SelectAnalogCh(uint8_t ch) {
-  uint8_t cmd[2] = {SELECT_CH, ch};
-  I2C1_Send(LCD_I2C_ADDR, cmd, 2);
-}
-
 static volatile vfs_mv[LED_NUM];
 
 uint16_t GetVF(uint8_t led) {

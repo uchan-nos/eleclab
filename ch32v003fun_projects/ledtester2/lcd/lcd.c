@@ -77,13 +77,8 @@ void Queue_Push(void) {
 #define LCD_DB6 PC6
 #define LCD_DB7 PC7
 
-#define SEL1_PIN PD2
-#define SEL2_PIN PD3
-#define BL_PIN   PD5
+#define BL_PIN   PD3
 #define NEXT_PIN PD6
-
-// PD5 = T2CH4_3
-#define TIM2_REMAP AFIO_PCFR1_TIM2_REMAP_FULLREMAP
 
 void OPA1_Init(int enable, int neg_pin, int pos_pin) {
   assert(neg_pin == PA1 || neg_pin == PD0);
@@ -272,27 +267,6 @@ void LCD_Init() {
   lcd_exec(0x0cu); // display on/off: display on, cursor off, no blink
 }
 
-static uint8_t current_ch;
-
-void SelectCh(uint8_t ch) {
-  current_ch = ch & 3;
-  funDigitalWrite(SEL1_PIN, current_ch & 1);
-  funDigitalWrite(SEL2_PIN, (current_ch >> 1) & 1);
-}
-
-void NextCh() {
-  SelectCh(current_ch + 1);
-}
-
-void EXTI7_0_IRQHandler(void) __attribute__((interrupt));
-void EXTI7_0_IRQHandler(void) {
-  uint16_t intfr = EXTI->INTFR;
-  if (intfr & EXTI_Line6) {
-    NextCh();
-  }
-  EXTI->INTFR = intfr;
-}
-
 void TIM2_InitForPWM(uint16_t psc, uint16_t period, uint8_t channels, int default_high) {
   // TIM2 を有効化
   RCC->APB1PCENR |= RCC_APB1Periph_TIM2;
@@ -395,10 +369,6 @@ int main() {
   funPinMode(LCD_DB6, GPIO_CFGLR_OUT_10Mhz_PP);
   funPinMode(LCD_DB7, GPIO_CFGLR_OUT_10Mhz_PP);
 
-  funPinMode(SEL1_PIN, GPIO_CFGLR_OUT_10Mhz_PP);
-  funPinMode(SEL2_PIN, GPIO_CFGLR_OUT_10Mhz_PP);
-  funPinMode(NEXT_PIN, GPIO_CFGLR_IN_FLOAT);
-
   OPA1_Init(1, PA1, PA2);
 
   LCD_Init();
@@ -408,16 +378,9 @@ int main() {
   NVIC_EnableIRQ(I2C1_EV_IRQn);
   NVIC_EnableIRQ(I2C1_ER_IRQn);
 
-  // NEXT ピン（PD6）の立ち上がりエッジで割り込み
-  AFIO->EXTICR = AFIO_EXTICR_EXTI6_PD;
-  EXTI->INTENR = EXTI_INTENR_MR6;
-  EXTI->RTENR  = EXTI_RTENR_TR6;
-  NVIC_EnableIRQ(EXTI7_0_IRQn);
-
-  AFIO->PCFR1 |= TIM2_REMAP;
   funPinMode(BL_PIN, GPIO_CFGLR_OUT_10Mhz_AF_PP);
-  TIM2_InitForPWM(FUNCONF_SYSTEM_CORE_CLOCK / (256 * 1000) - 1, 255, 1 << 3, 0);
-  TIM2_SetPulseWidth(3, 32);
+  TIM2_InitForPWM(FUNCONF_SYSTEM_CORE_CLOCK / (256 * 1000) - 1, 255, 1 << 1, 0);
+  TIM2_SetPulseWidth(1, 32);
   TIM2_Start();
 
   while (1) {
@@ -451,10 +414,7 @@ int main() {
         }
       } else if (msg->cmd.cmd == LCD_SET_BL) {
         uint8_t brightness = msg->cmd.argv[0];
-        //funDigitalWrite(BL_PIN, brightness > 127);
-        TIM2_SetPulseWidth(3, brightness);
-      } else if (msg->cmd.cmd == SELECT_CH) {
-        SelectCh(msg->cmd.argv[0]);
+        TIM2_SetPulseWidth(1, brightness);
       } else if ((msg->cmd.cmd & 0xE0) == LCD_PUT_STRING) {
         uint8_t n = msg->cmd.cmd & 0x1F;
         for (uint8_t i = 0; i < n; ++i) {
