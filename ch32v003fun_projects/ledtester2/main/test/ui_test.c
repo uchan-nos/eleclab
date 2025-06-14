@@ -101,6 +101,11 @@ void addr2line(const char *exe_file, const char *addr) {
   if (!((expected) && ++n_passed) && ++n_failed)
 int n_passed, n_failed;
 
+#define ASSERT_EQ_INT(var, expected) \
+  T ((var) == (expected)) { \
+    TP(#var ": got %d, want %d\n", (var), (expected)); \
+  }
+
 void test_format_ma(uint16_t ua, const char *expected) {
   char buf[8] = "DEADBEEF";
   FormatMA(buf, ua);
@@ -154,12 +159,8 @@ void test_format_funcs() {
 }
 
 void test_screen(int e_cx, int e_cy, char *e_scr0, char *e_scr1) {
-  T (e_cx == cx) {
-    TP("cx: got %d, want %d\n", cx, e_cx);
-  }
-  T (e_cy == cy) {
-    TP("cy: got %d, want %d\n", cy, e_cy);
-  }
+  ASSERT_EQ_INT(cx, e_cx);
+  ASSERT_EQ_INT(cy, e_cy);
   T (e_scr0 && memcmp(screen[0], e_scr0, LCD_WIDTH) == 0) {
     TP("screen[0]: got %.*s, want %.*s\n",
        LCD_WIDTH, screen[0], LCD_WIDTH, e_scr0);
@@ -178,8 +179,79 @@ void StepTick(int step) {
   }
 }
 
+void DelayMs(int ms) {
+  StepTick(ms / TICK_MS);
+}
+
 void Event(MessageType msg) {
   HandleUIEvent(tick, msg);
+}
+
+void test_accel_dial(int dir, int expected) {
+  int acceled = AccelDial(dir);
+  T (acceled == expected) {
+    TP("AccelDial(%d): got %d, want %d\n", dir, acceled, expected);
+  }
+}
+
+void test_accel_dials() {
+  for (int i = 0; i < 10; ++i) {
+    DelayMs(500);
+    int val = AccelDial(1);
+    T (val == 1) {
+      TP("AccelDial(1): got %d, want 1\n", val);
+    }
+  }
+
+  for (int i = 0; i < 10; ++i) {
+    DelayMs(500);
+    int val = AccelDial(-1);
+    T (val == -1) {
+      TP("AccelDial(-1): got %d, want -1\n", val);
+    }
+  }
+
+  DelayMs(500);
+  int v0 = AccelDial(1);
+  T (v0 == 1) {
+    TP("AccelDial(1): got %d, want 1\n", v0);
+  }
+  DelayMs(50);
+  int v1 = AccelDial(1);
+  T (v1 > 1) {
+    TP("AccelDial(1): got %d, want >%d\n", v1, 1);
+  }
+  DelayMs(50);
+  int v2 = AccelDial(1);
+  T (v2 == v1) {
+    TP("AccelDial(1): got %d, want %d\n", v2, v1);
+  }
+  DelayMs(2000);
+  int v3 = AccelDial(1);
+  T (v3 == 1) {
+    TP("AccelDial(1): got %d, want 1\n", v3);
+  }
+
+  DelayMs(500);
+  v0 = AccelDial(-1);
+  T (v0 == -1) {
+    TP("AccelDial(-1): got %d, want -1\n", v0);
+  }
+  DelayMs(50);
+  v1 = AccelDial(-1);
+  T (v1 < -1) {
+    TP("AccelDial(-1): got %d, want <%d\n", v1, -1);
+  }
+  DelayMs(50);
+  v2 = AccelDial(-1);
+  T (v2 == v1) {
+    TP("AccelDial(-1): got %d, want %d\n", v2, v1);
+  }
+  DelayMs(500);
+  v3 = AccelDial(1); // ‹t‰ñ“]
+  T (v3 == 1) {
+    TP("AccelDial(1): got %d, want 1\n", v3);
+  }
 }
 
 void test_ui_manip() {
@@ -189,10 +261,13 @@ void test_ui_manip() {
   test_screen(0, 0, "0.00mA  0.00mA  ", "  0.00mA  0.00mA");
 
   // LED1 ‚Ì“d—¬‚ð’²®
+  DelayMs(500);
   Event(MSG_CW);
   test_screen(0, 0, "0.01mA  0.00mA  ", "  0.00mA  0.00mA");
+  DelayMs(1000);
   Event(MSG_CW);
   test_screen(0, 0, "0.02mA  0.00mA  ", "  0.00mA  0.00mA");
+  DelayMs(1000);
   Event(MSG_CCW);
   test_screen(0, 0, "0.01mA  0.00mA  ", "  0.00mA  0.00mA");
 
@@ -206,6 +281,7 @@ void test_ui_manip() {
 
   // LED2 ‚Ì“d—¬‚ð’²®
   for (int i = 0; i < 25; ++i) {
+    DelayMs(500);
     Event(MSG_CW);
   }
   test_screen(2, 1, "0.01mA  0.00mA  ", "  0.25mA  0.00mA");
@@ -248,14 +324,15 @@ void test_ui_manip() {
   Event(MSG_REL_MODE);
   Event(MSG_CW);
   test_screen(4, 0, "D3  0.01mA 2.60V", "5: 240K 33:70000");
+}
+
+int main() {
+  test_format_funcs();
+  test_accel_dials();
+  test_ui_manip();
 
   printf("%d passed, %d failed\n", n_passed, n_failed);
   if (n_failed == 0) {
     printf("all passed!\n");
   }
-}
-
-int main() {
-  test_format_funcs();
-  test_ui_manip();
 }

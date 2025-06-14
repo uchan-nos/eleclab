@@ -226,7 +226,8 @@ uint16_t LEDIfToPWM(uint32_t if_ua) {
 
 void EXTI7_0_IRQHandler(void) __attribute__((interrupt));
 void EXTI7_0_IRQHandler(void) {
-  static uint32_t last_enc_change_tick = 0;
+  static uint32_t last_enca_change_tick = 0;
+  static uint32_t last_encb_change_tick = 0;
   static int last_encb = 0;
   uint32_t current_tick = SysTick->CNT;
 
@@ -235,14 +236,19 @@ void EXTI7_0_IRQHandler(void) {
     const int enca = funDigitalRead(ENCA_PIN);
     // ENCA の立ち下がりエッジで情報を記憶し、立ち上がりエッジでキューに積む。
     // 立ち下がりから立ち上がりまでの時間が短すぎるときは誤動作と判断し、キューに積まない。
+    // ただ、両エッジの間に ENCB の変化があれば、正常な信号とみなす。
     if (enca) { // 立ち上がりエッジ
-      if (last_enc_change_tick + Ticks_from_Ms(3) <= current_tick) {
+      if (last_enca_change_tick + Ticks_from_Ms(3) <= current_tick ||
+          last_enca_change_tick < last_encb_change_tick) {
         Queue_Push(MSG_CW + (last_encb ? 0 : 1));
       }
     } else { // 立ち下がりエッジ
       last_encb = funDigitalRead(ENCB_PIN);
     }
-    last_enc_change_tick = current_tick;
+    last_enca_change_tick = current_tick;
+  }
+  if (intfr & EXTI_LINE(ENCB)) { // ENCB
+    last_encb_change_tick = current_tick;
   }
   if (intfr & EXTI_LINE(MODE_BTN)) { // Button
     const int btn = funDigitalRead(MODE_BTN_PIN);
@@ -288,14 +294,17 @@ int main() {
   funDigitalWrite(MODE_BTN_PIN, 1); // pull up
   funDigitalWrite(LED_BTN_PIN, 1); // pull up
 
-  // ENCA と Button の変化で割り込み
-  AFIO->EXTICR = AFIO_EXTICR_VAL(ENCA) | AFIO_EXTICR_VAL(MODE_BTN) | AFIO_EXTICR_VAL(LED_BTN);
-  //EXTI->INTENR = EXTI_INTENR_MR0      | EXTI_INTENR_MR6      | EXTI_INTENR_MR7;
-  EXTI->INTENR = EXTI_MR(ENCA) | EXTI_MR(MODE_BTN) | EXTI_MR(LED_BTN);
+  // ENCA/ENCB と Button の変化で割り込み
+  AFIO->EXTICR =
+    AFIO_EXTICR_VAL(ENCA) | AFIO_EXTICR_VAL(ENCB) |
+    AFIO_EXTICR_VAL(MODE_BTN) | AFIO_EXTICR_VAL(LED_BTN);
+  EXTI->INTENR =
+    EXTI_MR(ENCA) | EXTI_MR(ENCB) |
+    EXTI_MR(MODE_BTN) | EXTI_MR(LED_BTN);
 
-  // ENCA もボタンも両エッジで割り込み
-  EXTI->RTENR = EXTI_MR(MODE_BTN) | EXTI_MR(LED_BTN) | EXTI_MR(ENCA);
-  EXTI->FTENR = EXTI_MR(MODE_BTN) | EXTI_MR(LED_BTN) | EXTI_MR(ENCA);
+  // ENCA/ENCB もボタンも両エッジで割り込み
+  EXTI->RTENR = EXTI_MR(ENCA) | EXTI_MR(ENCB) | EXTI_MR(MODE_BTN) | EXTI_MR(LED_BTN);
+  EXTI->FTENR = EXTI_MR(ENCA) | EXTI_MR(ENCB) | EXTI_MR(MODE_BTN) | EXTI_MR(LED_BTN);
   NVIC_EnableIRQ(EXTI7_0_IRQn);
 
   OPA1_Init(1, PD0, PA2);
