@@ -352,10 +352,10 @@ void test_ui_manip() {
 
   // バックライト輝度設定
   click_mode_btn();
-  test_screen(7, 0, "0-15: 10        ", "                ");
+  test_screen(7, 0, "0-15: 13        ", "                ");
   DelayMs(500);
   Event(MSG_CW);
-  test_screen(7, 0, "0-15: 11        ", "                ");
+  test_screen(7, 0, "0-15: 14        ", "                ");
 }
 
 int main() {
