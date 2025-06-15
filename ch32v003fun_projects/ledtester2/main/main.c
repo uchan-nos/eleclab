@@ -230,6 +230,8 @@ void EXTI7_0_IRQHandler(void) {
   static uint32_t last_enca_change_tick = 0;
   static uint32_t last_encb_change_tick = 0;
   static int last_encb = 0;
+  static uint32_t last_mode_change_tick = 0;
+  static uint32_t last_led_change_tick = 0;
   uint32_t current_tick = SysTick->CNT;
 
   uint16_t intfr = EXTI->INTFR;
@@ -252,12 +254,16 @@ void EXTI7_0_IRQHandler(void) {
     last_encb_change_tick = current_tick;
   }
   if (intfr & EXTI_LINE(MODE_BTN)) { // Button
-    const int btn = funDigitalRead(MODE_BTN_PIN);
-    Queue_Push(MSG_MODE_PRS + btn);
+    if (last_mode_change_tick + Ticks_from_Ms(50) <= current_tick) {
+      Queue_Push(MSG_MODE_PRS);
+    }
+    last_mode_change_tick = current_tick;
   }
   if (intfr & EXTI_LINE(LED_BTN)) { // Button
-    const int btn = funDigitalRead(LED_BTN_PIN);
-    Queue_Push(MSG_LED_PRS + btn);
+    if (last_led_change_tick + Ticks_from_Ms(50) <= current_tick) {
+      Queue_Push(MSG_LED_PRS);
+    }
+    last_led_change_tick = current_tick;
   }
 
   EXTI->INTFR = intfr;
@@ -303,8 +309,8 @@ int main() {
     EXTI_MR(ENCA) | EXTI_MR(ENCB) |
     EXTI_MR(MODE_BTN) | EXTI_MR(LED_BTN);
 
-  // ENCA/ENCB もボタンも両エッジで割り込み
-  EXTI->RTENR = EXTI_MR(ENCA) | EXTI_MR(ENCB) | EXTI_MR(MODE_BTN) | EXTI_MR(LED_BTN);
+  // ENCA/ENCB は両エッジで割り込み、ボタン類は押下（立ち下がりエッジ）で割り込み
+  EXTI->RTENR = EXTI_MR(ENCA) | EXTI_MR(ENCB);
   EXTI->FTENR = EXTI_MR(ENCA) | EXTI_MR(ENCB) | EXTI_MR(MODE_BTN) | EXTI_MR(LED_BTN);
   NVIC_EnableIRQ(EXTI7_0_IRQn);
 
@@ -362,6 +368,8 @@ int main() {
   TIM2_Start();
 
   uint32_t tick = 0;
+  uint32_t mode_press_tick = 0;
+  uint8_t led_press_tick = 0;
 
   while (1) {
     __disable_irq();
@@ -369,12 +377,37 @@ int main() {
       __enable_irq();
       continue;
     }
-    QueueElemType msg = Queue_Pop();
+    MessageType msg = Queue_Pop();
     __enable_irq();
 
     if (msg == MSG_TICK) {
       ++tick;
+      HandleUIEvent(tick, MSG_TICK);
+
+      if (mode_press_tick > 0 && mode_press_tick + 50/TICK_MS < tick) {
+        if (funDigitalRead(MODE_BTN_PIN)) { // released
+          mode_press_tick = 0;
+          HandleUIEvent(tick, MSG_MODE_REL);
+        }
+      }
+      if (led_press_tick > 0 && led_press_tick + 50/TICK_MS < tick) {
+        if (funDigitalRead(LED_BTN_PIN)) { // released
+          led_press_tick = 0;
+          HandleUIEvent(tick, MSG_LED_REL);
+        }
+      }
+    } else if (msg == MSG_CW || msg == MSG_CCW) {
+      HandleUIEvent(tick, msg);
+    } else if (msg == MSG_MODE_PRS) {
+      if (mode_press_tick == 0) {
+        mode_press_tick = tick;
+        HandleUIEvent(tick, MSG_MODE_PRS);
+      }
+    } else if (msg == MSG_LED_PRS) {
+      if (led_press_tick == 0) {
+        led_press_tick = tick;
+        HandleUIEvent(tick, MSG_LED_PRS);
+      }
     }
-    HandleUIEvent(tick, msg);
   }
 }
