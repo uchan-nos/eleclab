@@ -269,6 +269,28 @@ void EXTI7_0_IRQHandler(void) {
   EXTI->INTFR = intfr;
 }
 
+// ボタン関連処理
+struct Button {
+  uint8_t pin;
+  MessageType msg_press;
+  uint32_t press_tick;
+};
+
+void HandleButtonTick(struct Button *btn, uint32_t tick) {
+  if (btn->press_tick > 0 && btn->press_tick + 50/TICK_MS < tick &&
+      funDigitalRead(btn->pin)) { // released
+    btn->press_tick = 0;
+    HandleUIEvent(tick, btn->msg_press + 1);
+  }
+}
+
+void HandleButtonPress(struct Button *btn, uint32_t tick) {
+  if (btn->press_tick == 0) {
+    btn->press_tick = tick;
+    HandleUIEvent(tick, btn->msg_press);
+  }
+}
+
 int main() {
   SystemInit();
 
@@ -368,8 +390,8 @@ int main() {
   TIM2_Start();
 
   uint32_t tick = 0;
-  uint32_t mode_press_tick = 0;
-  uint8_t led_press_tick = 0;
+  struct Button mode_btn = {MODE_BTN_PIN, MSG_MODE_PRS, 0};
+  struct Button led_btn  = {LED_BTN_PIN,  MSG_LED_PRS,  0};
 
   while (1) {
     __disable_irq();
@@ -384,30 +406,14 @@ int main() {
       ++tick;
       HandleUIEvent(tick, MSG_TICK);
 
-      if (mode_press_tick > 0 && mode_press_tick + 50/TICK_MS < tick) {
-        if (funDigitalRead(MODE_BTN_PIN)) { // released
-          mode_press_tick = 0;
-          HandleUIEvent(tick, MSG_MODE_REL);
-        }
-      }
-      if (led_press_tick > 0 && led_press_tick + 50/TICK_MS < tick) {
-        if (funDigitalRead(LED_BTN_PIN)) { // released
-          led_press_tick = 0;
-          HandleUIEvent(tick, MSG_LED_REL);
-        }
-      }
+      HandleButtonTick(&mode_btn, tick);
+      HandleButtonTick(&led_btn, tick);
     } else if (msg == MSG_CW || msg == MSG_CCW) {
       HandleUIEvent(tick, msg);
     } else if (msg == MSG_MODE_PRS) {
-      if (mode_press_tick == 0) {
-        mode_press_tick = tick;
-        HandleUIEvent(tick, MSG_MODE_PRS);
-      }
+      HandleButtonPress(&mode_btn, tick);
     } else if (msg == MSG_LED_PRS) {
-      if (led_press_tick == 0) {
-        led_press_tick = tick;
-        HandleUIEvent(tick, MSG_LED_PRS);
-      }
+      HandleButtonPress(&led_btn, tick);
     }
   }
 }
