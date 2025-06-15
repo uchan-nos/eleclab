@@ -260,9 +260,9 @@ void test_accel_dials() {
 
 void click_mode_btn() {
   DelayMs(100);
-  Event(MSG_PRS_MODE);
+  Event(MSG_MODE_PRS);
   DelayMs(100);
-  Event(MSG_REL_MODE);
+  Event(MSG_MODE_REL);
 }
 
 void test_ui_manip() {
@@ -282,13 +282,12 @@ void test_ui_manip() {
   Event(MSG_CCW);
   test_screen(0, 0, "0.01mA  0.00mA  ", "  0.00mA  0.00mA");
 
-  // ボタンを押しながら回転で LED 変更
+  // LED ボタンで LED 変更
   StepTick(10);
-  Event(MSG_PRS_MODE);
-  Event(MSG_CW);
+  Event(MSG_LED_PRS);
   test_screen(2, 1, "0.01mA  0.00mA  ", "  0.00mA  0.00mA");
   StepTick(4);
-  Event(MSG_REL_MODE);
+  Event(MSG_LED_REL);
 
   // LED2 の電流を調整
   for (int i = 0; i < 25; ++i) {
@@ -299,11 +298,11 @@ void test_ui_manip() {
 
   // ボタン長押しでメインメニューへ
   StepTick(6);
-  Event(MSG_PRS_MODE);
+  Event(MSG_MODE_PRS);
   StepTick(980);
-  Event(MSG_REL_MODE);
+  Event(MSG_MODE_REL);
   test_screen(0, 0, "MULTI   SINGLE  ", "GLOBAL  CONFIG  ");
-  // メインメニューのカーソル移
+  // メインメニューのカーソル移動
   StepTick(10);
   Event(MSG_CW);
   test_screen(8, 0, "MULTI   SINGLE  ", "GLOBAL  CONFIG  ");
@@ -316,31 +315,31 @@ void test_ui_manip() {
 
   // SINGLE でクリック
   StepTick(10);
-  Event(MSG_PRS_MODE);
+  Event(MSG_MODE_PRS);
   StepTick(10);
-  Event(MSG_REL_MODE);
+  Event(MSG_MODE_REL);
   test_screen(4, 0, "D2  0.25mA 2.13V", "5:11476 33: 4676");
 
   // LED3 を選択
   StepTick(10);
-  Event(MSG_PRS_MODE);
-  StepTick(1000);
-  Event(MSG_CW);
+  Event(MSG_LED_PRS);
+  DelayMs(10);
+  Event(MSG_LED_REL);
   test_screen(4, 0, "D3  0.00mA 0.00V", "LED ｦ ｻｼﾃ ｸﾀﾞｻｲ ");
 
   // LED3 を挿入
   vfs_mv[2] = 2600;
   StepTick(100);
   test_screen(4, 0, "D3  0.00mA 2.60V", "5:>=10M 33:>=10M");
-  Event(MSG_REL_MODE);
+  Event(MSG_MODE_REL);
   Event(MSG_CW);
   test_screen(4, 0, "D3  0.01mA 2.60V", "5: 240K 33:70000");
 
   // ボタン長押しでメインメニューへ
   DelayMs(100);
-  Event(MSG_PRS_MODE);
+  Event(MSG_MODE_PRS);
   DelayMs(4000);
-  Event(MSG_REL_MODE);
+  Event(MSG_MODE_REL);
   // 設定画面を選択
   for (int i = 0; i < 3; ++i) {
     DelayMs(500);

@@ -22,11 +22,14 @@
 #define VF_THRESHOLD_MV 200
 
 enum Input {
-  IN_CW,  // Encoder rotation CW
-  IN_CCW, // Encoder rotation CCW
-  IN_PR,  // Press
-  IN_LPR, // Long press
-  IN_REL, // Release
+  IN_CW,        // Encoder rotation CW
+  IN_CCW,       // Encoder rotation CCW
+  IN_MODE_PRS,  // MODE button pressed
+  IN_MODE_LPRS, // MODE button pressed long
+  IN_MODE_REL,  // MODE button released
+  IN_LED_PRS,   // MODE button pressed
+  IN_LED_LPRS,  // MODE button pressed long
+  IN_LED_REL,   // MODE button released
 };
 
 #define NUM_OP_MODE 4
@@ -37,8 +40,8 @@ const static enum DispMode kOpModes[NUM_OP_MODE] = {
 static uint8_t op_mode = 0;
 static enum DispMode disp_mode;
 static uint8_t led = 0;
-static uint8_t long_pressed = 0;
-static uint32_t press_tick = 0;
+static uint8_t mode_long_pressed = 0;
+static uint32_t mode_press_tick = 0;
 static uint8_t rotated_while_pressed = 0;
 static uint32_t refresh_tick = 0;
 static uint32_t current_tick;
@@ -225,7 +228,7 @@ static void HandleInput_ModeSelect(enum Input in, int arg) {
     DEC_MOD(op_mode, NUM_OP_MODE);
     LCD_MoveCursor((op_mode & 1) * 8, (op_mode & 2) >> 1);
     break;
-  case IN_REL:
+  case IN_MODE_PRS:
     switch (kOpModes[op_mode]) {
     case DM_MULTI_CC: DispMultiCC(); break;
     case DM_SINGLE_CC: DispSingleCC(); break;
@@ -238,70 +241,48 @@ static void HandleInput_ModeSelect(enum Input in, int arg) {
 }
 
 static void HandleInput_MultiCC(enum Input in, int arg) {
-  if (press_tick > 0) {
-    switch (in) {
-    case IN_CW:
-      INC_MOD(led, LED_NUM);
-      break;
-    case IN_CCW:
-      DEC_MOD(led, LED_NUM);
-      break;
-    case IN_REL:
-      if (long_pressed && !rotated_while_pressed) {
-        DispModeselect();
-        return;
-      }
-    }
-    MoveCursorMultiLED(led);
-  } else {
-    switch (in) {
-    case IN_CW:
-      IncGoalCurrent(led, 10 * arg);
-      break;
-    case IN_CCW:
-      IncGoalCurrent(led, 10 * arg);
-      break;
-    }
+  switch (in) {
+  case IN_CW:
+    // fall through
+  case IN_CCW:
+    IncGoalCurrent(led, 10 * arg);
     RefreshContentMultiCC(led);
+    break;
+  case IN_MODE_LPRS:
+    DispModeselect();
+    break;
+  case IN_LED_PRS:
+    INC_MOD(led, LED_NUM);
+    MoveCursorMultiLED(led);
+    break;
   }
 }
 
 static void HandleInput_SingleCC(enum Input in, int arg) {
-  if (press_tick > 0) {
-    switch (in) {
-    case IN_CW:
-      INC_MOD(led, LED_NUM);
-      break;
-    case IN_CCW:
-      DEC_MOD(led, LED_NUM);
-      break;
-    case IN_REL:
-      if (long_pressed && !rotated_while_pressed) {
-        DispModeselect();
-        return;
-      }
-    }
+  switch (in) {
+  case IN_CW:
+    // fall through
+  case IN_CCW:
+    IncGoalCurrent(led, 10 * arg);
     DispSingleCC();
-  } else {
-    switch (in) {
-    case IN_CW:
-      IncGoalCurrent(led, 10 * arg);
-      break;
-    case IN_CCW:
-      IncGoalCurrent(led, 10 * arg);
-      break;
-    }
+    break;
+  case IN_MODE_LPRS:
+    DispModeselect();
+    break;
+  case IN_LED_PRS:
+    INC_MOD(led, LED_NUM);
     DispSingleCC();
+    break;
   }
 }
 
 static void HandleInput_Config(enum Input in, int arg) {
   switch (in) {
-  case IN_PR:
+  case IN_MODE_PRS:
     DispConfigBL();
     return;
-  case IN_REL:
-    if (long_pressed && !rotated_while_pressed) {
+  case IN_MODE_REL:
+    if (mode_long_pressed && !rotated_while_pressed) {
       DispModeselect();
       return;
     }
@@ -319,7 +300,7 @@ static void HandleInput_ConfigBL(enum Input in, int arg) {
     bl_brightness = new_br;
     LCD_SetBLBrightness(bl_brightness);
     DispConfigBL();
-  } else if (in == IN_REL && long_pressed) {
+  } else if (in == IN_MODE_LPRS) {
     DispModeselect();
   }
 }
@@ -391,20 +372,21 @@ STATIC int AccelDial(int dir) {
 
 static void DialRotatedCW(void) {
   GetHandler()(IN_CW, AccelDial(1));
-  if (press_tick > 0) {
+  if (mode_press_tick > 0) {
     rotated_while_pressed = 1;
   }
 }
 
 static void DialRotatedCCW(void) {
   GetHandler()(IN_CCW, AccelDial(-1));
-  if (press_tick > 0) {
+  if (mode_press_tick > 0) {
     rotated_while_pressed = 1;
   }
 }
 
 static void ButtonLongPressed(uint32_t tick) {
-  GetHandler()(IN_LPR, 0);
+  mode_long_pressed = 1;
+  GetHandler()(IN_MODE_LPRS, 0);
 }
 
 // 変化する現在値に応じて表示を更新する
@@ -423,12 +405,15 @@ void InitUI() {
   DispMultiCC();
 }
 
+static unsigned int mode_prs_cnt = 0;
+static unsigned int mode_rel_cnt = 0;
+
 static void UpdateUI(uint32_t tick) {
   current_tick = tick;
-  if (press_tick > 0 && !long_pressed && press_tick + LONG_PRESS_TICK <= tick) {
+  if (mode_press_tick > 0 && !mode_long_pressed && mode_press_tick + LONG_PRESS_TICK <= tick) {
     // 長押し
-    long_pressed = 1;
     ButtonLongPressed(tick);
+    printf("lpr %lu %lu %u %u\n", mode_press_tick, tick, mode_prs_cnt, mode_rel_cnt);
   }
 
   if (refresh_tick + REFRESH_PERIOD_TICK <= tick) {
@@ -448,19 +433,25 @@ void HandleUIEvent(uint32_t tick, MessageType msg) {
   case MSG_CCW:
     DialRotatedCCW();
     break;
-  case MSG_PRS_MODE:
-    GetHandler()(IN_PR, 0);
-    if (press_tick == 0) {
-      press_tick = tick;
+  case MSG_MODE_PRS:
+    ++mode_prs_cnt;
+    GetHandler()(IN_MODE_PRS, 0);
+    if (mode_press_tick == 0) {
+      mode_press_tick = tick;
     }
     break;
-  case MSG_REL_MODE:
-    GetHandler()(IN_REL, 0);
-    long_pressed = 0;
-    press_tick = 0;
+  case MSG_MODE_REL:
+    ++mode_rel_cnt;
+    GetHandler()(IN_MODE_REL, 0);
+    mode_long_pressed = 0;
+    mode_press_tick = 0;
     rotated_while_pressed = 0;
     break;
-  case MSG_PRS_LED:
-  case MSG_REL_LED:
+  case MSG_LED_PRS:
+    GetHandler()(IN_LED_PRS, 0);
+    break;
+  case MSG_LED_REL:
+    GetHandler()(IN_LED_REL, 0);
+    break;
   }
 }

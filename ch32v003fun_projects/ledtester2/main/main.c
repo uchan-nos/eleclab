@@ -253,12 +253,13 @@ void EXTI7_0_IRQHandler(void) {
   }
   if (intfr & EXTI_LINE(MODE_BTN)) { // Button
     const int btn = funDigitalRead(MODE_BTN_PIN);
-    Queue_Push(MSG_PRS_MODE + btn);
+    Queue_Push(MSG_MODE_PRS + btn);
   }
   if (intfr & EXTI_LINE(LED_BTN)) { // Button
     const int btn = funDigitalRead(LED_BTN_PIN);
-    Queue_Push(MSG_PRS_LED + btn);
+    Queue_Push(MSG_LED_PRS + btn);
   }
+
   EXTI->INTFR = intfr;
 }
 

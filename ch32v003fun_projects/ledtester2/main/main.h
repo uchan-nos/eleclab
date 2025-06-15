@@ -34,10 +34,10 @@ typedef uint8_t MessageType;
 #define MSG_TICK      0x00
 #define MSG_CW        0x10
 #define MSG_CCW       0x11
-#define MSG_PRS_MODE  0x12
-#define MSG_REL_MODE  0x13
-#define MSG_PRS_LED   0x14
-#define MSG_REL_LED   0x15
+#define MSG_MODE_PRS  0x12
+#define MSG_MODE_REL  0x13
+#define MSG_LED_PRS   0x14
+#define MSG_LED_REL   0x15
 
 /************
  * periph.c *
