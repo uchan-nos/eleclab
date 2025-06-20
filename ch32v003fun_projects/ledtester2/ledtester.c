@@ -188,19 +188,29 @@ int main() {
   printf("adc_vref=%u Vcc=%d(mV)\n", adc_vref, vcc_mv);
 
   uint16_t prev_cnt = TIM2->CNT;
-  uint32_t goal_ua = prev_cnt * 10;
+  int32_t goal_ua = 500; // 0.5mA
   TIM1->CH1CVR = LEDIfToPWM(goal_ua);
 
   int settled = 0; // 定常状態になったら 1
 
+  int T_ms = 2;
+  float KP = 0.5;
+  float KD = 1.0;
+  int prev_err = 0;
 
   while (1) {
-    Delay_Ms(20);
+    Delay_Ms(T_ms);
     uint16_t cnt = TIM2->CNT;
     if (prev_cnt != cnt) {
       prev_cnt = cnt;
-      goal_ua = cnt * 10;
+      //goal_ua = cnt * 10;
       settled = 0;
+
+      TIM1->CH1CVR = 0;
+      Delay_Ms(200);
+      prev_cnt = cnt = TIM2->CNT;
+      TIM1->CH1CVR = LEDIfToPWM(goal_ua);
+      continue;
     } else if (settled) {
       continue;
     }
@@ -211,28 +221,24 @@ int main() {
     // If = Vr/50
     //    = adc/ADC@Vcc * Vcc / (49 * 50)
     //    = (adc * Vcc) / (ADC@Vcc * 49 * 50)
-    uint32_t if_ua = (adc * 5) * 100000 / ((1 << ADC_BITS) * 49 * 5);
-    int diff = goal_ua - if_ua;
+    int32_t if_ua = (adc * 5) * 100000 / ((1 << ADC_BITS) * 49 * 5);
+    int err = goal_ua - if_ua;
 
-    if (diff < 0 && adc <= adc_min) {
+    int d_err = err - prev_err;
+    prev_err = err;
+    int u = KP * err + KD * d_err;
+    int new_cvr = TIM1->CH1CVR + u;
+
+    if (err < 0 && adc <= adc_min) {
       printf("adc=%u adc_min=%d\n", adc, adc_min);
       continue; // これ以上下がらない
     }
-
-    uint16_t cvr = TIM1->CH1CVR;
-    if (diff < 0 && cvr < -diff) {
-      cvr = 0;
-    } else if (diff > 0 && cvr > 20000) {
-      cvr = 20000;
-    } else {
-      cvr += diff;
+    if (new_cvr < 0) {
+      new_cvr = 0;
+    } else if (new_cvr > 20000) {
+      new_cvr = 20000;
     }
-    TIM1->CH1CVR = cvr;
 
-    if (abs(diff) == 0 && !settled) {
-      printf("settled. adc=%d diff=%d cvr=%u\n", adc, diff, cvr);
-      settled = 1;
-    }
-    //printf("adc=%d\n", adc);
+    TIM1->CH1CVR = new_cvr;
   }
 }
