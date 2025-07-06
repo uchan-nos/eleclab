@@ -69,27 +69,15 @@ void Queue_Push(void) {
 #define SCL_PIN PC2
 #define SDA_PIN PC1
 
-#define LCD_E   PD0
+#define LCD_E   PC3
 #define LCD_RS  PC0
-#define LCD_RW  PC3
+#define LCD_RW  PD0
 #define LCD_DB4 PC4
 #define LCD_DB5 PC5
 #define LCD_DB6 PC6
 #define LCD_DB7 PC7
 
 #define BL_PIN   PD3
-#define NEXT_PIN PD6
-
-void OPA1_Init(int enable, int neg_pin, int pos_pin) {
-  assert(neg_pin == PA1 || neg_pin == PD0);
-  assert(pos_pin == PA2 || pos_pin == PD7);
-
-  uint32_t ctr = EXTEN->EXTEN_CTR;
-  ctr |= enable ? EXTEN_OPA_EN : 0;
-  ctr |= neg_pin == PD0 ? EXTEN_OPA_NSEL : 0;
-  ctr |= pos_pin == PD7 ? EXTEN_OPA_PSEL : 0;
-  EXTEN->EXTEN_CTR = ctr;
-}
 
 void I2C1_InitAsSlave(uint8_t addr7) {
   uint16_t tempreg;
@@ -352,10 +340,6 @@ int main() {
   funAnalogInit();
   funGpioInitAll();
 
-  funPinMode(PA1, GPIO_CFGLR_IN_ANALOG); // Opamp Input
-  funPinMode(PA2, GPIO_CFGLR_IN_ANALOG); // Opamp Input
-  //funPinMode(PD4, GPIO_CFGLR_IN_ANALOG); // Opamp Output
-
   funDigitalWrite(SCL_PIN, 1);
   funDigitalWrite(SDA_PIN, 1);
   funPinMode(SCL_PIN, GPIO_CFGLR_OUT_50Mhz_AF_OD);
@@ -368,8 +352,6 @@ int main() {
   funPinMode(LCD_DB5, GPIO_CFGLR_OUT_10Mhz_PP);
   funPinMode(LCD_DB6, GPIO_CFGLR_OUT_10Mhz_PP);
   funPinMode(LCD_DB7, GPIO_CFGLR_OUT_10Mhz_PP);
-
-  OPA1_Init(1, PA1, PA2);
 
   LCD_Init();
 

@@ -89,10 +89,14 @@ uint16_t NextPW(uint8_t led, uint16_t if_ua) {
       pw_diff = err_ua > 0 ? 1 : -1;
     }
   }
-  pw += pw_diff;
+  int32_t next_pw = (int32_t)pw + pw_diff;
 
-  if (pw > 30000) {
+  if (next_pw > UINT16_MAX) {
+    pw = UINT16_MAX;
+  } else if (next_pw < 0) {
     pw = 0;
+  } else {
+    pw = next_pw;
   }
 
   if (led == 0 && !pw_fixed) {

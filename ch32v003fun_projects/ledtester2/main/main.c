@@ -10,6 +10,8 @@
 
 #include "main.h"
 
+//#define ONLY_D4
+
 #define DMA_CNT 32
 #define CSR 50 // 電流検出抵抗（Current Sensing Resistor）
 static uint16_t adc_buf[DMA_CNT];
@@ -29,22 +31,20 @@ uint16_t adc_gnd_x49;
 #define AMPx49_AN ANALOG_7
 #define AMPx5_PIN PD6
 #define AMPx5_AN ANALOG_6
-#define VR_PIN PA2
-#define VR_AN ANALOG_0
 #define VF_AN ANALOG_5
-#define SEL1_PIN PD3
-#define SEL2_PIN PD7
+#define SEL1_PIN PC3
+#define SEL2_PIN PD2
 // to use PD7=NRST, pass -D option to minichlink
 
 #define EXTI_LINE_N(n) EXTI_Line # n
 
 #define ENCA_PORT     PC
-#define ENCA_LINE     0
+#define ENCA_LINE     4
 #define ENCB_PORT     PC
 #define ENCB_LINE     5
-#define MODE_BTN_PORT PC
-#define MODE_BTN_LINE 6
-#define LED_BTN_PORT  PC
+#define MODE_BTN_PORT PD
+#define MODE_BTN_LINE 0
+#define LED_BTN_PORT  PD
 #define LED_BTN_LINE  7
 
 #define CONCAT2(a, b) a ## b
@@ -137,8 +137,6 @@ uint16_t CalcIF(uint16_t adc_vr, uint8_t adc_ch) {
       adc_vr = 0;
     }
     return 100 * (ADC_TO_10UV(adc_vr) / CSR) / 49;
-  case VR_AN:
-    return 10 * (ADC_TO_10UV(adc_vr) / CSR);
   default:
     assert(0);
   }
@@ -147,14 +145,12 @@ uint16_t CalcIF(uint16_t adc_vr, uint8_t adc_ch) {
 // 使用するアンプ倍率を決定し、対応する ADC チャンネルを選択
 void DetermineADCChForVR() {
   ADC1->CTLR2 &= ~ADC_DMA;
-  funAnalogRead(VR_AN); // スイッチ切替直後は 1 回読み飛ばす必要がある
-  uint16_t adc_vr = funAnalogRead(VR_AN);
-  if (adc_vr < 20) {
+  funAnalogRead(AMPx5_AN); // スイッチ切替直後は 1 回読み飛ばす必要がある
+  uint16_t adc_vr = funAnalogRead(AMPx5_AN);
+  if (adc_vr < 100) {
     adc_current_ch = AMPx49_AN;
-  } else if (adc_vr < 200) {
-    adc_current_ch = AMPx5_AN;
   } else {
-    adc_current_ch = VR_AN;
+    adc_current_ch = AMPx5_AN;
   }
   funAnalogRead(adc_current_ch); // スイッチ切替直後は 1 回読み飛ばす必要がある
 
@@ -174,10 +170,14 @@ void TIM2_Updated(void) {
     Queue_Push(MSG_TICK);
   }
 
+#ifdef ONLY_D4
+  led = LED_NUM - 1;
+#else
   ++led;
   if (led == LED_NUM) {
     led = 0;
   }
+#endif
   SelectLEDCh(led);
   Delay_Us(1);
 
@@ -202,8 +202,6 @@ void DMA1_Channel1_Transferred(void) {
   case AMPx49_AN:
     // fall through
   case AMPx5_AN:
-    // fall through
-  case VR_AN:
     {
       uint16_t if_ua = CalcIF(adc_avg, adc_current_ch);
       uint16_t pw = NextPW(led, if_ua);
@@ -301,13 +299,15 @@ int main() {
 
   funPinMode(AMPx49_PIN, GPIO_CFGLR_IN_ANALOG);
   funPinMode(AMPx5_PIN, GPIO_CFGLR_IN_ANALOG);
-  funPinMode(VR_PIN, GPIO_CFGLR_IN_ANALOG);
   funPinMode(SEL1_PIN, GPIO_CFGLR_OUT_50Mhz_PP);
   funPinMode(SEL2_PIN, GPIO_CFGLR_OUT_50Mhz_PP);
-  funPinMode(PD2, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH1
-  funPinMode(PA1, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH2
-  funPinMode(PC3, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH3
-  funPinMode(PC4, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH4
+
+  AFIO->PCFR1 |= AFIO_PCFR1_TIM1_REMAP_PARTIALREMAP1;
+
+  funPinMode(PC6, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH1_1
+  funPinMode(PC7, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH2_1
+  funPinMode(PC0, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH3_1
+  funPinMode(PD3, GPIO_CFGLR_OUT_50Mhz_AF_PP); // T1CH4_1
 
   funDigitalWrite(SCL_PIN, 1);
   funDigitalWrite(SDA_PIN, 1);
@@ -362,6 +362,9 @@ int main() {
 
   printf("adc_gnd: x5=%u x49=%u\n", adc_gnd_x5, adc_gnd_x49);
   printf("Vcc=%d.%02d(mV)\n", vcc_10uv / 100, vcc_10uv % 100);
+#ifdef ONLY_D4
+  led = LED_NUM - 1;
+#endif
   SelectLEDCh(led);
 
   InitUI();
@@ -376,7 +379,6 @@ int main() {
 
   ADC1_InitForDMA(ADC_ExternalTrigConv_None);
   ADC1->SAMPTR2 =
-    MAKE_ADC_SAMPTR(VR_AN, ADC_SampleTime_15Cycles) |
     MAKE_ADC_SAMPTR(AMPx5_AN, ADC_SampleTime_15Cycles) |
     MAKE_ADC_SAMPTR(AMPx49_AN, ADC_SampleTime_15Cycles);
   ADC1->RSQR1 = 0; // 1 チャンネル
