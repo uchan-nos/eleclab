@@ -1,7 +1,7 @@
-*/tangnano/*.gprj.user
-*/tangnano/impl/gwsynthesis
-*/tangnano/impl/pnr
-*/tangnano/impl/temp
+**/*.gprj.user
+**/impl/gwsynthesis
+**/impl/pnr
+**/impl/temp
 **/*.X/nbproject/Makefile-*
 **/*.X/nbproject/Package-default.bash
 **/*.X/nbproject/private
