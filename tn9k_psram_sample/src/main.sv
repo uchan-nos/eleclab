@@ -94,8 +94,8 @@ always @(negedge rst_n, posedge mem_clk_out) begin
         rd_started <= 1;
     else if (state == RD_COMPLETED)
         rd_completed <= 1;
-    //else if (state == RD_BURST & rd_data == 64'h01234567DEADBEEF)
-    else if (rd_data_buf == 16'hBEEF)
+    else if (state == RD_WAIT_VALID & rd_data_valid & rd_data == 64'h01234567DEADBEEF)
+    //else if (rd_data_buf == 16'hBEEF)
         rd_data_is_expected <= 1;
 end
 
