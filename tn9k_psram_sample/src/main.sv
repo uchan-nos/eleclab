@@ -78,7 +78,7 @@ state_t state;
 
 logic calib_completed, wr_completed, rd_started, rd_completed, rd_data_is_expected;
 
-always @(negedge rst_n, posedge sys_clk) begin
+always @(negedge rst_n, posedge mem_clk_out) begin
     if (~rst_n) begin
         calib_completed <= 0;
         wr_completed <= 0;
@@ -109,6 +109,7 @@ assign led = {
 };
 
 logic mem_clk; // 162MHz (PLL output)
+logic mem_clk_out; // mem_clk / 2
 logic pll_lock;
 
 Gowin_rPLL pll(
@@ -140,7 +141,7 @@ PSRAM_Memory_Interface_HS_Top psram_hs(
     .cmd(cmd), //input cmd
     .cmd_en(cmd_en), //input cmd_en
     .init_calib(init_calib), //output init_calib
-    .clk_out(), //output clk_out
+    .clk_out(mem_clk_out), //output clk_out
     .data_mask(8'd0) //input [7:0] data_mask
 );
 
@@ -170,13 +171,13 @@ endfunction
     RD_COMPLETED,   // 読み出し完了
 */
 
-always @(negedge rst_n, posedge sys_clk) begin
+always @(negedge rst_n, posedge mem_clk_out) begin
     if (~rst_n)
         state <= INITIALIZING;
     else
         case (state)
             INITIALIZING:   if (init_calib) state <= INIT_WAIT;
-            INIT_WAIT:      if (psram_timing == 10) state <= WR_COMMAND;
+            INIT_WAIT:      if (psram_timing == 2) state <= WR_COMMAND;
             WR_COMMAND:     state <= WR_BURST;
             WR_BURST:       if (psram_timing == 2) state <= WR_COMPLETED;
             WR_COMPLETED:   if (psram_timing == 14) state <= RD_COMMAND;
@@ -187,7 +188,7 @@ always @(negedge rst_n, posedge sys_clk) begin
         endcase
 end
 
-always @(negedge rst_n, posedge sys_clk) begin
+always @(negedge rst_n, posedge mem_clk_out) begin
     if (~rst_n)
         psram_timing <= 0;
     else
@@ -201,7 +202,7 @@ always @(negedge rst_n, posedge sys_clk) begin
 end
 
 logic [15:0] rd_data_buf;
-always @(negedge rst_n, posedge sys_clk) begin
+always @(negedge rst_n, posedge mem_clk_out) begin
     if (~rst_n)
         rd_data_buf <= 0;
     else
