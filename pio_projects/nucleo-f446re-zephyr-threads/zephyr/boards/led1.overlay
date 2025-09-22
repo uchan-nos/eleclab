@@ -1,0 +1,14 @@
+/ {
+    leds {
+        compatible = "gpio-leds";
+
+        ext_led: led_arduino_d2 {
+            gpios = <&arduino_header 10 GPIO_ACTIVE_HIGH>;
+            label = "LED 1";
+        };
+    };
+
+    aliases {
+        led1 = &ext_led;
+    };
+};
