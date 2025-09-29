@@ -25,9 +25,10 @@ struct Message transmit_msg_alternative;
 struct Message *transmit_msg = &transmit_msg_default;
 volatile enum MSMPState msmp_state;
 uint16_t msmp_flags;
-enum NodeMode node_mode = NMODE_DEBUG;
-bool enable_auto_forward = false;
+enum NodeMode node_mode = NMODE_NORMAL;
+bool enable_auto_forward = true;
 bool forwarding = false;
+uint8_t forward_dst = 0;
 
 /* 転送すべきメッセージに対して真を返す */
 bool IsToForward(uint8_t addr) {
@@ -84,14 +85,15 @@ void ProcByte(uint8_t c) {
         }
         break;
       }
-    }
 
-    if (IsToForward(c)) {
-      msmp_flags |= MFLAG_MSG_TO_FORWARD;
-      // 自動転送モードが有効であれば、受信したメッセージをそのまま転送
-      forwarding = enable_auto_forward;
-    } else {
-      forwarding = false;
+      if (IsToForward(c)) {
+        msmp_flags |= MFLAG_MSG_TO_FORWARD;
+        // 自動転送モードが有効であれば、受信したメッセージをそのまま転送
+        forwarding = enable_auto_forward;
+        forward_dst = dst;
+      } else {
+        forwarding = false;
+      }
     }
     break;
   case MSTATE_LEN:
@@ -521,7 +523,7 @@ int main() {
       printf("A msg to me is being received.\r\n");
     } else if (msmp_flags & MFLAG_MSG_TO_FORWARD) {
       msmp_flags &= ~MFLAG_MSG_TO_FORWARD;
-      printf("A msg to forward is being received.\r\n");
+      printf("A msg to forward is being received. dst=%d\r\n", forward_dst);
     } else if (msmp_flags & MFLAG_TSM_RESET) {
       msmp_flags &= ~MFLAG_TSM_RESET;
       printf("Forced reset by a TSM.\r\n");
