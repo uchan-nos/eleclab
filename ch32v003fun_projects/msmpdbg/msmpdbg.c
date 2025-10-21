@@ -1,21 +1,534 @@
 #include "ch32fun.h"
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "msmpdbg.h"
+
+/********************
+ 重要なグローバル変数
+ ********************/
+// 96KHz でタイマ割り込みでカウントアップする変数
+volatile tick_t tick;
+volatile bool transmit_on_receive_mode = false;
+uint8_t msmp_my_addr = 0x0E;
+uint16_t transmit_period_ms = 20;
+struct Message transmit_msg_default = {
+  .start_tick = 0, // 送信時は raw_msg の添え字として使用
+  .addr = 0xFE,
+  .len = 8,
+  .body = "MSMP-DBG",
+};
+struct Message transmit_msg_alternative;
+struct Message *transmit_msg = &transmit_msg_default;
+volatile enum MSMPState msmp_state;
+uint16_t msmp_flags;
+enum NodeMode node_mode = NMODE_NORMAL;
+bool enable_auto_forward = true;
+bool forwarding = false;
+uint8_t forward_dst = 0;
+
+/* 転送すべきメッセージに対して真を返す */
+bool IsToForward(uint8_t addr) {
+  uint8_t dst = addr >> 4;
+  uint8_t src = addr & 15;
+
+  if (dst == 15) { // ブロードキャスト
+    // 送信者が自分ではないブロードキャストメッセージは転送する
+    return src != msmp_my_addr;
+  }
+
+  // 宛先が自分ではないユニキャストメッセージは転送する
+  return dst != msmp_my_addr;
+}
+
+void ProcByte(uint8_t c) {
+  // この関数は割り込みハンドラから呼ばれるので、長時間の処理はしない
+  if (c == 0 && msmp_state != MSTATE_LEN) {
+    // 整合性が失われているので、強制復旧
+    msmp_flags |= MFLAG_TSM_RESET;
+    msmp_state = MSTATE_IDLE;
+    if (forwarding) {
+      MSMP_USART->DATAR = c;
+    }
+    return;
+  }
+  // 整合性は保たれているので、通常の処理を続ける
+
+  switch (msmp_state) {
+  case MSTATE_IDLE:
+    // ここには来ないはず。IDLE のときにスタートビットを検知した直後に ADDR に進むはずだから。
+    printf("Error: must not happen\r\n");
+    while (1);
+    break;
+  case MSTATE_ADDR:
+    RecordAddr(c);
+    msmp_state = MSTATE_LEN;
+    {
+      uint8_t dst = c >> 4;
+      uint8_t src = c & 15;
+      switch (dst) {
+      case 0x00: // 未使用アドレス
+        msmp_flags |= MFLAG_DST_ZERO;
+        break;
+      case 0x0F: // ブロードキャスト
+        if (src == msmp_my_addr) {
+          // 自分が送信したブロードキャストメッセージ
+          msmp_flags |= MFLAG_MY_BRDCAST;
+        }
+        break;
+      default: // ユニキャスト
+        if (dst == msmp_my_addr) {
+          msmp_flags |= MFLAG_MSG_TO_ME;
+        }
+        break;
+      }
+
+      if (IsToForward(c)) {
+        msmp_flags |= MFLAG_MSG_TO_FORWARD;
+        // 自動転送モードが有効であれば、受信したメッセージをそのまま転送
+        forwarding = enable_auto_forward;
+        forward_dst = dst;
+      } else {
+        forwarding = false;
+      }
+    }
+    break;
+  case MSTATE_LEN:
+    RecordLen(c);
+    if (c > 0) {
+      msmp_state = MSTATE_BODY;
+    } else {
+      msmp_state = MSTATE_IDLE;
+    }
+    break;
+  case MSTATE_BODY:
+    if (RecordBody(c)) {
+      // メッセージ受信完了
+      msmp_state = MSTATE_IDLE;
+    }
+    break;
+  }
+
+  if (forwarding) {
+    MSMP_USART->DATAR = c;
+  }
+}
+
+/*
+ * TIM1: 16 bit ADTM
+ * TIM2/3/4: 16 bit GDTM
+ */
+
+/*
+ * TIM2 を周期タイマとして設定
+ *
+ * @param psc  プリスケーラの設定値（0 => 1:1）
+ * @param period  タイマ周期
+ */
+void TIM2_InitForPeriodicTimer(uint16_t psc, uint16_t period) {
+  // TIM2 を有効化
+  RCC->APB1PCENR |= RCC_APB1Periph_TIM2;
+
+  // TIM2 をリセット
+  RCC->APB1PRSTR |= RCC_APB1Periph_TIM2;
+  RCC->APB1PRSTR &= ~RCC_APB1Periph_TIM2;
+
+  // TIM2 の周期
+  TIM2->PSC = psc;
+  TIM2->ATRLR = period;
+
+  // アップデートイベント（UG）を発生させ、プリロードを行う
+  TIM2->SWEVGR = TIM_PSCReloadMode_Immediate;
+
+  // 割り込み有効化
+  NVIC_EnableIRQ(TIM2_IRQn);
+  TIM2->DMAINTENR |= TIM_IT_Update;
+
+  // カウンタを有効化
+  TIM2->CTLR1 |= TIM_CEN;
+}
+
+/*
+ * TIM2 割り込みハンドラ
+ */
+void TIM2_IRQHandler(void) __attribute__((interrupt));
+void TIM2_IRQHandler(void) {
+  // 割り込みフラグをクリア
+  TIM2->INTFR &= ~TIM_FLAG_Update;
+  ++tick;
+  if (SenseSignal(tick, funDigitalRead(MSMP_RX_PIN))) {
+    // メッセージ先頭のスタートビットを検出
+    if (!IsTransmitting() && transmit_on_receive_mode) {
+      transmit_msg = &transmit_msg_default;
+      StartTransmit();
+    }
+  }
+}
+
+/* 
+ * TIM3 の周期を現在の transmit_period_ms に更新
+ */
+void TIM3_UpdatePeriod(void) {
+  // TIM3 の周期
+#if (FUNCONF_SYSTEM_CORE_CLOCK / 1000) < UINT16_MAX
+  TIM3->PSC = FUNCONF_SYSTEM_CORE_CLOCK / 1000; // 1ms
+  TIM3->ATRLR = transmit_period_ms - 1;
+#else
+  TIM3->PSC = FUNCONF_SYSTEM_CORE_CLOCK / 5000; // 0.2ms
+  TIM3->ATRLR = transmit_period_ms * 5 - 1;
+#endif
+
+  // アップデートイベント（UG）を発生させ、プリロードを行う
+  TIM3->SWEVGR = TIM_PSCReloadMode_Immediate;
+}
+
+/*
+ * TIM3 を MSMP 送信間隔タイマとして設定
+ */
+void TIM3_InitForMSMPTimer() {
+  // TIM3 を有効化
+  RCC->APB1PCENR |= RCC_APB1Periph_TIM3;
+
+  // TIM3 をリセット
+  RCC->APB1PRSTR |= RCC_APB1Periph_TIM3;
+  RCC->APB1PRSTR &= ~RCC_APB1Periph_TIM3;
+
+  // 周期を設定
+  TIM3_UpdatePeriod();
+
+  // 割り込み有効化
+  NVIC_EnableIRQ(TIM3_IRQn);
+  TIM3->DMAINTENR |= TIM_IT_Update;
+}
+
+void TIM3_Start(void) {
+  // カウンタをリセット
+  TIM3->CNT = 0;
+
+  // 周期を更新
+  TIM3_UpdatePeriod();
+
+  // カウンタを有効化
+  TIM3->CTLR1 |= TIM_CEN;
+}
+
+void TIM3_Stop(void) {
+  // カウンタを無効化
+  TIM3->CTLR1 &= ~TIM_CEN;
+}
+
+/*
+ * TIM3 割り込みハンドラ
+ */
+void TIM3_IRQHandler(void) __attribute__((interrupt));
+void TIM3_IRQHandler(void) {
+  // 割り込みフラグをクリア
+  TIM3->INTFR &= ~TIM_FLAG_Update;
+  if ((MSMP_USART->STATR & USART_FLAG_TXE) == 0) {
+    return;
+    /*
+    TIM3 割り込みの初回が、なぜか TIM3 スタートの直後に発生し、
+    先頭バイトの送信が次のバイトで上書きされてしまう。
+    USART TXE フラグを確認することで、先頭バイトの上書きを阻止する。
+    */
+  }
+
+  if (transmit_msg->start_tick < transmit_msg->len + 2) {
+    MSMP_USART->DATAR = transmit_msg->raw_msg[transmit_msg->start_tick++];
+  } else {
+    // 最終バイト送信後に 1 周期待つことで、連続送信時にも適切な間隔を確保
+    transmit_msg->start_tick = 0;
+    TIM3_Stop();
+  }
+}
+
+/*
+ * USART を MSMP 用に初期化
+ */
+void MSMP_USART_Init() {
+  // 入出力ピンの設定（GPIO の RCC の設定は関数呼び出し側で行う）
+  funPinMode(MSMP_TX_PIN, GPIO_CFGLR_OUT_10Mhz_AF_OD);
+  funPinMode(MSMP_RX_PIN, GPIO_CFGLR_IN_FLOAT);
+
+  // USART を有効化 & リセット
+#if MSMP_USART_NUM == 1
+  RCC->APB2PCENR |= RCC_APB2Periph_USART1;
+  RCC->APB2PRSTR |= RCC_APB2Periph_USART1;
+  RCC->APB2PRSTR &= ~RCC_APB2Periph_USART1;
+  #define MSMP_PCLOCK FUNCONF_SYSTEM_CORE_CLOCK
+#else
+  RCC->APB1PCENR |= RCC_APB1Periph_USART2;
+  RCC->APB1PRSTR |= RCC_APB1Periph_USART2;
+  RCC->APB1PRSTR &= ~RCC_APB1Periph_USART2;
+  #define MSMP_PCLOCK (FUNCONF_SYSTEM_CORE_CLOCK/2)
+#endif
+
+  // 割り込み許可
+  NVIC_EnableIRQ(MSMP_USART_IRQn);
+
+  // USART1 を 8n1 に設定、割り込みを有効化
+  MSMP_USART->CTLR1 = USART_WordLength_8b | USART_Parity_No | USART_Mode_Tx
+                    | USART_Mode_Rx | USART_CTLR1_RXNEIE;
+  MSMP_USART->CTLR2 = USART_StopBits_1;
+
+  // ボーレートを設定
+  MSMP_USART->BRR = (MSMP_PCLOCK + MSMP_BAUDRATE/2) / MSMP_BAUDRATE;
+
+  // USART1 を有効化
+  MSMP_USART->CTLR1 |= CTLR1_UE_Set;
+}
+
+/*
+ * MSMP USART 割り込みハンドラ
+ */
+void MSMP_USART_IRQHandler(void) __attribute__((interrupt));
+void MSMP_USART_IRQHandler(void) {
+  if (MSMP_USART->STATR & USART_FLAG_RXNE) {
+    uint8_t recv_data = MSMP_USART->DATAR;
+    MSMP_USART->STATR &= ~USART_FLAG_RXNE; // 受信割り込みフラグをクリア
+    ProcByte(recv_data);
+  }
+}
+
+/*
+ * USART を 操作用に初期化
+ */
+void CMD_USART_Init() {
+  // 入出力ピンの設定（GPIO の RCC の設定は関数呼び出し側で行う）
+  funPinMode(CMD_TX_PIN, GPIO_CFGLR_OUT_10Mhz_AF_PP);
+  funPinMode(CMD_RX_PIN, GPIO_CFGLR_IN_FLOAT);
+
+  // USART を有効化 & リセット
+#if CMD_USART_NUM == 1
+  RCC->APB2PCENR |= RCC_APB2Periph_USART1;
+  RCC->APB2PRSTR |= RCC_APB2Periph_USART1;
+  RCC->APB2PRSTR &= ~RCC_APB2Periph_USART1;
+  #define CMD_PCLOCK FUNCONF_SYSTEM_CORE_CLOCK
+#else
+  RCC->APB1PCENR |= RCC_APB1Periph_USART2;
+  RCC->APB1PRSTR |= RCC_APB1Periph_USART2;
+  RCC->APB1PRSTR &= ~RCC_APB1Periph_USART2;
+  #define CMD_PCLOCK (FUNCONF_SYSTEM_CORE_CLOCK/2)
+#endif
+
+  // 割り込み許可
+  //NVIC_EnableIRQ(CMD_USART_IRQn);
+
+  // USART1 を 8n1 に設定、割り込みを有効化
+  CMD_USART->CTLR1 = USART_WordLength_8b | USART_Parity_No | USART_Mode_Tx
+                   | USART_Mode_Rx;
+  CMD_USART->CTLR2 = USART_StopBits_1;
+
+  // ボーレートを設定
+  CMD_USART->BRR = (CMD_PCLOCK + 115200/2) / 115200;
+
+  // USART1 を有効化
+  CMD_USART->CTLR1 |= CTLR1_UE_Set;
+}
+
+void StartTransmit(void) {
+  transmit_msg->start_tick = 0;
+  MSMP_USART->DATAR = transmit_msg->raw_msg[transmit_msg->start_tick++];
+  TIM3_Start();
+}
+
+bool IsTransmitting(void) {
+  return (TIM3->CTLR1 & TIM_CEN) != 0;
+}
+
+void ConfigureNode(void) {
+  enable_auto_forward = node_mode == NMODE_NORMAL;
+}
+
+void ProcCommand(char *cmd) {
+  if (strcmp(cmd, "status") == 0) {
+    printf("Node address : %d\r\n", msmp_my_addr);
+    printf("Tx address   : %d\r\n", transmit_msg_default.addr >> 4);
+    printf("Tx body      : ");
+    PrintMsgBody(&transmit_msg_default);
+    printf("\r\n");
+    printf("Tx on rx mode: %d\r\n", transmit_on_receive_mode);
+    printf("Node mode    : %s\r\n", node_mode == NMODE_NORMAL ? "normal" : "debug");
+    printf("Receive state: ");
+    PrintRecState();
+  } else if (strcmp(cmd, "start rec") == 0) {
+    sig_wpos = 0;
+    sig_record_mode = true;
+  } else if (strcmp(cmd, "dump rec") == 0) {
+    PlotSignal(10);
+  } else if (strcmp(cmd, "dump msg") == 0) {
+    DumpMessages(3);
+  } else if (strncmp(cmd, "set addr ", 9) == 0) {
+    msmp_my_addr = strtol(cmd + 9, NULL, 0);
+    transmit_msg_default.addr = (transmit_msg_default.addr & 0xF0) | msmp_my_addr;
+    printf("New address: %d\r\n", msmp_my_addr);
+  } else if (strcmp(cmd, "enable txonrx") == 0) {
+    transmit_on_receive_mode = true;
+  } else if (strcmp(cmd, "disable txonrx") == 0) {
+    transmit_on_receive_mode = false;
+  } else if (strncmp(cmd, "set txaddr ", 11) == 0) {
+    uint8_t txaddr = strtol(cmd + 11, NULL, 0) & 15;
+    transmit_msg_default.addr = (txaddr << 4) | msmp_my_addr;
+  } else if (strncmp(cmd, "set txbody ", 11) == 0) {
+    char *body = cmd + 11;
+    transmit_msg_default.len = strlen(body);
+    memcpy(transmit_msg_default.body, body, transmit_msg_default.len);
+  } else if (strcmp(cmd, "send") == 0) {
+    while (IsTransmitting()) {
+      // 前のメッセージの送信が終わるまで待つ
+      __WFI();
+    }
+    transmit_msg = &transmit_msg_default;
+    StartTransmit();
+  } else if (strncmp(cmd, "set mode ", 9) == 0) {
+    const char *mode = cmd + 9;
+    if (strcmp(mode, "debug") == 0) {
+      node_mode = NMODE_DEBUG;
+      printf("Node mode: debug\r\n");
+    } else if (strcmp(mode, "normal") == 0) {
+      node_mode = NMODE_NORMAL;
+      printf("Node mode: normal\r\n");
+    } else {
+      printf("Unknown mode: '%s'\r\n", mode);
+    }
+    // node_mode の変更を反映する
+    ConfigureNode();
+  } else if (strncmp(cmd, "send ", 5) == 0) {
+    // 送信先アドレスとメッセージボディを指定して送信
+    if (strcmp(cmd + 5, "tsm") == 0) {
+      transmit_msg_alternative.addr = 0xF0 | msmp_my_addr;
+      transmit_msg_alternative.len = 0;
+    } else {
+      char *endp = NULL;
+      uint8_t addr = strtol(cmd + 5, &endp, 0);
+      char *body = NULL;
+      if (endp && *endp == ' ') {
+        body = endp + 1;
+      } else {
+        body = (char*)transmit_msg_default.body;
+      }
+      transmit_msg_alternative.addr = (addr << 4) | msmp_my_addr;
+      transmit_msg_alternative.len = strlen(body);
+      memcpy(transmit_msg_alternative.body, body, transmit_msg_alternative.len);
+    }
+    while (IsTransmitting()) {
+      // 前のメッセージの送信が終わるまで待つ
+      __WFI();
+    }
+    transmit_msg = &transmit_msg_alternative;
+    StartTransmit();
+  } else if (strcmp(cmd, "help") == 0) {
+    printf("Commands:\r\n"
+           "help: Show this help.\r\n"
+           "!!: Re-run the last command.\r\n"
+           "status: Show current settings and status.\r\n"
+           "start rec: Start recording RX signal.\r\n"
+           "dump rec: Dump the recorded signal.\r\n"
+           "dump msg: Dump the received messages.\r\n"
+           "set addr <addr>: Set the address of this node.\r\n"
+           "enable txonrx: Enable transmit on receive mode.\r\n"
+           "disable txonrx: Disable transmit on receive mode.\r\n"
+           "set txaddr <addr>: Set the dst address of a message to be sent.\r\n"
+           "set txbody <body>: Set the body of a message to be sent.\r\n"
+           "set mode <mode>: Set mode. mode = debug | normal\r\n"
+           "send: Send the default message to node set by 'set txaddr'.\r\n"
+           "send <addr> <body>: Send the given message.\r\n"
+           "send tsm: Send a TSM message.\r\n");
+  } else {
+    printf("Unknown command: '%s'\r\n", cmd);
+  }
+}
+
+// For debug writing to the UART.
+int _write(int fd, const char *buf, int size) {
+  for(int i = 0; i < size; i++){
+    while( !(CMD_USART->STATR & USART_FLAG_TC));
+    CMD_USART->DATAR = *buf++;
+  }
+  return size;
+}
+
+// single char to UART
+int putchar(int c) {
+  while( !(CMD_USART->STATR & USART_FLAG_TC));
+  CMD_USART->DATAR = c;
+  return 1;
+}
+
 /*
  * LEDs D2-5: PA4-7
  */
 int main() {
   SystemInit();
   funGpioInitAll();
-  funPinMode( PA4, GPIO_CFGLR_OUT_10Mhz_PP );
-  funPinMode( PA5, GPIO_CFGLR_OUT_10Mhz_PP );
-  funPinMode( PA6, GPIO_CFGLR_OUT_10Mhz_PP );
-  funPinMode( PA7, GPIO_CFGLR_OUT_10Mhz_PP );
+  funPinMode(PA4, GPIO_CFGLR_OUT_10Mhz_PP);
+  funPinMode(PA5, GPIO_CFGLR_OUT_10Mhz_PP);
+  funPinMode(PA6, GPIO_CFGLR_OUT_10Mhz_PP);
+  funPinMode(PA7, GPIO_CFGLR_OUT_10Mhz_PP);
 
-  uint8_t cnt = 0;
+  CMD_USART_Init();
+
+  uint32_t rcc_cfgr0 = RCC->CFGR0;
+  printf("RCC_CFGR0 = %08lX (PPRE1=%lX PPRE2=%lX)\r\n",
+         rcc_cfgr0,
+         (rcc_cfgr0 & RCC_PPRE1) >> 8,
+         (rcc_cfgr0 & RCC_PPRE2) >> 11);
+
+  MSMP_USART_Init();
+
+  TIM2_InitForPeriodicTimer(0, SIG_RECORD_TIM_PERIOD - 1); // 48MHz / 96KHz = 500
+  TIM3_InitForMSMPTimer();
+
+  ConfigureNode();
+
+  char cmd[64], cmd_prev[2];
+  size_t cmd_i = 0;
 
   while (1) {
-    ++cnt;
-    GPIOA->OUTDR = cnt << 4;
-    Delay_Ms(1000);
+    if (CMD_USART->STATR & USART_FLAG_RXNE) {
+      uint8_t c = CMD_USART->DATAR;
+      if (c == '\r' || c == '\n') {
+        putchar('\r');
+        putchar('\n');
+        if (cmd_i > 0) {
+          if (cmd_i == 2 && strncmp(cmd, "!!", 2) == 0) {
+            cmd[0] = cmd_prev[0];
+            cmd[1] = cmd_prev[1];
+            cmd_i = 0;
+            ProcCommand(cmd);
+          } else {
+            cmd[cmd_i] = '\0';
+            cmd_i = 0;
+            // "!!" での再実行に備え、cmd の先頭 2 文字だけ保存しておく
+            cmd_prev[0] = cmd[0];
+            cmd_prev[1] = cmd[1];
+
+            ProcCommand(cmd);
+          }
+        }
+      } else if (c == '\b' || c == 0x7f) {
+        if (cmd_i > 0) {
+          --cmd_i;
+          putchar('\b');
+        }
+      } else {
+        cmd[cmd_i++] = c;
+        putchar(c);
+      }
+    } else if (msmp_flags & MFLAG_MSG_TO_ME) {
+      msmp_flags &= ~MFLAG_MSG_TO_ME;
+      printf("A msg to me is being received.\r\n");
+    } else if (msmp_flags & MFLAG_MSG_TO_FORWARD) {
+      msmp_flags &= ~MFLAG_MSG_TO_FORWARD;
+      printf("A msg to forward is being received. dst=%d\r\n", forward_dst);
+    } else if (msmp_flags & MFLAG_TSM_RESET) {
+      msmp_flags &= ~MFLAG_TSM_RESET;
+      printf("Forced reset by a TSM.\r\n");
+    } else {
+      __WFI();
+    }
   }
 }
