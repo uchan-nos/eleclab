@@ -1,0 +1,255 @@
+(footprint "BNC_DOSIN_801-0050_Horizontal"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(tags "BNC RF interface bayonet 50ohm")
+	(property "Reference" "REF**"
+		(at 0 8.3 0)
+		(layer "F.SilkS")
+		(uuid "8d5e5f8c-89ed-4f80-8153-671b762e95b1")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "BNC_DOSIN_801-0050_Horizontal"
+		(at 0 9.8 0)
+		(layer "F.Fab")
+		(uuid "3a8b5592-30a2-4637-bba4-a0d871efdc14")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" "https://www.lcsc.com/datasheet/C521210.pdf"
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "672a92a2-6664-4344-a396-16c0c8de03d2")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "b943bfa3-5912-4a67-bc49-7da46068bb98")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr through_hole)
+	(fp_line
+		(start -4.8 -22.4)
+		(end 4.8 -22.4)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "afd4eb16-b88e-46f5-b4b4-8aa7f2b0918b")
+	)
+	(fp_line
+		(start -4.8 -4.6)
+		(end -4.8 -22.4)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "a7aaa2dc-3b38-48b8-96d9-2a2abf242c32")
+	)
+	(fp_line
+		(start -4.8 0)
+		(end -4.8 -2)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "34294a6a-669d-457b-88f1-b2a6544e3e73")
+	)
+	(fp_line
+		(start 4.8 -22.4)
+		(end 4.8 -4.6)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "21a79a9d-4608-4acd-841b-567dfa315eb2")
+	)
+	(fp_line
+		(start 4.8 0)
+		(end 4.8 -2)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "e4f52e0d-3697-4046-8981-60e3b07b669c")
+	)
+	(fp_arc
+		(start -4.477431 1.729917)
+		(mid -4.718669 0.879867)
+		(end -4.8 0)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "dd260cc1-9c02-43e0-9d27-ea634e58b470")
+	)
+	(fp_arc
+		(start 0 4.8)
+		(mid -0.862184 4.721932)
+		(end -1.696323 4.490266)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "42db417b-d3ec-45af-b767-86d1b9984d89")
+	)
+	(fp_arc
+		(start 1.696323 4.490266)
+		(mid 0.862184 4.721932)
+		(end 0 4.8)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "b83c4cc3-b29a-4fbe-8d4c-dc3575b293e2")
+	)
+	(fp_arc
+		(start 4.8 0)
+		(mid 4.718669 0.879867)
+		(end 4.477431 1.729917)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "bd969b9e-b42a-40ae-856c-904c336bbdc5")
+	)
+	(fp_circle
+		(center 0 -17.8)
+		(end 0.6 -17.8)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(fill no)
+		(layer "F.SilkS")
+		(uuid "2d72cd6c-f1ce-4499-8088-009cb79cc511")
+	)
+	(fp_rect
+		(start -5 -22.6)
+		(end 5 5.1)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "ba324ef1-8b7f-4cc5-adf7-947d815a7b56")
+	)
+	(fp_line
+		(start -4.8 -5.5)
+		(end -4.8 -16.9)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "35ffda3c-af30-463d-9cbd-232a40057f9e")
+	)
+	(fp_line
+		(start 4.8 -5.5)
+		(end 4.8 -16.9)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "c9d8453a-5311-46ba-85c3-f361c4e4f39a")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(uuid "4d1e2e12-a8fc-4f51-b5c9-3c593aadb98e")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" thru_hole rect
+		(at 0 0)
+		(size 2 2)
+		(drill 1.17)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "d20fe260-0ecc-45ab-87c6-fc6dbe1b8b0e")
+	)
+	(pad "2" thru_hole circle
+		(at -3.3 -3.3)
+		(size 3.3 3.3)
+		(drill 2.11)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "0652ad0e-4d03-42f3-ac26-ca70b4ac7dba")
+	)
+	(pad "2" thru_hole circle
+		(at -3.3 3.3)
+		(size 3.3 3.3)
+		(drill 2.11)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "316f72b6-8b6f-43bf-9a1b-907d318df2c7")
+	)
+	(pad "2" thru_hole circle
+		(at 3.3 -3.3)
+		(size 3.3 3.3)
+		(drill 2.11)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "86b5a042-6825-4094-924e-8036cd5ca028")
+	)
+	(pad "2" thru_hole circle
+		(at 3.3 3.3)
+		(size 3.3 3.3)
+		(drill 2.11)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "75a91b8c-f42a-4fe4-9658-16c948e1accf")
+	)
+	(embedded_fonts no)
+	(model "${KICAD9_3DMODEL_DIR}/Connector_Coaxial.3dshapes/BNC_TEConnectivity_1478035_Horizontal.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)
