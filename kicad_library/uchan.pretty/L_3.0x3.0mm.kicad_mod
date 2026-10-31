@@ -9,7 +9,7 @@
 		(at 0 -4 0)
 		(unlocked yes)
 		(layer "F.SilkS")
-		(uuid "babc7bd1-bef3-42bc-b48e-57cb77a7c296")
+		(uuid "aea9890b-c1ee-4886-b4ee-90f7299065bb")
 		(effects
 			(font
 				(size 1 1)
@@ -21,7 +21,7 @@
 		(at 0 4 0)
 		(unlocked yes)
 		(layer "F.Fab")
-		(uuid "325d91b5-48f6-4561-885f-9280fefd13ff")
+		(uuid "638438cd-5c89-4b54-a849-b20051d36c55")
 		(effects
 			(font
 				(size 1 1)
@@ -34,7 +34,7 @@
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "70cfce70-0e65-434b-8992-7b9a77756692")
+		(uuid "caf4ce4f-c3ec-49fa-ba60-18ef56de5d3a")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -47,7 +47,7 @@
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "0e07cda5-3ee7-4cdb-b144-20da0fe85a20")
+		(uuid "44bf9ba8-dd12-4f56-b784-2e98d96002e7")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -58,35 +58,35 @@
 	(attr smd)
 	(duplicate_pad_numbers_are_jumpers no)
 	(fp_line
-		(start -1.55 -1.6)
-		(end 1.55 -1.6)
+		(start -1.55 -1.71)
+		(end 1.55 -1.71)
 		(stroke
 			(width 0.12)
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "0cb87c28-25ea-4d70-988d-d4df4cc9daad")
+		(uuid "3fcedbb8-bdaf-430c-934d-1fa6e1645ddb")
 	)
 	(fp_line
-		(start -1.55 1.6)
-		(end 1.55 1.6)
+		(start -1.55 1.71)
+		(end 1.55 1.71)
 		(stroke
 			(width 0.12)
 			(type solid)
 		)
 		(layer "F.SilkS")
-		(uuid "e501921c-afaf-4886-9e67-6d9a768f3690")
+		(uuid "048de2c5-a589-43e7-be4a-a19124940188")
 	)
 	(fp_rect
-		(start -1.65 -1.65)
-		(end 1.65 1.65)
+		(start -1.65 -1.75)
+		(end 1.65 1.75)
 		(stroke
 			(width 0.05)
 			(type solid)
 		)
 		(fill no)
 		(layer "F.CrtYd")
-		(uuid "8dc7caed-12f6-47e0-9b99-70c3358c8980")
+		(uuid "dfb92b47-cec2-40ad-9a2c-9472966bd6e1")
 	)
 	(fp_rect
 		(start -1.5 -1.5)
@@ -97,13 +97,13 @@
 		)
 		(fill no)
 		(layer "F.Fab")
-		(uuid "9204dee1-823f-49e0-b63e-2e3c7e7c324c")
+		(uuid "1a06e3ef-3d1c-4676-9f74-25a650c68e15")
 	)
 	(fp_text user "${REFERENCE}"
 		(at 0 0 0)
 		(unlocked yes)
 		(layer "F.Fab")
-		(uuid "9d538bf3-0dea-462d-8bbf-9e7030dd6ea8")
+		(uuid "98f432ea-6db5-4881-9cfb-e6ea992d9370")
 		(effects
 			(font
 				(size 1 1)
@@ -115,13 +115,13 @@
 		(at -1 0)
 		(size 1 3)
 		(layers "F.Cu" "F.Mask" "F.Paste")
-		(uuid "e6525aca-6dce-43a6-bb5b-25959209c169")
+		(uuid "cd144461-5be3-44ce-ae1c-4cf27bf6bac9")
 	)
 	(pad "2" smd rect
 		(at 1 0)
 		(size 1 3)
 		(layers "F.Cu" "F.Mask" "F.Paste")
-		(uuid "d18330cd-b7cb-479d-9299-8c7f1018ccf5")
+		(uuid "dad57279-5133-416e-99da-d0aac90f979a")
 	)
 	(embedded_fonts no)
 	(model "${KICAD10_3DMODEL_DIR}/Inductor_SMD.3dshapes/L_TDK_VLS6045EX_VLS6045AF.step"
