@@ -11,8 +11,11 @@
 typedef uint8_t XIAO;
 typedef int status;
 
-//You need input your XIAO ESP32 Series MAC,Cannot copy directly!!!!
-static uint8_t XIAOS3_Sender_MAC_Address[MAX_ESP_NOW_MAC_LEN] = {0xcc, 0x8d, 0xa2, 0x0c, 0x57, 0x5c};
+// 送信側マイコンのMACアドレスを ../mac_controller.txt にカンマ区切りで書く
+// 雛形ファイル：../mac_example.txt
+static uint8_t XIAOC6_Sender_MAC_Address[MAX_ESP_NOW_MAC_LEN] = {
+#include "../mac_controller.txt"
+};
 
 esp_now_peer_info_t peerInfo_sender;
 
@@ -28,7 +31,7 @@ typedef struct message_types{
   char Sender_Trag[MAX_CHARACTERS_NUMBER];
 }message_types;
 
-message_types XIAOS3_SENDER_INFORATION;
+message_types XIAOC6_SENDER_INFORATION;
 
 void Receiver_MACAddress_requir();
 void espnow_init();
@@ -36,7 +39,7 @@ void espnow_deinit();
 void ReceiverXIAOC6_Recive_Data_cb(const uint8_t * mac, const uint8_t *incomingData, int len);
 void ReceiverXIAOC6_Send_Data();
 void ReceiverXIAOC6_Send_Data_cb(const XIAO *mac_addr,esp_now_send_status_t status);
-void Association_SenderXIAOS3_peer();
+void Association_SenderXIAOC6_peer();
 
 void setup() {
   Serial.begin(BAUD);
@@ -47,7 +50,7 @@ void setup() {
   esp_now_register_recv_cb(ReceiverXIAOC6_Recive_Data_cb);
 
   esp_now_register_send_cb(ReceiverXIAOC6_Send_Data_cb);
-  Association_SenderXIAOS3_peer();  
+  Association_SenderXIAOC6_peer();  
 }
 
 void loop() {
@@ -91,13 +94,13 @@ void Receiver_MACAddress_requir(){
 }
 
 void ReceiverXIAOC6_Recive_Data_cb(const esp_now_recv_info *info, const uint8_t *incomingData, int len) {
-  memcpy(&XIAOS3_SENDER_INFORATION, incomingData, sizeof(XIAOS3_SENDER_INFORATION));
+  memcpy(&XIAOC6_SENDER_INFORATION, incomingData, sizeof(XIAOC6_SENDER_INFORATION));
   Serial.print("Bytes received: ");
   Serial.println(len);
   Serial.print("Sender_device: ");
-  Serial.println(XIAOS3_SENDER_INFORATION.Sender_device);
+  Serial.println(XIAOC6_SENDER_INFORATION.Sender_device);
   Serial.print("Sender_Trag: ");
-  Serial.println(XIAOS3_SENDER_INFORATION.Sender_Trag);
+  Serial.println(XIAOC6_SENDER_INFORATION.Sender_Trag);
   Serial.println();
 }
 void ReceiverXIAOC6_Send_Data_cb(const wifi_tx_info_t *tx_info, esp_now_send_status_t status){
@@ -115,24 +118,24 @@ void ReceiverXIAOC6_Send_Data_cb(const wifi_tx_info_t *tx_info, esp_now_send_sta
 
 void ReceiverXIAOC6_Send_Data(){
   
-  strcpy(XIAOC6_RECEIVER_INFORATION.Reveiver_device, "XIAOC6"); 
-  strcpy(XIAOC6_RECEIVER_INFORATION.Reveiver_Trag, "I'm get it"); 
+  strcpy(XIAOC6_RECEIVER_INFORATION.Reveiver_device, "XIAOC6 (receiver)"); 
+  strcpy(XIAOC6_RECEIVER_INFORATION.Reveiver_Trag, "got it"); 
 
-  esp_err_t XIAOC6_RECEIVER_INFORATION_data1 = esp_now_send(XIAOS3_Sender_MAC_Address, (uint8_t *)&XIAOC6_RECEIVER_INFORATION, sizeof(receiver_meesage_types));
+  esp_err_t XIAOC6_RECEIVER_INFORATION_data1 = esp_now_send(XIAOC6_Sender_MAC_Address, (uint8_t *)&XIAOC6_RECEIVER_INFORATION, sizeof(receiver_meesage_types));
 
   if (XIAOC6_RECEIVER_INFORATION_data1 == ESP_OK)
   {
-    Serial.println("Sent with success: XIAOC6_RECEIVER_INFORATION_data1");
+    Serial.println("Data queued for sending");
   }
   delay(4000);
 }
 
-void Association_SenderXIAOS3_peer(){
+void Association_SenderXIAOC6_peer(){
   Serial.println("Attempting to associate peer for XIAOC6...");
   peerInfo_sender.channel = ESPNOW_WIFI_CHANNEL;
   peerInfo_sender.encrypt = NO_PMK_KEY;
 
-  memcpy(peerInfo_sender.peer_addr, XIAOS3_Sender_MAC_Address, 6);
+  memcpy(peerInfo_sender.peer_addr, XIAOC6_Sender_MAC_Address, 6);
   esp_err_t addPressStatus = esp_now_add_peer(&peerInfo_sender);
   if (addPressStatus != ESP_OK)
   {
