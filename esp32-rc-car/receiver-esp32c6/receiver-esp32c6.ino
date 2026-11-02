@@ -1,6 +1,7 @@
 #include<Arduino.h>
 #include "WiFi.h"
 #include "esp_now.h"
+#include "../esp32rc.h"
 
 #define ESPNOW_WIFI_CHANNEL 0
 #define MAX_ESP_NOW_MAC_LEN 6
@@ -13,33 +14,19 @@ typedef int status;
 
 // 送信側マイコンのMACアドレスを ../mac_controller.txt にカンマ区切りで書く
 // 雛形ファイル：../mac_example.txt
-static uint8_t XIAOC6_Sender_MAC_Address[MAX_ESP_NOW_MAC_LEN] = {
+static uint8_t ControllerMACAddr[MAX_ESP_NOW_MAC_LEN] = {
 #include "../mac_controller.txt"
 };
 
 esp_now_peer_info_t peerInfo_sender;
 
-typedef struct receiver_meesage_types{
-  char Reveiver_device[MAX_CHARACTERS_NUMBER];
-  char Reveiver_Trag[MAX_CHARACTERS_NUMBER];
-}receiver_meesage_types;
-
-receiver_meesage_types XIAOC6_RECEIVER_INFORATION;
-
-typedef struct message_types{
-  char Sender_device[MAX_CHARACTERS_NUMBER];
-  char Sender_Trag[MAX_CHARACTERS_NUMBER];
-}message_types;
-
-message_types XIAOC6_SENDER_INFORATION;
-
 void Receiver_MACAddress_requir();
 void espnow_init();
 void espnow_deinit();
 void ReceiverXIAOC6_Recive_Data_cb(const uint8_t * mac, const uint8_t *incomingData, int len);
-void ReceiverXIAOC6_Send_Data();
-void ReceiverXIAOC6_Send_Data_cb(const XIAO *mac_addr,esp_now_send_status_t status);
-void Association_SenderXIAOC6_peer();
+void SendResponse();
+void SendResponse_cb(const XIAO *mac_addr,esp_now_send_status_t status);
+void AssociateController();
 
 void setup() {
   Serial.begin(BAUD);
@@ -49,12 +36,12 @@ void setup() {
 
   esp_now_register_recv_cb(ReceiverXIAOC6_Recive_Data_cb);
 
-  esp_now_register_send_cb(ReceiverXIAOC6_Send_Data_cb);
-  Association_SenderXIAOC6_peer();  
+  esp_now_register_send_cb(SendResponse_cb);
+  AssociateController();  
 }
 
 void loop() {
-  ReceiverXIAOC6_Send_Data();
+  Serial.println("looping...");
   delay(1000);
 }
 
@@ -94,16 +81,17 @@ void Receiver_MACAddress_requir(){
 }
 
 void ReceiverXIAOC6_Recive_Data_cb(const esp_now_recv_info *info, const uint8_t *incomingData, int len) {
-  memcpy(&XIAOC6_SENDER_INFORATION, incomingData, sizeof(XIAOC6_SENDER_INFORATION));
+  RcCommand cmd;
+  memcpy(&cmd, incomingData, sizeof(cmd));
   Serial.print("Bytes received: ");
   Serial.println(len);
-  Serial.print("Sender_device: ");
-  Serial.println(XIAOC6_SENDER_INFORATION.Sender_device);
-  Serial.print("Sender_Trag: ");
-  Serial.println(XIAOC6_SENDER_INFORATION.Sender_Trag);
+  Serial.print("dir: ");
+  Serial.println(static_cast<int>(cmd.dir));
+  Serial.print("speed: ");
+  Serial.println(cmd.speed);
   Serial.println();
 }
-void ReceiverXIAOC6_Send_Data_cb(const wifi_tx_info_t *tx_info, esp_now_send_status_t status){
+void SendResponse_cb(const wifi_tx_info_t *tx_info, esp_now_send_status_t status){
   const uint8_t *mac_addr = tx_info->des_addr;
   char macStr[18];
   Serial.print("Packet to: ");
@@ -116,38 +104,32 @@ void ReceiverXIAOC6_Send_Data_cb(const wifi_tx_info_t *tx_info, esp_now_send_sta
   Serial.println("");
 }
 
-void ReceiverXIAOC6_Send_Data(){
-  
-  strcpy(XIAOC6_RECEIVER_INFORATION.Reveiver_device, "XIAOC6 (receiver)"); 
-  strcpy(XIAOC6_RECEIVER_INFORATION.Reveiver_Trag, "got it"); 
+void SendResponse(){
+  RcResponse resp{};
 
-  esp_err_t XIAOC6_RECEIVER_INFORATION_data1 = esp_now_send(XIAOC6_Sender_MAC_Address, (uint8_t *)&XIAOC6_RECEIVER_INFORATION, sizeof(receiver_meesage_types));
+  esp_err_t send_res = esp_now_send(ControllerMACAddr, (uint8_t *)&resp, sizeof(resp));
 
-  if (XIAOC6_RECEIVER_INFORATION_data1 == ESP_OK)
-  {
+  if (send_res == ESP_OK) {
     Serial.println("Data queued for sending");
   }
-  delay(4000);
 }
 
-void Association_SenderXIAOC6_peer(){
-  Serial.println("Attempting to associate peer for XIAOC6...");
+void AssociateController(){
+  Serial.println("Attempting to associate controller...");
   peerInfo_sender.channel = ESPNOW_WIFI_CHANNEL;
   peerInfo_sender.encrypt = NO_PMK_KEY;
 
-  Serial.printf("peer addr = %02x:%02x:%02x:%02x:%02x:%02x",
-    XIAOC6_Sender_MAC_Address[0], XIAOC6_Sender_MAC_Address[1], XIAOC6_Sender_MAC_Address[2],
-    XIAOC6_Sender_MAC_Address[3], XIAOC6_Sender_MAC_Address[4], XIAOC6_Sender_MAC_Address[5]);
+  Serial.printf("controller MAC addr = %02x:%02x:%02x:%02x:%02x:%02x",
+    ControllerMACAddr[0], ControllerMACAddr[1], ControllerMACAddr[2],
+    ControllerMACAddr[3], ControllerMACAddr[4], ControllerMACAddr[5]);
   Serial.println();
 
-  memcpy(peerInfo_sender.peer_addr, XIAOC6_Sender_MAC_Address, 6);
-  esp_err_t addPressStatus = esp_now_add_peer(&peerInfo_sender);
-  if (addPressStatus != ESP_OK)
-  {
+  memcpy(peerInfo_sender.peer_addr, ControllerMACAddr, 6);
+  esp_err_t add_peer_res = esp_now_add_peer(&peerInfo_sender);
+  if (add_peer_res != ESP_OK) {
     Serial.print("Failed to add peer");
-    Serial.println(addPressStatus);
-  }else
-  {
+    Serial.println(add_peer_res);
+  } else {
     Serial.println("Successful to add peer");
   }
 }

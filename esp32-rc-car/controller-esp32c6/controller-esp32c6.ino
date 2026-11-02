@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "WiFi.h"
 #include "esp_now.h" 
+#include "../esp32rc.h"
 
 #define ESPNOW_WIFI_CHANNEL 0
 #define MAX_ESP_NOW_MAC_LEN 6
@@ -20,19 +21,7 @@ static uint8_t Receiver_XIAOC6_MAC_Address[MAX_ESP_NOW_MAC_LEN] = {
 esp_now_peer_info_t peerInfo;
 esp_now_peer_info_t peerInfo1;
 
-typedef struct receiver_meesage_types{
-  char Reveiver_device[MAX_CHARACTERS_NUMBER];
-  char Reveiver_Trag[MAX_CHARACTERS_NUMBER];
-}receiver_meesage_types;
-
-receiver_meesage_types XIAOC6_RECEIVER_INFORATION;
-
-typedef struct message_types{
-  char device[MAX_CHARACTERS_NUMBER];
-  char Trag[MAX_CHARACTERS_NUMBER];
-}message_types;
-
-message_types Personal_XIAOC6_Information;
+RcResponse XIAOC6_RECEIVER_INFORATION;
 
 void espnow_init();
 void espnow_deinit();
@@ -102,12 +91,14 @@ void Association_ReceiverXIAOC6_peer(){
   }
 }
 
+static uint8_t speed = 10;
 void SenderXIAOC6_Send_Data(){
+  RcCommand cmd{
+    CarDirection::Forward,
+    speed++,
+  };
 
-  strcpy(Personal_XIAOC6_Information.device, "XIAOC6 (ctrl)"); 
-  strcpy(Personal_XIAOC6_Information.Trag, "Hello,i'm ctrller"); 
-
-  esp_err_t XIAOC6_RECEIVER_INFORATION_data1 = esp_now_send(Receiver_XIAOC6_MAC_Address, (uint8_t *)&Personal_XIAOC6_Information, sizeof(message_types));
+  esp_err_t XIAOC6_RECEIVER_INFORATION_data1 = esp_now_send(Receiver_XIAOC6_MAC_Address, (uint8_t *)&cmd, sizeof(cmd));
 
   if (XIAOC6_RECEIVER_INFORATION_data1 == ESP_OK)
   {
@@ -130,10 +121,10 @@ void ReceiverXIAOC6_Recive_Data_cb(const esp_now_recv_info *info, const uint8_t 
   memcpy(&XIAOC6_RECEIVER_INFORATION, incomingData, sizeof(XIAOC6_RECEIVER_INFORATION));
   Serial.print("Bytes received: ");
   Serial.println(len);
-  Serial.print("Reveiver_device: ");
-  Serial.println(XIAOC6_RECEIVER_INFORATION.Reveiver_device);
-  Serial.print("Reveiver_Trag: ");
-  Serial.println(XIAOC6_RECEIVER_INFORATION.Reveiver_Trag);
+  //Serial.print("Reveiver_device: ");
+  //Serial.println(XIAOC6_RECEIVER_INFORATION.Reveiver_device);
+  //Serial.print("Reveiver_Trag: ");
+  //Serial.println(XIAOC6_RECEIVER_INFORATION.Reveiver_Trag);
   Serial.println();
 }
 
