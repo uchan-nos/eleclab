@@ -43,9 +43,15 @@ void Association_ReceiverXIAOC6_peer();
 void ReceiverXIAOC6_Recive_Data_cb(const esp_now_recv_info *info, const uint8_t *incomingData, int len);
 
 void setup(){
+    pinMode(LED_BUILTIN, OUTPUT);
+    digitalWrite(LED_BUILTIN, HIGH);
+    for (int i = 0; i < 10; ++i) {
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(100);
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(100);
+    }
     Serial.begin(BAUD);
-    while(!Serial);
-    SenderXIAOC6_MACAddress_Requir();
     SenderXIAOC6_MACAddress_Requir();
     espnow_init();
 
@@ -79,6 +85,11 @@ void Association_ReceiverXIAOC6_peer(){
   peerInfo1.channel = ESPNOW_WIFI_CHANNEL;
   peerInfo1.encrypt = NO_PMK_KEY;
 
+  Serial.printf("peer addr = %02x:%02x:%02x:%02x:%02x:%02x",
+    Receiver_XIAOC6_MAC_Address[0], Receiver_XIAOC6_MAC_Address[1], Receiver_XIAOC6_MAC_Address[2],
+    Receiver_XIAOC6_MAC_Address[3], Receiver_XIAOC6_MAC_Address[4], Receiver_XIAOC6_MAC_Address[5]);
+  Serial.println();
+
   memcpy(peerInfo1.peer_addr, Receiver_XIAOC6_MAC_Address, 6);
   esp_err_t addPressStatus = esp_now_add_peer(&peerInfo1);
   if (addPressStatus != ESP_OK)
@@ -101,6 +112,16 @@ void SenderXIAOC6_Send_Data(){
   if (XIAOC6_RECEIVER_INFORATION_data1 == ESP_OK)
   {
     Serial.println("Data queued for sending");
+    digitalWrite(LED_BUILTIN, LOW);
+  }
+  else
+  {
+    for (int i = 0; i < 10; ++i) {
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(100);
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(100);
+    }
   }
   delay(4000);
 }

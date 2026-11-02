@@ -135,6 +135,11 @@ void Association_SenderXIAOC6_peer(){
   peerInfo_sender.channel = ESPNOW_WIFI_CHANNEL;
   peerInfo_sender.encrypt = NO_PMK_KEY;
 
+  Serial.printf("peer addr = %02x:%02x:%02x:%02x:%02x:%02x",
+    XIAOC6_Sender_MAC_Address[0], XIAOC6_Sender_MAC_Address[1], XIAOC6_Sender_MAC_Address[2],
+    XIAOC6_Sender_MAC_Address[3], XIAOC6_Sender_MAC_Address[4], XIAOC6_Sender_MAC_Address[5]);
+  Serial.println();
+
   memcpy(peerInfo_sender.peer_addr, XIAOC6_Sender_MAC_Address, 6);
   esp_err_t addPressStatus = esp_now_add_peer(&peerInfo_sender);
   if (addPressStatus != ESP_OK)
