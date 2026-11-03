@@ -24,7 +24,7 @@ struct RcCommand {
 struct RcResponse {
 };
 
-size_t FormatMACAddr(char *s, uint8_t *mac);
+size_t FormatMACAddr(char *s, const uint8_t *mac);
 void PrintEspResult(esp_err_t err, const char *act_name);
 
 esp_err_t AddPeer(uint8_t *mac);

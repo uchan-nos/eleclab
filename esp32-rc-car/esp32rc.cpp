@@ -1,9 +1,11 @@
 #include "esp32rc.h"
 
 #include <Arduino.h>
+#include <WiFi.h>
+#include <esp_now.h>
 
 // s は 12 + 5 + 1 = 18 バイト以上必要
-size_t FormatMACAddr(char *s, uint8_t *mac) {
+size_t FormatMACAddr(char *s, const uint8_t *mac) {
   return snprintf(s, 18, "%02x:%02x:%02x:%02x:%02x:%02x",
                   mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 }
