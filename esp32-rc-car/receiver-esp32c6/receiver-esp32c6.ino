@@ -16,7 +16,7 @@ void SendResponse_cb(const wifi_tx_info_t *tx_info, esp_now_send_status_t status
 
 void setup() {
   Serial.begin(BAUD);
-  while(!Serial);
+  //while(!Serial);
   StartWiFi();
   PrintMyMACAddr();
   PrintEspResult(esp_now_init(), "init ESP-NOW");
@@ -25,6 +25,11 @@ void setup() {
   esp_now_register_send_cb(SendResponse_cb);
 
   AddPeer(ControllerMACAddr);
+
+  pinMode(D2, OUTPUT); // INB
+  pinMode(D3, OUTPUT); // INA
+  digitalWrite(D2, LOW);
+  digitalWrite(D3, LOW);
 }
 
 void loop() {
@@ -42,6 +47,16 @@ void RecvCommand_cb(const esp_now_recv_info *info, const uint8_t *incomingData, 
   Serial.print("speed: ");
   Serial.println(cmd.speed);
   Serial.println();
+
+  if (cmd.dir == CarDirection::Forward) {
+    analogWrite(D2, cmd.speed);
+    analogWrite(D3, 0);
+    Serial.printf("analogWrite D2=%d, D3=%d\n", (int)cmd.speed, 0);
+  } else {
+    analogWrite(D2, 0);
+    analogWrite(D3, cmd.speed);
+    Serial.printf("analogWrite D2=%d, D3=%d\n", 0, (int)cmd.speed);
+  }
 }
 void SendResponse_cb(const wifi_tx_info_t *tx_info, esp_now_send_status_t status){
   const uint8_t *mac_addr = tx_info->des_addr;
